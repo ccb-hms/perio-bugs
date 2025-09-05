@@ -1,0 +1,8 @@
+.DS_Store
+.Rhistory
+.Rproj.user/*
+.cache/*
+.ipynb_checkpoints/*
+Feres_PeriodontalMicrobiome/*
+bugsigdb_signatures.gmt
+notes.txt
