@@ -20,15 +20,19 @@ perio_sheet <- perio_sheet |>
     `Smokers (%)` = '...9',
     `Plaque (SD)` = '...17',
     `Bleeding on probing (SD)` = '...19',
-    `Suppuration (SD)` = '...21'
+    `Suppuration (SD)` = '...21',
+    `Diagnosis (periodontitis)` = 'Diagnosis'
   ) 
 
 health_sheet <- overview$`Periodontal health`
 health_sheet <- health_sheet[!is.na(health_sheet$Number), ]
+health_sheet$`Suppuration (SD)` <- NA
+
 health_sheet <- health_sheet |> 
   rename(
     `Plaque (SD)`= '...17',
     `Bleeding on probing (SD)`= '...19',
+    `PD OG (periodontal health)`= 'PD OG',
     # columns renamed to match perio_sheet
     `Clinical attachment loss/level (mm; mean+-SD)`= 'Cliniccal_Attaacchment_loss',
     `CAL. SD`= '...15',
@@ -47,7 +51,7 @@ assessment_sheet <- assessment_sheet |>
     `Elevated in periodontitis - Phylum`= 'Species elevated in periodontitis (p<0.05)',
     `Elevated in periodontitis - Genera`= '...13',
     `Elevated in periodontitis - Species`= '...14',
-    `Source`= '...20',
+    `Source`= '...20'
   )
 
 # drop unused columns
@@ -102,6 +106,24 @@ others_sheet <- others_sheet[idx_others,]
 perio_sheet <- select(perio_sheet, -Number, -REFERENCE)
 health_sheet <- select(health_sheet, -Number, -REFERENCE)
 others_sheet <- select(others_sheet, -Number, -REFERENCE)
+assessment_sheet <- select(assessment_sheet, -Number, -REFERENCE)
 
 # disambiguate columns that are specific to periodontitis/health
 common_cols <- intersect(colnames(perio_sheet), colnames(health_sheet))
+disambiguate_cols <- function(col, group) paste0(col, ' (', group, ')')
+
+perio_sheet <- rename_with(
+  perio_sheet, 
+  disambiguate_cols, 
+  all_of(common_cols), 
+  group = 'periodontitis')
+
+health_sheet <- rename_with(
+  health_sheet, 
+  disambiguate_cols, 
+  all_of(common_cols), 
+  group = 'periodontal health')
+
+# combine all sheets
+df <- bind_cols(general_sheet, perio_sheet, health_sheet, assessment_sheet, others_sheet)
+
