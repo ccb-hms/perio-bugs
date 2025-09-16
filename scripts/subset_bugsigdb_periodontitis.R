@@ -1,4 +1,4 @@
-library(bugsigdbr)
+# library(bugsigdbr)
 library(rentrez)
 
 # get study where condition is periodontitis

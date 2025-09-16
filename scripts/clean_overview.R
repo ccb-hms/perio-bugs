@@ -1,7 +1,7 @@
 library(readxl)
 library(bugsigdbr)
 
-overview_file <- 'Feres_PeriodontalMicrobiome/data/OVERVIEW_SHEET_RY.xlsx'
+overview_file <- 'data/OVERVIEW_SHEET_RY.xlsx'
 
 # Get all sheet names
 sheets <- excel_sheets(overview_file)

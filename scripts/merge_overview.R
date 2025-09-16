@@ -2,7 +2,7 @@ library(readxl)
 library(dplyr)
 
 # Get all sheet names
-overview_file <- 'Feres_PeriodontalMicrobiome/data/OVERVIEW_SHEET_RY.xlsx'
+overview_file <- 'data/OVERVIEW_SHEET_RY.xlsx'
 overview_sheets <- excel_sheets(overview_file)
 
 # Read all sheets into a named list
@@ -26,6 +26,7 @@ perio_sheet <- perio_sheet |>
 
 health_sheet <- overview$`Periodontal health`
 health_sheet <- health_sheet[!is.na(health_sheet$Number), ]
+# add so that in both health and perio sheets
 health_sheet$`Suppuration (SD)` <- NA
 
 health_sheet <- health_sheet |> 
@@ -127,3 +128,4 @@ health_sheet <- rename_with(
 # combine all sheets
 df <- bind_cols(general_sheet, perio_sheet, health_sheet, assessment_sheet, others_sheet)
 
+saveRDS(df, 'output/overview_merged.rds')

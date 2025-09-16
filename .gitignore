@@ -3,7 +3,8 @@
 .Rproj.user/*
 .cache/*
 .ipynb_checkpoints/*
-Feres_PeriodontalMicrobiome/*
 bugsigdb_signatures.gmt
-notes.txt
+notes/*
+data/*
+output/overview_merged.rds
 .Rproj.user
