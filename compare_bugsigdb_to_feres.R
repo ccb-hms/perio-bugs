@@ -38,8 +38,14 @@ sarahs_work_perio_up <- c(
 )
 
 # in bugsigdb but not Feres data:
-"Prevotellaceae"
-"Streptococcus gordonii"
+"Prevotellaceae"                   # table 1: unique perio. UP in diabetes-negative ✓
+"Streptococcus gordonii"           # table 1: common health UP irrespective of diabetes ❌
+
+# in neither bugsigdb or Feres but either unique perio. UP or common perio. UP:
+# https://pmc.ncbi.nlm.nih.gov/articles/PMC3632544/table/pone-0061516-t001/
+"Treponema denticola"              # common perio. UP
+"Prevotella intermedia"            # common perio. UP
+"family of Prevotellaceae"         # common perio. UP
 
 # ---- DOWN in periodontitis:
 
@@ -51,12 +57,18 @@ sarahs_work_perio_dn <- c(
   'Cardiobacterium hominis',       # both
   'Cardiobacterium valvarum',      # both
   'Leptotrichia',                  # both
-  'Leptotrichia',                  # family (Leptotrichiaceae) in bugsigdb, genus in Feres data
+  'Leptotrichia',                  # family (Leptotrichiaceae) in bugsigdb (✓), genus in Feres data (❌)
   'Capnocytophaga sputigena',      # both
   'Porphyromonas sp.'              # both
 )
 
 # in bugsigdb but not Feres data:
-"Hoylesella loescheii"
-"Propionibacteriaceae"
-"Selenomonas noxia"
+"Hoylesella loescheii"             # table 1: ❌
+"Propionibacteriaceae"             # table 1: unique health UP in diabetes-negative ✓
+"Selenomonas noxia"                # table 1: unique health UP in diabetes-negative ✓
+
+# in neither bugsigdb or Feres but in common perio. UP:
+# https://pmc.ncbi.nlm.nih.gov/articles/PMC3632544/table/pone-0061516-t001/
+"Streptococcus infantis"
+"Streptococcus gordonii"
+"Actinomyces naeslundii"
