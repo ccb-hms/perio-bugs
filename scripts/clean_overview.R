@@ -1,5 +1,5 @@
-library(readxl)
 library(bugsigdbr)
+library(readr)
 
 overview_file <- 'output/overview_merged.rds'
 
@@ -100,3 +100,61 @@ unique_seq_plats <- unique(unlist(strsplit(bugsigdb$`Sequencing platform`, split
 unique_seq_plats
 
 seq_type <- df$`Diagnostic Method`
+
+# Following prompt to ChatGPT 4.1
+#
+# create a table that I can save as CSV. 
+# The first column is the original values exactly as pasted here:
+# 
+# [seq_type]
+#
+# For subsequent columns, determine values based on the text in the first column.
+# Use NA when the value cannot be determined or is not applicable.
+#
+# For the second column (Sequencing type) use one of the following values:
+#
+# [unique_seq_types]
+#
+# For the third column (16S variable region), the possible values are 1 to 9.
+# Multiple regions should be pasted together in increasing order. 
+# For example, if the second column is "16S" and the text mentions V4-V5, 
+# the third column should have a value of "45".
+#
+# For the fourth column (Sequencing platform) these are the possible values:
+# 
+# [unique_seq_plats]
+
+# read in produced CSV
+gpt_seqs <- 
+  read_csv("output/gpt_seqs.csv") |> 
+  mutate(`Diagnostic Method` = seq_type, .before = 1)
+
+# differences seem to be related to escape characters
+table(gpt_seqs$Original == seq_type)
+
+# inspect
+View(gpt_seqs |> 
+       mutate(correct = `Diagnostic Method` == Original))
+
+# create output for collaborator to review
+gpt_seqs |> 
+  dplyr::select(-Original) |> 
+  write_csv('output/gpt_seqs_to_validate.csv')
+
+# Other columns that still need ----
+# PMID and associated
+# Statistical test
+# Significance threshold	
+# MHT correction
+# LDA Score above
+# Matched on
+# Confounders controlled for
+# Pielou
+# Shannon
+# Chao1
+# Simpson
+# Inverse Simpson
+# Richness
+# Source
+# Description
+# Abundance in Group 1
