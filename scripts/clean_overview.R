@@ -1,57 +1,27 @@
 library(readxl)
 library(bugsigdbr)
 
-overview_file <- 'data/OVERVIEW_SHEET_RY.xlsx'
+overview_file <- 'output/overview_merged.rds'
 
 # Get all sheet names
-sheets <- excel_sheets(overview_file)
-
-
-# Read all sheets into a named list
-all_data <- lapply(sheets, function(sheet) read_excel(overview_file, sheet = sheet))
-names(all_data) <- sheets
+df <- readRDS(overview_file)
 
 # read in bugsigdb database for reference
 bugsigdb <- importBugSigDB()
 
-# get correspondence between sheets
-# need study number to connect different sheets
-study_num <- all_data$`General information`$Number
-perio_sheet <- all_data$Periodontitis
-perio_sheet <- perio_sheet[!is.na(perio_sheet$Number), ]
-
-health_sheet <- all_data$`Periodontal health`
-health_sheet <- health_sheet[!is.na(health_sheet$Number), ]
-
-perio_num <- perio_sheet$Number
-table(perio_num %in% study_num)
-
-health_num <- health_sheet$Number
-table(health_num %in% study_num)
-
-# studies that are not in "General information" sheet
-perio_num[!perio_num %in% study_num]
-setequal(perio_num, health_num)
-
-# have all studies that are in "General information" sheet
-table(study_num %in% perio_num)
-
-# get index to match between two sheets
-idx_perio <- match(study_num, perio_num)
-idx_health <- match(study_num, health_num)
-
-all.equal(study_num, perio_num[idx_perio])
-all.equal(study_num, health_num[idx_health])
-
+# common function to extract unique types from bugsigdb column
+extract_unique <- function(vals) {
+  unique(unlist(strsplit(vals, split = ",(?! )", perl = TRUE)))
+}
 
 # extract and cleanup all fields from Feres data that need for bugsigdb
 
 # Study design ----
-unique_designs <- unique(unlist(strsplit(bugsigdb$`Study design`, split = ",(?! )", perl = TRUE)))
+unique_designs <- extract_unique(bugsigdb$`Study design`)
 unique_designs
 
 # general cleanup
-designs <- all_data$`General information`$`Study design`
+designs <- df$`Study design`
 unique(designs)
 
 # values that might need fixing
@@ -70,10 +40,10 @@ designs[grepl('cross', designs) &
 # TODO: clarify "cohort" and "non-randomized studies of interventions*"
 
 # Location of subjects ----
-unique_locs <- unique(unlist(strsplit(bugsigdb$`Location of subjects`, split = ",(?! )", perl = TRUE)))
+unique_locs <- extract_unique(bugsigdb$`Location of subjects`)
 unique_locs
 
-locs <- all_data$`General information`$Country
+locs <- df$Country
 
 # values that might need fixing
 unique(locs[!locs %in% unique_locs])
@@ -87,9 +57,12 @@ locs[locs == 'United States'] <- 'United States of America'
 locs[locs %in% c('Netherland', 'The Netherlands')] <- 'Netherlands'
 locs[locs == 'UK'] <- 'United Kingdom'
 locs[locs == 'Korea'] <- 'South Korea'
+locs[locs == 'Russia'] <- 'Russian Federation'
+
 
 # Body site ----
 # assume all the same
+# TODO: ask Feres group explicitly
 body_site <- rep("Subgingival dental plaque", length(locs))
 
 # Group names ----
@@ -101,7 +74,29 @@ group1_name <- rep('periodontitis', length(locs))
 # Group 1 (Periodontits) definition ----
 # NOTE: Group 0 definition not present in BugSigDB
 
-group1_def <- perio_sheet$`Criteria used to define periodontitis`[idx_perio]
+group1_def <- df$`Criteria used to define periodontitis`
 
 # Group sample size ----
-group0_size <- health_sheet$N[idx_health]
+
+# Group 0 (periodontal health) and 1 (periodontitis)
+group0_size <- df$`Sample size (periodontal health)`
+group1_size <- df$`Sample size (periodontitis)`
+
+# TODO: figure out multi-entry values 
+#  -> agressive, generalised aggressive, chronic, etc
+#  -> sum them? split into separate signatures? keep one?
+
+# Antibiotic exclusion ----
+# TODO: collect?
+
+# Sequencing type, region, and platform ----
+unique_seq_types <- extract_unique(bugsigdb$`Sequencing type`)
+unique_seq_types
+
+unique_16s_regions <- unique(bugsigdb$`16S variable region`)
+unique_16s_regions
+
+unique_seq_plats <- unique(unlist(strsplit(bugsigdb$`Sequencing platform`, split = ",(?! )", perl = TRUE)))
+unique_seq_plats
+
+seq_type <- df$`Diagnostic Method`
