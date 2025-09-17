@@ -1,5 +1,6 @@
 library(bugsigdbr)
 library(readr)
+library(rentrez)
 
 overview_file <- 'output/overview_merged.rds'
 
@@ -32,10 +33,10 @@ designs <- trimws(gsub("\\s+", " ", designs))
 
 # replace with bugsigdb values
 designs[grepl('case', designs) & 
-               grepl('control', designs)] <- "case-control"
+          grepl('control', designs)] <- "case-control"
 
 designs[grepl('cross', designs) & 
-               grepl('sectional', designs)] <- "cross-sectional observational, not case-control"
+          grepl('sectional', designs)] <- "cross-sectional observational, not case-control"
 
 # TODO: clarify "cohort" and "non-randomized studies of interventions*"
 
@@ -141,8 +142,62 @@ gpt_seqs |>
   dplyr::select(-Original) |> 
   write_csv('output/gpt_seqs_to_validate.csv')
 
+# get possible PMIDs ----
+refs <- df$REFERENCE
+years <- df$Year
+
+pmids <- list()
+
+for (i in seq_along(refs)) {
+  cat('Working on', i, 'of', length(refs), '...')
+  ref <- refs[i]
+  year <- years[i]
+  # remove instances of et al
+  authors <- gsub("(,?\\s*et\\.?\\s*al\\.?\\,?\\s*)$", "", ref, ignore.case = TRUE)
+  
+  # split authors
+  first_author <- strsplit(authors, split = ',')[[1]][1]
+  
+  # remove initials: patterns that are one or more spaces followed by caps and dots at the end
+  first_author <- gsub("\\s+[A-Z\\.\\s]+$", "", first_author)
+  
+  # remove unicode whitespace
+  first_author <- trimws(first_author, whitespace = "[\\h\\v]")
+  
+  # create query string
+  query <- paste0(
+    first_author, "[First Author] AND ",
+    year, "[dp] AND ",
+    "periodontitis"
+  )
+  
+  res <- entrez_search(db = "pubmed", term = query, retmax = 10)
+  cat('Found', length(res$ids), 'ids.\n')
+  
+  if (length(res$ids)) 
+    pmids[[i]] <- res$ids
+}
+
+# create table for chat GPT to pick best results of
+gpt_pmids <- df[, c('REFERENCE', 'Year')] |>
+  mutate(REF_NUM = seq_len(n())) |> 
+  mutate(
+    PMID = purrr::map(REF_NUM, ~ pmids[[.x]])
+  ) |> 
+  tidyr::unnest_longer(
+    PMID, 
+    values_to = "PMID", 
+    keep_empty = TRUE
+  )
+
+# get records for PMIDs
+na.pmid <- is.na(gpt_pmids$PMID)
+records <- entrez_summary(db = "pubmed", id = gpt_pmids$PMID[!na.pmid])
+
+# TODO: add records details, get ChatGPT to select most likely, ask colaborators
+# to validate
+
 # Other columns that still need ----
-# PMID and associated
 # Statistical test
 # Significance threshold	
 # MHT correction
