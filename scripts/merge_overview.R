@@ -129,3 +129,4 @@ health_sheet <- rename_with(
 df <- bind_cols(general_sheet, perio_sheet, health_sheet, assessment_sheet, others_sheet)
 
 saveRDS(df, 'output/overview_merged.rds')
+write.csv(df, 'output/overview_merged.csv')
