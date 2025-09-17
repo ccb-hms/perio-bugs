@@ -1,5 +1,3 @@
-# perio-bugs
-
 # Microbial Signatures of Periodontal Disease
 
 *Standardized, accessible, and FAIR data resources of published microbial differential abundance signatures in periodontal health and disease.*
