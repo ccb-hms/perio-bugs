@@ -178,8 +178,8 @@ for (i in seq_along(refs)) {
     pmids[[i]] <- res$ids
 }
 
-# create table for chat GPT to pick best results of
-gpt_pmids <- df[, c('REFERENCE', 'Year')] |>
+# create table to pick best results of
+possible_pmids <- df[, c('REFERENCE', 'Year')] |>
   mutate(REF_NUM = seq_len(n())) |> 
   mutate(
     PMID = purrr::map(REF_NUM, ~ pmids[[.x]])
@@ -191,11 +191,21 @@ gpt_pmids <- df[, c('REFERENCE', 'Year')] |>
   )
 
 # get records for PMIDs
-na.pmid <- is.na(gpt_pmids$PMID)
-records <- entrez_summary(db = "pubmed", id = gpt_pmids$PMID[!na.pmid])
+na.pmid <- is.na(possible_pmids$PMID)
+records <- entrez_summary(db = "pubmed", id = possible_pmids$PMID[!na.pmid])
 
-# TODO: add records details, get ChatGPT to select most likely, ask colaborators
-# to validate
+# add records details
+record_df <- tibble(
+  PMID = names(records),
+  authors = sapply(records, function(rec) paste(rec$authors$name, collapse=', ')),
+  journal = sapply(records, `[[`, 'fulljournalname'),
+  title = sapply(records, `[[`, 'title')
+) |> 
+  distinct() |> 
+  mutate(URL = paste0("https://pubmed.ncbi.nlm.nih.gov/", PMID))
+
+possible_pmids <- left_join(possible_pmids, record_df)
+write.csv(possible_pmids, 'output/possible_pmids.csv')
 
 # Other columns that still need ----
 # Statistical test
