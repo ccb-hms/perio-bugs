@@ -16,15 +16,15 @@ split_by_study <- function(db) {
     tidyr::fill(Number, .direction = "down") |> 
     dplyr::group_split(Number, .keep = FALSE) |> 
     setNames(unique(na.omit(db$Number))) |> 
-    map(~ dplyr::filter(.x, !if_all(dplyr::everything(), is.na)))
+    purrr::map(~ dplyr::filter(.x, !if_all(dplyr::everything(), is.na)))
 }
-  
+
 # for processing "Old DATABASE", "New DATABASE", and "Sarah's Work"
 process_database <- function(db) {
   
   # remove reference column and empty column
   db$...11 <- db$...2 <- NULL
-
+  
   # indices for columns that are elevated in health/perio
   elevated_in_health_cols <- 2:9
   elevated_in_perio_cols <- 10:17
@@ -106,4 +106,80 @@ table(names(sarahs_db2$db_up) %in% overview$Number)
 # all of "Sarah's Work" is present in "Sarah's Work (2)"
 table(names(sarahs_db$db_up) %in% names(sarahs_db2$db_up))
 
+# have microbe data for all studies in overview
+table(
+  overview$Number %in%
+    unique(c(names(old_database$db_up), names(sarahs_db2$db_up)))
+)
+
+# get most specific name from df of differentially abundant species
+most_specific_name_base <- function(df) {
+  specific_cols <- c("Species", "Genus", "Family", "Order", "Class", "Phylum", "Kingdom", "Domain")
+  apply(df, 1, function(row) {
+    g <- row["Genus"]
+    s <- row["Species"]
+    if(!is.na(g) && g != "" && !is.na(s) && s != "") {
+      paste(g, s)
+    } else {
+      vals <- row[specific_cols]
+      vals <- vals[vals != "" & !is.na(vals)]
+      vals[1]
+    }
+  })
+}
+
+diff_species <- unlist(lapply(
+  c(old_database$db_up, old_database$db_dn), 
+  function(tbl) most_specific_name_base(tbl)
+))
+
+# save list for chatGPT
+writeLines(
+  unique(diff_species), 
+  'output/diff_species.txt'
+)
+
+# read in results
+gpt_names <- read.csv('output/gpt_names.csv')
+
+# keep iterating until chatGPT gives full output
+setdiff(gpt_names$Original_Name, diff_species)
+setdiff(diff_species, gpt_names$Original_Name)
+all.equal(unique(diff_species), gpt_names$Original_Name)
+
+# have taxon ids for studies in sarahs_db2
+# get taxon id for studies in old_database
+gpt_official <- gpt_names$NCBI_Official_Taxon_Name
+res <- lapply(gpt_official, taxizedb::name2taxid, out_type = 'summary')
+names(res) <- gpt_names$Original_Name
+
+# either multiple results or none
+ambig <- sapply(res, function(df) nrow(df) > 1)
+absnt <- sapply(res, function(df) nrow(df) == 0)
+table(ambig)
+table(absnt)
+
+res[ambig]
+gpt_official[absnt]
+
+# try less specific name
+needs_fixing <- gpt_official[absnt]
+less_specific <- gsub(' oral taxon.+?$', '', needs_fixing)
+less_specific <- gsub(' clone.+?$', '', less_specific)
+less_specific <- gsub(' subsp.+?$', '', less_specific)
+less_specific <- gsub(' sp.+?$', '', less_specific)
+less_specific <- gsub('( bacterium) .+?$', '\\1', less_specific)
+less_specific <- gsub('^[^ ]+ (.+bacterium)$', '\\1', less_specific)
+less_specific <- gsub('Saccharibacteria', 'Saccharimonadota', less_specific)
+
+res2 <- lapply(less_specific, taxizedb::name2taxid, out_type = 'summary')
+ambig2 <- sapply(res2, function(df) nrow(df) > 1)
+absnt2 <- sapply(res2, function(df) nrow(df) == 0)
+table(ambig2)
+table(absnt2)
+
+# a few remaining
+needs_fixing[absnt2]
+
+taxizedb::name2taxid("saccharimonadota bacterium", out_type = 'summary')
 

@@ -135,7 +135,7 @@ table(gpt_seqs$Original == seq_type)
 
 # inspect
 View(gpt_seqs |> 
-       mutate(correct = `Diagnostic Method` == Original))
+       mutate(preserved_original = `Diagnostic Method` == Original))
 
 # create output for collaborator to review
 gpt_seqs |> 
@@ -206,6 +206,8 @@ record_df <- tibble(
 
 possible_pmids <- left_join(possible_pmids, record_df)
 write.csv(possible_pmids, 'output/possible_pmids.csv')
+
+# load in microbe data ----
 
 # Other columns that still need ----
 # Statistical test
