@@ -128,58 +128,132 @@ most_specific_name_base <- function(df) {
   })
 }
 
-diff_species <- unlist(lapply(
+original_names <- unlist(lapply(
   c(old_database$db_up, old_database$db_dn), 
   function(tbl) most_specific_name_base(tbl)
 ))
 
+original_names <- unique(original_names)
+
 # save list for chatGPT
 writeLines(
-  unique(diff_species), 
-  'output/diff_species.txt'
+  original_names, 
+  'output/original_names.txt'
 )
 
-# read in results
-gpt_names <- read.csv('output/gpt_names.csv')
+# chatGPT guesses for official taxon names in old_database
+gpt_res <- read.csv('output/gpt_names.csv')
+gpt_names <- gpt_res$NCBI_Official_Taxon_Name
+gpt_original <- gpt_res$Original_Name
 
 # keep iterating until chatGPT gives full output
-setdiff(gpt_names$Original_Name, diff_species)
-setdiff(diff_species, gpt_names$Original_Name)
-all.equal(unique(diff_species), gpt_names$Original_Name)
+setdiff(gpt_original, original_names)
+setdiff(original_names, gpt_original)
+all.equal(unique(original_names), gpt_original)
 
-# have taxon ids for studies in sarahs_db2
-# get taxon id for studies in old_database
-gpt_official <- gpt_names$NCBI_Official_Taxon_Name
-res <- lapply(gpt_official, taxizedb::name2taxid, out_type = 'summary')
-names(res) <- gpt_names$Original_Name
+# first atempt with original names ----
+# convert names to taxids
+res <- lapply(original_names, taxizedb::name2taxid, out_type = 'summary')
 
 # either multiple results or none
-ambig <- sapply(res, function(df) nrow(df) > 1)
-absnt <- sapply(res, function(df) nrow(df) == 0)
-table(ambig)
-table(absnt)
+orig_ambig <- sapply(res, function(df) nrow(df) > 1)
+orig_absnt <- sapply(res, function(df) nrow(df) == 0)
+table(orig_ambig)
+table(orig_absnt)
 
-res[ambig]
-gpt_official[absnt]
+original_names[orig_ambig]
+gpt_names[orig_ambig]
 
-# try less specific name
-needs_fixing <- gpt_official[absnt]
-less_specific <- gsub(' oral taxon.+?$', '', needs_fixing)
-less_specific <- gsub(' clone.+?$', '', less_specific)
-less_specific <- gsub(' subsp.+?$', '', less_specific)
-less_specific <- gsub(' sp.+?$', '', less_specific)
-less_specific <- gsub('( bacterium) .+?$', '\\1', less_specific)
-less_specific <- gsub('^[^ ]+ (.+bacterium)$', '\\1', less_specific)
-less_specific <- gsub('Saccharibacteria', 'Saccharimonadota', less_specific)
+# second attempt with GPT names ----
+use.gpt <- orig_absnt | orig_ambig
+gpt_names <- gpt_names[use.gpt]
 
-res2 <- lapply(less_specific, taxizedb::name2taxid, out_type = 'summary')
-ambig2 <- sapply(res2, function(df) nrow(df) > 1)
-absnt2 <- sapply(res2, function(df) nrow(df) == 0)
-table(ambig2)
-table(absnt2)
+# fix up some identified errors 
 
-# a few remaining
-needs_fixing[absnt2]
+# pick one (could be either)
+gpt_names <- gsub('intermedia\\/nigrescens', 'intermedia', gpt_names)
 
-taxizedb::name2taxid("saccharimonadota bacterium", out_type = 'summary')
+# use correct identifier as only have phylum
+gpt_names <- gsub('^Firmicutes$', 'Bacillaeota', gpt_names)
+
+# misspellings
+gpt_names <- gsub('Arsenicococcus', 'Arsenicicoccus', gpt_names)
+gpt_names <- gsub('Fusibacterium', 'Fusobacterium', gpt_names)
+
+# official name is updated
+gpt_names <- gsub('GNO2 \\[G-1\\]', 'Gracilibacteria', gpt_names)
+gpt_names <- gsub('Prevotella oralis', 'Hoylesella oralis', gpt_names)
+gpt_names[gpt_names == 'Fusobacterium nucleatum subsp. polymorphum'] <- 'Fusobacterium polymorphum'
+gpt_names[gpt_names == 'Fusobacterium nucleatum subsp. vincentii'] <- 'Fusobacterium vincentii'
+
+# alternative name works better with taxizedb
+gpt_names <- gsub('Candidatus Saccharibacteria bacterium', 'TM7 phylum sp.', gpt_names)
+
+# second attempt 
+
+# convert names to taxids
+res <- lapply(gpt_names, taxizedb::name2taxid, out_type = 'summary')
+
+# either multiple results or none
+gpt_ambig <- sapply(res, function(df) nrow(df) > 1)
+gpt_absnt <- sapply(res, function(df) nrow(df) == 0)
+table(gpt_ambig)
+table(gpt_absnt)
+
+gpt_names[gpt_absnt]
+
+# third attempt with simplified names ----
+
+needs_fixing <- gpt_names[gpt_absnt]
+
+# remove " oral taxon...", " clone...", and " subsp..." at end
+simple_names <- gsub(' oral taxon.+?$', '', needs_fixing)
+simple_names <- gsub(' clone.+?$', '', simple_names)
+simple_names <- gsub(' subsp.+?$', '', simple_names)
+
+# remove anything after unclassified species ("sp.")
+simple_names <- gsub('(sp[.]).+?$', '\\1', simple_names)
+
+# set multiple unclassified species ("spp.") to unclassified species ("sp.")
+simple_names <- gsub(' spp[.]$', ' sp.', simple_names)
+
+# remove anything after " bacterium"
+simple_names <- gsub('( bacterium) .+?$', '\\1', simple_names)
+
+# set remaining TM7 to unclassified
+simple_names[simple_names == 'TM7 phylum sp.'] <- 'unclassified Candidatus Saccharimonadota'
+
+res <- lapply(simple_names, taxizedb::name2taxid, out_type = 'summary')
+simple_ambig <- sapply(res, function(df) nrow(df) > 1)
+simple_absnt <- sapply(res, function(df) nrow(df) == 0)
+table(simple_ambig)
+table(simple_absnt)
+
+# for checking the few remaining
+original_names[use.gpt][gpt_absnt][simple_absnt]
+
+# final result ----
+cleaned_names <- original_names
+cleaned_names[use.gpt] <- gpt_names
+cleaned_names[use.gpt][gpt_absnt] <- simple_names
+
+taxids <- taxizedb::name2taxid(cleaned_names)
+
+df <- data.frame(
+  original_name = original_names,
+  gpt_name = NA,
+  simple_name = NA,
+  taxid = taxids
+)
+
+df$gpt_name[use.gpt] <- gpt_names
+df$simple_name[use.gpt][gpt_absnt] <- simple_names
+
+View(df)
+
+# save results for Feres lab to validate
+# don't need to validate entries where original and clean are the same
+df |> 
+  filter(original_name != cleaned_names) |> 
+  write.csv('output/taxon_ids_to_validate.csv')
 
