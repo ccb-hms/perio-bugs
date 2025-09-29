@@ -203,8 +203,9 @@ table(gpt_absnt)
 gpt_names[gpt_absnt]
 
 # third attempt with simplified names ----
+use.simple <- gpt_absnt | gpt_ambig
 
-needs_fixing <- gpt_names[gpt_absnt]
+needs_fixing <- gpt_names[use.simple]
 
 # remove " oral taxon...", " clone...", and " subsp..." at end
 simple_names <- gsub(' oral taxon.+?$', '', needs_fixing)
@@ -230,30 +231,46 @@ table(simple_ambig)
 table(simple_absnt)
 
 # for checking the few remaining
-original_names[use.gpt][gpt_absnt][simple_absnt]
+original_names[use.gpt][use.simple][simple_absnt]
 
 # final result ----
 cleaned_names <- original_names
 cleaned_names[use.gpt] <- gpt_names
-cleaned_names[use.gpt][gpt_absnt] <- simple_names
+cleaned_names[use.gpt][use.simple] <- simple_names
 
-taxids <- taxizedb::name2taxid(cleaned_names)
-
-df <- data.frame(
+taxid_tbl <- data.frame(
   original_name = original_names,
   gpt_name = NA,
   simple_name = NA,
-  taxid = taxids
+  taxid = taxizedb::name2taxid(cleaned_names)
 )
 
-df$gpt_name[use.gpt] <- gpt_names
-df$simple_name[use.gpt][gpt_absnt] <- simple_names
+taxid_tbl$gpt_name[use.gpt] <- gpt_names
+taxid_tbl$simple_name[use.gpt][use.simple] <- simple_names
 
-View(df)
+View(taxid_tbl)
 
 # save results for Feres lab to validate
 # don't need to validate entries where original and clean are the same
-df |> 
+taxid_tbl |> 
   filter(original_name != cleaned_names) |> 
   write.csv('output/taxon_ids_to_validate.csv')
 
+# add taxon ids for differential species tables using lookup table (taxid_tbl)
+add_taxid <- function(tbl, taxid_tbl) {
+  taxon_names <- most_specific_name_base(tbl)
+  idx <- match(taxon_names, taxid_tbl$original_name)
+  tbl$`Taxon ID` <- taxid_tbl$taxid[idx]
+  return(tbl)
+}
+
+old_database$db_up <- lapply(old_database$db_up, add_taxid, taxid_tbl = taxid_tbl)
+old_database$db_dn <- lapply(old_database$db_dn, add_taxid, taxid_tbl = taxid_tbl)
+
+# merge all differentially up and down tables
+diff_species <- list(
+  db_up = c(old_database$db_up, sarahs_db2$db_up),
+  db_dn = c(old_database$db_dn, sarahs_db2$db_dn)
+)
+
+saveRDS(diff_species, 'output/diff_species.rds')
