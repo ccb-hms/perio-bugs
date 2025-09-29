@@ -209,6 +209,10 @@ write.csv(possible_pmids, 'output/possible_pmids.csv')
 
 # load in microbe data ----
 
+diff_species <- readRDS('output/diff_species.rds')
+db_up <- diff_species$db_up
+db_dn <- diff_species$db_dn
+
 # Other columns that still need ----
 # Statistical test
 # Significance threshold	
