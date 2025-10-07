@@ -1,0 +1,194 @@
+Actinomyces sp _ot 180
+Actinomyces sp _ot 525
+Arsenicococcus sp _ot 190
+Bacteroides zoogleoformans _ot 465
+Bacteroidetes [G-3] sp _ot 280
+Butyrivibrio sp _ot 094
+Chlamydophila pneumoniae _ot 733
+Clostridiales [F-2] [G-3] sp _ot 366
+Lachnoanaerobaculum sp _ot 082
+Megasphaera sp _ot 841
+Mogibacterium timidum _ot 042
+Parvimonas micra _ot 111
+Peptostreptococcaceae [XI] [G-3] sp _ot 382
+Prevotella dentalis _ot 583
+Prevotella oralis _ot 705
+Prevotella sp _ot 443
+Prevotella sp _ot 515
+Selenomonas sp _ot 388
+TM7 [G-1] sp _ot 346
+Veillonella sp _ot 780
+Veillonellaceae [G-1] sp _ot 135
+Spirochaetes
+Synergistetes OTU 2P9 (clone 7.1)
+Synergistetes OTU 4P12 (clone W090, Fretibacterium fastidiosum)
+Synergistetes OTU 6P18
+Synergistetes OTU 7P1 (clone BH007)
+Synergistetes OTU 7P22
+Helicobacter pylori
+Actinomyces naeslundii II (viscosus)
+Bacteroidetes clone AU126
+Cryptobacterium curtum
+Deferribacteres clones D084/BH017
+Dialister strain GBA27
+Eikenella corrodens
+Eubacterium saphenum
+Filifactor alocis
+Megasphaera oral clone BB166
+OP11 clone X112
+Peptostreptococcus micros
+Porphyromonas endodontalis
+Porphyromonas gingivalis
+Prevotella denticola
+Rothia dentocariosa
+Selenomonas sputigena
+Tannerella forsythensis (B. forsythus)
+TM7 clone I025
+Treponema denticola
+Treponema lecithinolyticum
+Treponema medium
+Treponema socranski
+Aggregatibacter actinomycetemcomitans
+Campylobacter rectus
+Tannerella forsythia
+Prevotella intermedia
+Desulfobulbus sp. OT 041
+Candida parapsilosis
+Aggregatibacter actinomycetemcomitans [aggressive periodontitis]
+Porphyromonas gingivalis [aggressive periodontitis]
+Prevotella intermedia [aggressive periodontitis]
+Tannerella forsythia [aggressive periodontitis]
+Treponema denticola [aggressive periodontitis]
+Porphyromonas gingivalis [chronic periodontitis]
+Prevotella intermedia [chronic periodontitis]
+Tannerella forsythia [chronic periodontitis]
+Treponema denticola [chronic periodontitis]
+Enterococcus faecalis
+Pseudomonas aeruginosa
+Eubacterium nodatum
+Parvimonas micra
+Prevotella nigrescens
+Leptotrichia buccalis
+Selenomonas noxia
+Synergistetes OTU 4.2
+Dialister pneumosintes
+Actinomyces israelii
+Campylobacter showae
+Fusobacterium nucleatum ssp nucleatum
+Fusobacterium nucleatum ssp polymorphum
+Fusobacterium nucleatum ssp vincentii
+Fusobacterium periodonticum
+Streptococcus constellatus
+Streptococcus intermedius
+Streptococcus mitis
+Streptococcus oralis
+Treponema socranskii
+Actinomyces gerencseriae
+Micromonas micros
+Actinobacillus actinomycetemcomitans
+Peptostreptococcus spp.
+Prevotella intermedia/nigrescens
+Streptococcus anginosus group 3
+Bacteroides forsythus
+Fusobacterium nucleatum
+Fusobacterium alocis
+Eubacterium brachy
+Spirochetes spp.
+Anaeroglobus geminatus
+Bifidobacterium dentum
+Eubacterium yuri subsp
+Peptostreptococcus stomatis
+Prevotella tannerae
+Selenomonas dianae
+Treponema amylovorum
+Treponema maltophilum
+Treponema socranskii subsp
+Treponema vincentii medium
+Aggregatibacter AY349380
+Bacteroidales oral taxon 274
+Clostridiales MCE7 107
+Desulfobulbus R004
+Fusobacterium oral taxon A71
+Johnsonella CK051
+Lachnospiraceae JM048
+Leptotrichia EX103
+Leptotrichia IK040
+Leptotrichia oral taxon 210
+Peptoniphilus oral taxon 113
+Prevotella genomosp P4
+Selenomonas EY047
+Shuttleworthia C1
+Synergistes oral taxon 360 453
+Synergistes oral taxon G36
+TM7 401H12
+TM7 oral taxon 349
+TM7 oral taxon 437
+Treponema E D 05 72
+Treponema E25 8
+Treponema II C T1
+Treponema oral taxon 230
+Veillonellaceae oral taxon 129
+Veillonellaceae oral taxon 135
+Achromobacter xylosoxidans _ot 343
+Actinomyces gerencseriae _ot 618
+Actinomyces johnsonii _ot 849
+Actinomyces massiliensis _ot 852
+Actinomyces sp _ot 171
+Aggregatibacter aphrophilus _ot 545
+Capnocytophaga granulosa _ot 325
+Capnocytophaga leadbetteri _ot 329
+Capnocytophaga sp _ot 338
+Cardiobacterium hominis _ot 633
+Comamonas testosteroni _ot 858
+Corynebacterium durum _ot 595
+GNO2 [G-1] sp _ot 871
+GNO2 [G-1] sp _ot 872
+Kingella denitrificans _ot 582
+Leptotrichia goodfellowii _ot 845
+Leptotrichia sp _ot 212
+Leptotrichia sp _ot 879
+Neisseria elongata _ot 598
+Porphyromonas catoniae _ot 283
+Ralstonia pickettii _ot 854
+TM7 [G-1] sp _ot 352
+Actinobacteria
+Firmicutes
+Proteobacteria
+Atopobium parvulum
+Atopobium rimae
+Bacteroidetes clone BU063
+Corynebacterium matruchotii
+Deferribacteres clone W090
+Actinomyces naeslundii
+Capnocytophaga gingivalis
+Actinomyces naeslundii 1
+Capnocytophaga ochracea
+Capnocytophaga sputigena
+Eubacterium saburreum
+Propionibacterium acnes
+Streptococcus anginosus
+Streptococcus gordonii
+Streptococcus sanguinis
+Veillonella parvula
+Eubacterium spp.
+Streptococcus sanguis
+Acinetobacter junii
+Acinetobacter sp. RUH11391
+Actinomyces massiliensis
+Actinomyces oral taxon 171
+Actinomyces viscous naeslundii
+Arthrobacter woluwensis
+Brachybacterium rhamnosum
+Comamonadaceae 98-63833
+Comamonadaceae VE3A04I
+Comamonadaceae nbu379c11c1
+Gemella morbillorum
+Granulicatella adiacens
+Haemophilus P3D1 620
+Haemophilus parahaemolyticus
+Lautropia AP009
+Lautropia mirabilis
+Moraxella osloensis
+Rothia aeria
+Streptococcus mitis pneumoniae
+Streptococcus oral taxon B66

@@ -7,4 +7,6 @@ bugsigdb_signatures.gmt
 notes/*
 data/*
 output/overview_merged.rds
+output/diff_species.rds
+output/possible_pmids.csv
 .Rproj.user
