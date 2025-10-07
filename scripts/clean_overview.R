@@ -153,69 +153,74 @@ gpt_seqs |>
   write_csv('output/gpt_seqs_to_validate.csv')
 
 # get possible PMIDs ----
-refs <- df$REFERENCE
-years <- df$Year
 
-pmids <- list()
-
-for (i in seq_along(refs)) {
-  cat('Working on', i, 'of', length(refs), '...')
-  ref <- refs[i]
-  year <- years[i]
-  # remove instances of et al
-  authors <- gsub("(,?\\s*et\\.?\\s*al\\.?\\,?\\s*)$", "", ref, ignore.case = TRUE)
+# skip if already have
+if (!file.exists('output/possible_pmids.csv')) {
+  refs <- df$REFERENCE
+  years <- df$Year
   
-  # split authors
-  first_author <- strsplit(authors, split = ',')[[1]][1]
+  pmids <- list()
   
-  # remove initials: patterns that are one or more spaces followed by caps and dots at the end
-  first_author <- gsub("\\s+[A-Z\\.\\s]+$", "", first_author)
+  for (i in seq_along(refs)) {
+    cat('Working on', i, 'of', length(refs), '...')
+    ref <- refs[i]
+    year <- years[i]
+    # remove instances of et al
+    authors <- gsub("(,?\\s*et\\.?\\s*al\\.?\\,?\\s*)$", "", ref, ignore.case = TRUE)
+    
+    # split authors
+    first_author <- strsplit(authors, split = ',')[[1]][1]
+    
+    # remove initials: patterns that are one or more spaces followed by caps and dots at the end
+    first_author <- gsub("\\s+[A-Z\\.\\s]+$", "", first_author)
+    
+    # remove unicode whitespace
+    first_author <- trimws(first_author, whitespace = "[\\h\\v]")
+    
+    # create query string
+    query <- paste0(
+      first_author, "[First Author] AND ",
+      year, "[dp] AND ",
+      "periodontitis"
+    )
+    
+    res <- entrez_search(db = "pubmed", term = query, retmax = 10)
+    cat('Found', length(res$ids), 'ids.\n')
+    
+    if (length(res$ids)) 
+      pmids[[i]] <- res$ids
+  }
   
-  # remove unicode whitespace
-  first_author <- trimws(first_author, whitespace = "[\\h\\v]")
+  # create table to pick best results of
+  possible_pmids <- df[, c('REFERENCE', 'Year')] |>
+    mutate(REF_NUM = seq_len(n())) |> 
+    mutate(
+      PMID = purrr::map(REF_NUM, ~ pmids[[.x]])
+    ) |> 
+    tidyr::unnest_longer(
+      PMID, 
+      values_to = "PMID", 
+      keep_empty = TRUE
+    )
   
-  # create query string
-  query <- paste0(
-    first_author, "[First Author] AND ",
-    year, "[dp] AND ",
-    "periodontitis"
-  )
+  # get records for PMIDs
+  na.pmid <- is.na(possible_pmids$PMID)
+  records <- entrez_summary(db = "pubmed", id = possible_pmids$PMID[!na.pmid])
   
-  res <- entrez_search(db = "pubmed", term = query, retmax = 10)
-  cat('Found', length(res$ids), 'ids.\n')
+  # add records details
+  record_df <- tibble(
+    PMID = names(records),
+    authors = sapply(records, function(rec) paste(rec$authors$name, collapse=', ')),
+    journal = sapply(records, `[[`, 'fulljournalname'),
+    title = sapply(records, `[[`, 'title')
+  ) |> 
+    distinct() |> 
+    mutate(URL = paste0("https://pubmed.ncbi.nlm.nih.gov/", PMID))
   
-  if (length(res$ids)) 
-    pmids[[i]] <- res$ids
+  possible_pmids <- left_join(possible_pmids, record_df)
+  write.csv(possible_pmids, 'output/possible_pmids.csv')
 }
 
-# create table to pick best results of
-possible_pmids <- df[, c('REFERENCE', 'Year')] |>
-  mutate(REF_NUM = seq_len(n())) |> 
-  mutate(
-    PMID = purrr::map(REF_NUM, ~ pmids[[.x]])
-  ) |> 
-  tidyr::unnest_longer(
-    PMID, 
-    values_to = "PMID", 
-    keep_empty = TRUE
-  )
-
-# get records for PMIDs
-na.pmid <- is.na(possible_pmids$PMID)
-records <- entrez_summary(db = "pubmed", id = possible_pmids$PMID[!na.pmid])
-
-# add records details
-record_df <- tibble(
-  PMID = names(records),
-  authors = sapply(records, function(rec) paste(rec$authors$name, collapse=', ')),
-  journal = sapply(records, `[[`, 'fulljournalname'),
-  title = sapply(records, `[[`, 'title')
-) |> 
-  distinct() |> 
-  mutate(URL = paste0("https://pubmed.ncbi.nlm.nih.gov/", PMID))
-
-possible_pmids <- left_join(possible_pmids, record_df)
-write.csv(possible_pmids, 'output/possible_pmids.csv')
 
 # chatGPT based cleanup of messy columns ----
 source('output/gpt_fixes.R')
