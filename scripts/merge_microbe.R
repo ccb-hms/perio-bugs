@@ -153,6 +153,11 @@ all.equal(unique(original_names), gpt_original)
 
 # first atempt with original names ----
 # convert names to taxids
+
+# this gets about 10 additional on first pass (chatGPT gets at least 9 anyway)
+# original_names <- gsub('_ot', 'oral taxon', original_names)
+# original_names <- gsub('sp[.]?', '.', original_names)
+
 res <- lapply(original_names, taxizedb::name2taxid, out_type = 'summary')
 
 # either multiple results or none
@@ -248,7 +253,7 @@ taxid_tbl <- data.frame(
 taxid_tbl$gpt_name[use.gpt] <- gpt_names
 taxid_tbl$simple_name[use.gpt][use.simple] <- simple_names
 
-View(taxid_tbl)
+View(filter(taxid_tbl, original_name != cleaned_names))
 
 # save results for Feres lab to validate
 # don't need to validate entries where original and clean are the same
