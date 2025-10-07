@@ -1,11 +1,6 @@
----
-title: "gpt_prompt"
-output: html_document
----
-
 For the following table with columns "Males (n,%) (periodontal health)" and "Males % (periodontal health)", generate two vectors names "males_num_health" and "males_percent_health" that has exactly the same number of values (119 total). Note that the column "Males % (periodontal health)" often has missing values that can be obtained from the "Males (n,%) (periodontal health)" column. If you see a fraction (e.g. 0.37) treat that as a percentage (37) to add to the new "males_percent_health" vector
 
-```r       
+``` r
 > print(df[, c("Males (n,%) (periodontal health)", "Males % (periodontal health)")], n=119)
 # A tibble: 119 × 2
     `Males (n,%) (periodontal health)`        `Males % (periodontal health)`
@@ -17,12 +12,12 @@ For the following table with columns "Males (n,%) (periodontal health)" and "Mal
   5 0.45                                      NA                            
   6 0% (exclusion criteria)                   NA                            
   7 N=6                                       NA                            
-... [rest of table omitted; include in actual prompt]
+# ... [rest of table omitted; include in actual prompt]
 ```
 
 Below are a few examples of how values should be fixed. Here are some of the original values:
 
-```r       
+``` r
 # A tibble: 9 × 2
   `Males (n,%) (periodontal health)` `Males % (periodontal health)`
   <chr>                              <chr>                         
@@ -39,7 +34,7 @@ Below are a few examples of how values should be fixed. Here are some of the ori
 
 and the corresponding fixed values:
 
-```r         
+``` r
 males_num_health = c(
   46, # extracted from "46 (31,5%)" in (n, %) col
   13, # extracted from "n=13" (n, %) col
@@ -64,7 +59,7 @@ males_percent_health = c(
 
 For each value in the fixed result please follow the below format for comments:
 
-```r        
+``` r
 # 1, column obtained from, value of column where obtained from
 ```
 
