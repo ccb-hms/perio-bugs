@@ -1,6 +1,7 @@
 library(bugsigdbr)
 library(readr)
 library(rentrez)
+library(dplyr)
 
 overview_file <- 'output/overview_merged.rds'
 
@@ -86,6 +87,15 @@ group1_size <- df$`Sample size (periodontitis)`
 # TODO: figure out multi-entry values 
 #  -> agressive, generalised aggressive, chronic, etc
 #  -> sum them? split into separate signatures? keep one?
+group1_size_summed <- c(
+  68, 105, 10, 127, 31, 30, 30, 17, 18, 169, 116, 109, 49, 194, 25, 50, 17, 70, 
+  116, 76, 75, 15, 9, 30, 60, 22, 38, 169, 59, 15, 13, 26, 22, 87, 87, 16, 10, 
+  60, 6, 25, 25, 6, 30, 325, 32, 56, 26, 141, 144, 30, 44, 33, 9, 9, 20, 52, NA,
+  10, 30, 60, 22, 6, NA, 15, 28, 20, 32, 39, 44, 4, 9, 80, 116, 30, 62, 42, 10,
+  60, 19, 82, 131, 62, 59, 25, 10, 259, 49, 15, 28, 12, 29, 5, 66, 11, 17, 63, 
+  29, NA, 17, 50, 11, 17, 21, 20, 42, 15, 51, 38, 138, 21, 11, 48, 25, 25, 7, 2,
+  635, 4, 40
+)
 
 # Antibiotic exclusion ----
 # TODO: collect?
@@ -206,6 +216,45 @@ record_df <- tibble(
 
 possible_pmids <- left_join(possible_pmids, record_df)
 write.csv(possible_pmids, 'output/possible_pmids.csv')
+
+# chatGPT based cleanup of messy columns ----
+source('output/gpt_fixes.R')
+
+# age
+View(data.frame(original = df$`Age (years; mean +-SD)`, 
+                age_mean, age_sd))
+
+View(data.frame(original_mean = df$`Age mean (periodontal health)`, 
+                original_sd = df$`Age SD (periodontal health)`,
+                age_mean_health, age_sd_health))
+
+View(data.frame(original_mean = df$`Age mean (periodontitis)`, 
+                original_sd = df$`Age SD (periodontitis)`,
+                age_mean_perio, age_sd_perio))
+
+# number and percent male
+View(data.frame(original = df$`Males (n,%)`, 
+                males_num, males_percent))
+
+View(data.frame(original_num_percent = df$`Males (n,%) (periodontal health)`, 
+                original_percent = df$`Males % (periodontal health)`,
+                males_num_health, males_percent_health))
+
+View(data.frame(original_num_percent = df$`Males (n,%) (periodontitis)`, 
+                original_percent = df$`Males % (periodontitis)`,
+                males_num_perio, males_percent_perio))
+
+# number and percent smokers
+View(data.frame(original = df$`Smokers (n,%)`,
+     smokers_num, smokers_percent))
+
+View(data.frame(original_num_percent = df$`Smokers (n,%) (periodontal health)`,
+                original_percent = df$`Smokers (%) (periodontal health)`,
+                smokers_num_health, smokers_percent_health))
+
+View(data.frame(original_num_percent = df$`Smokers (n,%) (periodontitis)`,
+                original_percent = df$`Smokers (%) (periodontitis)`,
+                smokers_num_perio, smokers_percent_perio))
 
 # load in microbe data ----
 
