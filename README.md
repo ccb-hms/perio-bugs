@@ -19,5 +19,7 @@ The **Microbial Signatures of Periodontal Disease** project aggregates, standard
 - run `scripts/merge_overview.R` to generate `output/overview_merged.rds`
 - run `scripts/merge_microbe.R` to generate `output/diff_species.rds`
 - work through `scripts/clean_overview.R` to contribute to cleaning up columns
+  - see example chatGPT prompt in `scripts/gpt_prompt.md`
+  - add chatGPT fixes to `output/gpt_fixes.R`
 
 ---
