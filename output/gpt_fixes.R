@@ -2215,3 +2215,979 @@ smokers_percent_perio = c(
   NA,        # 118, (n,%) column, "ND"
   NA         # 119, summary row, ambiguous
 )
+# Bleeding on probing (health) ----
+bop_percent_health = c(
+  NA,                 # 1, both columns NA, rationale: missing
+  NA,                 # 2, both columns NA, rationale: missing
+  10.31,              # 3, bop column, "10.31±9.25", rationale: extracted mean
+  4.0,                # 4, bop column, "4.0 ±  0.5 %", rationale: extracted mean
+  8,                  # 5, bop column, "8 ± 9", rationale: extracted mean
+  NA,                 # 6, bop column, "ND", rationale: not determined
+  27.73,              # 7, bop column, "27.73 ± 20.5", rationale: extracted mean
+  0.3,                # 8, bop column, "0.3±0.5", rationale: extracted mean
+  11,                 # 9, bop column, "11 ± 1.7", rationale: extracted mean
+  1.9,                #10, bop column, "1,9 ± 4,1 %", rationale: extracted mean (decimal with comma)
+  1,                  #11, bop column, "1 ± 0.2", rationale: extracted mean
+  1.9,                #12, bop column, "1.9 ± 4.1", rationale: extracted mean
+  3.7,                #13, bop column, "3.7 ± 5.7", rationale: extracted mean
+  0,                  #14, bop column, "0.0", rationale: extracted mean
+  13,                 #15, bop column, "13 ± 7", rationale: extracted mean
+  NA,                 #16, both columns NA, rationale: missing
+  NA,                 #17, both columns NA, rationale: missing
+  NA,                 #18, both columns NA, rationale: missing
+  NA,                 #19, bop column, "not reported", rationale: not reported
+  4.5,                #20, bop column, "4.5 ± 2.7 (%)", rationale: extracted mean
+  NA,                 #21, bop column, "11.40 ± 1.22 (gingival plaque index)", rationale: not BOP
+  5.8,                #22, bop column, "5.8 ± 0.5 (6 sites per tooth...)", rationale: BOP value from text
+  1,                  #23, bop column, "1±1% BOP, full-mouth...", rationale: full-mouth BOP mean
+  3.1,                #24, bop column, "2.0±0.8 and 3.1±1.2 (...)", rationale: BOP value presented second
+  3.2,                #25, bop column, "2.1 ± 1.1 and 3.2 ± 1.8 (...)", rationale: BOP value presented second
+  19.8,               #26, bop column, "19.8 ± 14.7,...", rationale: BOP value
+  12.44,              #27, bop column, "12.44 ± 1.12 BOP...", rationale: BOP mean
+  2.5,                #28, bop column, "2.5 ± 4.7(BOP,%sites...)", rationale: mean
+  0.5,                #29, bop column, "0.5 ± 1.7 (%BOP, full mouth)", rationale: mean
+  6.1,                #30, bop column, "6.1 ± 3.2 (...)", rationale: mean
+  NA,                 #31, bop column, "ND", rationale: not determined
+  NA,                 #32, both columns NA, rationale: missing
+  4.4,                #33, bop column, "4.4 ± 4.3 (%surfaces...)", rationale: mean
+  23.1,               #34, bop column, "23.1", rationale: single percent value
+  NA,                 #35, both columns NA, rationale: missing
+  NA,                 #36, bop column, "not reported", rationale: not reported
+  NA,                 #37, both columns NA, rationale: missing
+  12.5,               #38, bop column, "12,5 ± 14,5 %", rationale: mean (comma decimal)
+  NA,                 #39, bop column, "17.86, 7.14, 14.29 (%)...", rationale: unclear which to use
+  NA,                 #40, bop column, "ND", rationale: not determined
+  NA,                 #41, bop column, "ND", rationale: not determined
+  NA,                 #42, bop column, "ND", rationale: not determined
+  10.01,              #43, bop column, "10,01 ± 13,09", rationale: mean (comma decimal)
+  20,                 #44, bop column, "20.00  %", rationale: percent mean
+  8.9,                #45, bop column, "8.9 %", rationale: percent mean
+  NA,                 #46, bop column, "ND", rationale: not determined
+  NA,                 #47, both columns NA, rationale: missing
+  NA,                 #48, both columns NA, rationale: missing
+  NA,                 #49, both columns NA, rationale: missing
+  NA,                 #50, both columns NA, rationale: missing
+  NA,                 #51, both columns NA, rationale: missing
+  3.09,               #52, bop column, "3.09±3.32 %", rationale: mean
+  NA,                 #53, bop column, "ND", rationale: not determined
+  NA,                 #54, bop column, "ND", rationale: not determined
+  10,                 #55, bop column, "10 ± 8", rationale: mean
+  6,                  #56, bop column, "6", rationale: value
+  NA,                 #57, both columns NA, rationale: missing
+  NA,                 #58, bop column, "range: 11.90-48.20*", rationale: no single value
+  NA,                 #59, bop column, "<30% [FMBS}", rationale: only upper bound
+  NA,                 #60, bop column, "0.56±0.18 (GI)", rationale: not BOP
+  NA,                 #61, bop column, "ND", rationale: not determined
+  NA,                 #62, bop column, "ND", rationale: not determined
+  NA,                 #63, bop column, "ND", rationale: not determined
+  NA,                 #64, both columns NA, rationale: missing
+  NA,                 #65, both columns NA, rationale: missing
+  NA,                 #66, both columns NA, rationale: missing
+  NA,                 #67, both columns NA, rationale: missing
+  2.8,                #68, bop column, "2.8 ± 1.2", rationale: mean
+  2.7,                #69, bop column, "2.7 ± 1.1", rationale: mean
+  0.37,               #70, bop column, "0.37", 
+  NA,                 #71, both columns NA, rationale: missing
+  NA,                 #72, both columns NA, rationale: missing
+  NA,                 #73, both columns NA, rationale: missing
+  NA,                 #74, bop column, "ND", rationale: not determined
+  0.3,                #75, bop column, "0.3", rationale: value
+  30.4,               #76, bop column, "30.4 ± 12.7% [FMBS]", rationale: mean
+  1.7,                #77, bop column, "1.70 ± 0.50 (% BOP)", rationale: mean
+  13.86,              #78, bop column, "13.86 ± 6.70 BOP...", rationale: first main value
+  NA,                 #79, bop column, "ND", rationale: not determined
+  15.1,               #80, bop column, "15.1 ± 12.9", rationale: mean
+  22.4,               #81, bop column, "22.4 % (12.7)", rationale: mean
+  NA,                 #82, both columns NA, rationale: missing
+  NA,                 #83, both columns NA, rationale: missing
+  NA,                 #84, bop column, "ND", rationale: not determined
+  NA,                 #85, bop column, "ND", rationale: not determined
+  NA,                 #86, bop column, "not reported", rationale: not reported
+  NA,                 #87, both columns NA, rationale: missing
+  1.29,               #88, bop column, "1.29 ± 3.67 (BOP, %)", rationale: mean
+  45.7,               #89, bop column, "45.7", rationale: value
+  NA,                 #90, both columns NA, rationale: missing
+  NA,                 #91, both columns NA, rationale: missing
+  39.58,              #92, bop column, "39.58", rationale: value
+  0,                  #93, bop column, "0 [sampled tooth]", rationale: value
+  NA,                 #94, bop column, "ND", rationale: not determined
+  NA,                 #95, bop column, "not reported", rationale: not reported
+  NA,                 #96, both columns NA, rationale: missing
+  NA,                 #97, both columns NA, rationale: missing
+  NA,                 #98, both columns NA, rationale: missing
+  7.33,               #99, bop column, "7.33 ± 6.85", rationale: mean
+  12,                 #100, bop column, "0.12", rationale: value treated as percent per instruction
+  NA,                 #101, both columns NA, rationale: missing
+  11,                 #102, bop column, "11 ± 6.5", rationale: mean
+  12,                 #103, bop column, "0.12", rationale: value treated as percent per instruction
+  NA,                 #104, both columns NA, rationale: missing
+  6,                  #105, bop column, "6 ± 1", rationale: mean
+  NA,                 #106, both columns NA, rationale: missing
+  NA,                 #107, both columns NA, rationale: missing
+  0,                  #108, bop column, "0.0", rationale: value
+  13,                 #109, bop column, "13±22", rationale: mean
+  NA,                 #110, both columns NA, rationale: missing
+  NA,                 #111, both columns NA, rationale: missing
+  4.8,                #112, bop column, "4.8 (subgingival sampling sites...)", rationale: first value extracted as mean
+  10,                 #113, bop column, "10 ± 4 (%BOP, number of sites)", rationale: mean
+  NA,                 #114, bop column, "ND", rationale: not determined
+  NA,                 #115, bop column, "ND", rationale: not determined
+  NA,                 #116, bop column, "ND", rationale: not determined
+  NA,                 #117, bop column, "not reported", rationale: not reported
+  NA,                 #118, bop column, "ND", rationale: not determined
+  NA                  #119, bop column, "ND", rationale: not determined
+)
+
+bop_sd_health = c(
+  NA,                 # 1, both columns NA, rationale: missing
+  NA,                 # 2, both columns NA, rationale: missing
+  9.25,               # 3, bop column, "10.31±9.25", rationale: extracted SD
+  0.5,                # 4, bop column, "4.0 ±  0.5 %", rationale: SD extracted
+  9,                  # 5, bop column, "8 ± 9", rationale: extracted SD
+  NA,                 # 6, bop column, "ND", rationale: not determined
+  20.5,               # 7, bop column, "27.73 ± 20.5", rationale: extracted SD
+  0.5,                # 8, bop column, "0.3±0.5", rationale: SD
+  1.7,                # 9, bop column, "11 ± 1.7", rationale: SD
+  4.1,                #10, bop column, "1,9 ± 4,1 %", rationale: SD (comma decimal)
+  0.2,                #11, bop column, "1 ± 0.2", rationale: SD
+  4.1,                #12, bop column, "1.9 ± 4.1", rationale: SD
+  5.7,                #13, bop column, "3.7 ± 5.7", rationale: SD
+  NA,                 #14, bop column, "0.0", rationale: no SD provided
+  7,                  #15, bop column, "13 ± 7", rationale: SD
+  NA,                 #16, both columns NA, rationale: missing
+  NA,                 #17, both columns NA, rationale: missing
+  NA,                 #18, both columns NA, rationale: missing
+  NA,                 #19, bop column, "not reported", rationale: no SD reported
+  2.7,                #20, bop column, "4.5 ± 2.7 (%)", rationale: SD
+  NA,                 #21, bop column, "11.40 ± 1.22 (gingival plaque index)", rationale: not BOP
+  0.5,                #22, bop column, "5.8 ± 0.5 (6 sites per tooth...)", rationale: SD
+  1,                  #23, bop column, "1±1% BOP, full-mouth...", rationale: SD
+  1.2,                #24, bop column, "2.0±0.8 and 3.1±1.2 (...)", rationale: BOP SD presented second
+  1.8,                #25, bop column, "2.1 ± 1.1 and 3.2 ± 1.8 (...)", rationale: BOP SD presented second
+  14.7,               #26, bop column, "19.8 ± 14.7,...", rationale: SD
+  1.12,               #27, bop column, "12.44 ± 1.12...", rationale: SD
+  4.7,                #28, bop column, "2.5 ± 4.7...", rationale: SD
+  1.7,                #29, bop column, "0.5 ± 1.7...", rationale: SD
+  3.2,                #30, bop column, "6.1 ± 3.2...", rationale: SD
+  NA,                 #31, bop column, "ND", rationale: not determined
+  NA,                 #32, both columns NA, rationale: missing
+  4.3,                #33, bop column, "4.4 ± 4.3...", rationale: SD
+  NA,                 #34, bop column, "23.1", rationale: no SD
+  NA,                 #35, both columns NA, rationale: missing
+  NA,                 #36, bop column, "not reported", rationale: not reported
+  NA,                 #37, both columns NA, rationale: missing
+  14.5,               #38, bop column, "12,5 ± 14,5 %", rationale: SD (comma decimal)
+  NA,                 #39, bop column, "17.86, 7.14, 14.29 (%))...", rationale: no SD for individuals
+  NA,                 #40, bop column, "ND", rationale: not determined
+  NA,                 #41, bop column, "ND", rationale: not determined
+  NA,                 #42, bop column, "ND", rationale: not determined
+  13.09,              #43, bop column, "10,01 ± 13,09", rationale: SD
+  NA,                 #44, bop column, "20.00  %", rationale: SD not provided
+  NA,                 #45, bop column, "8.9 %", rationale: SD not provided
+  NA,                 #46, bop column, "ND", rationale: not determined
+  NA,                 #47, both columns NA, rationale: missing
+  NA,                 #48, both columns NA, rationale: missing
+  NA,                 #49, both columns NA, rationale: missing
+  NA,                 #50, both columns NA, rationale: missing
+  NA,                 #51, both columns NA, rationale: missing
+  3.32,               #52, bop column, "3.09±3.32 %", rationale: SD
+  NA,                 #53, bop column, "ND", rationale: not determined
+  NA,                 #54, bop column, "ND", rationale: not determined
+  8,                  #55, bop column, "10 ± 8", rationale: SD
+  5,                  #56, sd column, "5.000", rationale: SD in sd col, original number is a mean only
+  NA,                 #57, both columns NA, rationale: missing
+  NA,                 #58, bop column, "range: 11.90-48.20*", rationale: no SD from range
+  NA,                 #59, bop column, "<30% [FMBS}", rationale: no SD from upper ceiling
+  NA,                 #60, bop column, "0.56±0.18 (GI)", rationale: not BOP
+  NA,                 #61, bop column, "ND", rationale: not determined
+  NA,                 #62, bop column, "ND", rationale: not determined
+  NA,                 #63, bop column, "ND", rationale: not determined
+  NA,                 #64, both columns NA, rationale: missing
+  NA,                 #65, both columns NA, rationale: missing
+  NA,                 #66, both columns NA, rationale: missing
+  NA,                 #67, both columns NA, rationale: missing
+  1.2,                #68, bop column, "2.8 ± 1.2", rationale: SD
+  1.1,                #69, bop column, "2.7 ± 1.1", rationale: SD
+  NA,                 #70, bop column, "0.37", rationale: no SD
+  NA,                 #71, both columns NA, rationale: missing
+  NA,                 #72, both columns NA, rationale: missing
+  NA,                 #73, both columns NA, rationale: missing
+  NA,                 #74, bop column, "ND", rationale: not determined
+  0.5,                #75, sd column, "0.500", rationale: SD in sd col
+  12.7,               #76, sd column, "12.700", rationale: SD in sd col matches original value
+  0.5,                #77, bop column, "1.70 ± 0.50 (% BOP)", rationale: SD
+  6.7,                #78, bop column, "13.86 ± 6.70 BOP (...)", rationale: SD
+  NA,                 #79, bop column, "ND", rationale: not determined
+  12.9,               #80, bop column, "15.1 ± 12.9", rationale: SD
+  12.7,               #81, bop column, "22.4 % (12.7)", rationale: SD in parentheses
+  NA,                 #82, both columns NA, rationale: missing
+  NA,                 #83, both columns NA, rationale: missing
+  NA,                 #84, bop column, "ND", rationale: not determined
+  NA,                 #85, bop column, "ND", rationale: not determined
+  NA,                 #86, bop column, "not reported", rationale: not reported
+  NA,                 #87, both columns NA, rationale: missing
+  3.67,               #88, bop column, "1.29 ± 3.67 (BOP, %)", rationale: SD
+  23.7,               #89, sd column, "23.700", rationale: SD from sd col
+  NA,                 #90, both columns NA, rationale: missing
+  NA,                 #91, both columns NA, rationale: missing
+  19.099,             #92, sd column, "19.099", rationale: SD from sd col
+  0,                  #93, sd column, "0.000", rationale: SD from sd col
+  NA,                 #94, bop column, "ND", rationale: not determined
+  NA,                 #95, bop column, "not reported", rationale: not reported
+  NA,                 #96, both columns NA, rationale: missing
+  NA,                 #97, both columns NA, rationale: missing
+  NA,                 #98, both columns NA, rationale: missing
+  6.85,               #99, bop column, "7.33 ± 6.85", rationale: SD
+  NA,                 #100, bop column, "0.12", rationale: no SD
+  NA,                 #101, both columns NA, rationale: missing
+  6.5,                #102, bop column, "11 ± 6.5", rationale: SD
+  NA,                 #103, bop column, "0.12", rationale: no SD
+  NA,                 #104, both columns NA, rationale: missing
+  1,                  #105, bop column, "6 ± 1", rationale: SD
+  NA,                 #106, both columns NA, rationale: missing
+  NA,                 #107, both columns NA, rationale: missing
+  NA,                 #108, bop column, "0.0", rationale: no SD provided
+  22,                 #109, bop column, "13±22", rationale: SD
+  NA,                 #110, both columns NA, rationale: missing
+  NA,                 #111, both columns NA, rationale: missing
+  NA,                 #112, bop column, "4.8 (subgingival sampling...)", rationale: no SD visible in entry
+  4,                  #113, bop column, "10 ± 4 (%BOP...", rationale: SD
+  NA,                 #114, bop column, "ND", rationale: not determined
+  NA,                 #115, bop column, "ND", rationale: not determined
+  NA,                 #116, bop column, "ND", rationale: not determined
+  NA,                 #117, bop column, "not reported", rationale: not reported
+  NA,                 #118, bop column, "ND", rationale: not determined
+  NA                  #119, bop column, "ND", rationale: not determined
+)
+# Bleeding on probing (periodontitis) ----
+bop_percent_perio = c(
+  NA,          # 1, bop column, "not reported", rationale: not reported
+  NA,          # 2, bop column, "<NA>", rationale: missing
+  72.3,        # 3, bop column, "72.30±23.05", rationale: mean given
+  NA,          # 4, bop column, "40.9 ±  1.6 ; 64.5 ± 3.1 %", rationale: multiple groups, unclear which
+  72,          # 5, bop column, "72 ± 28", rationale: mean extracted
+  NA,          # 6, bop column, "ND", rationale: not determined
+  63.63,       # 7, bop column, "63.63 ± 20.2", rationale: mean extracted
+  71,          # 8, bop column, "71±19", rationale: mean extracted
+  68,          # 9, bop column, "68 ± 5", rationale: mean extracted
+  47.2,        # 10, bop column, "47,2 ± 29", rationale: mean with comma
+  77,          # 11, bop column, "77 ± 8.4", rationale: mean extracted
+  47.2,        # 12, bop column, "47.2 ±  29", rationale: mean extracted
+  44.3,        # 13, bop column, "44.3  ± 25.0", rationale: mean extracted
+  100,         # 14, bop column, "100.0%", rationale: mean extracted
+  55,          # 15, bop column, "55 ± 3", rationale: mean extracted
+  97,          # 16, bop column, "0.97 ± 0.02 [sampled tooth]", rationale: mean extracted
+  71,          # 17, bop column, "71 ± 19", rationale: mean extracted
+  NA,          # 18, bop column, "35.5 ± 4.8 [...], 68.7 ± 15.8 [...], 63.6 ± 20.2 [...]", rationale: multiple subgroups, set NA
+  77,          # 19, bop column, "77.0 ± 8.4 (%)", rationale: mean extracted
+  66.2,        # 20, bop column, "66.2 ± 8.9 (%)", rationale: mean extracted
+  NA,          # 21, bop column, "35.78 ± 0.53 (%) (gingival plaque index)", rationale: GI, not BOP
+  19.3,        # 22, bop column, "19.3 ± 2.8 (6 sites...)", rationale: mean from BOP field
+  68,          # 23, bop column, "68±10% BOP full-mouth...", rationale: full-mouth BOP
+  78.,         # 24, bop column, "27.7±15.3 and 78.9±14.1 (...)", rationale: multiple subgroups
+  NA,          # 25, bop column, "GAgP: 35.6 ± 12.5, ...", rationale: multiple subgroups
+  23.1,        # 26, bop column, "23.1 ± 15.1, sites with BOP (%) (...)", rationale: mean extracted
+  38.88,       # 27, bop column, "38.88 ± 0.68 BOP (%sites)", rationale: mean extracted
+  43,          # 28, bop column, "43 ± 28 (BOP, %sites, ...)", rationale: mean extracted
+  NA,          # 29, bop column, "ChP: 51.5 ± 18.0, AgP: 72.3 ± 18.6", rationale: multiple subgroups
+  74.1,        # 30, bop column, "74.1 ± 15.7 (0/1,...)", rationale: mean extracted
+  NA,          # 31, bop column, "ND", rationale: not determined
+  55.4,        # 32, bop column, "55.4%", rationale: mean extracted
+  44.5,        # 33, bop column, "44.5 ± 18.6  (%surfaces with BOP)", rationale: mean extracted
+  63.9,        # 34, bop column, "63.9", rationale: mean extracted
+  NA,          # 35, bop column, "<NA>", rationale: missing
+  NA,          # 36, bop column, "≥30% [FMBS]", rationale: only a minimum cutoff
+  88.6,        # 37, bop column, "88.6% ± 10.3% (full mouth)", rationale: mean extracted
+  41.0,        # 38, bop column, "41,0 ± 18,7 %", rationale: mean with comma
+  NA,          # 39, bop column, "ChP: 100, 100, ...AgP: 100...", rationale: multiple subgroups/individuals
+  NA,          # 40, bop column, "ND", rationale: not determined
+  NA,          # 41, bop column, "ND", rationale: not determined
+  NA,          # 42, bop column, "ND", rationale: not determined
+  54.41,       # 43, bop column, "54,41 ± 22,13", rationale: mean with comma
+  53.5,        # 44, bop column, "0.53500000000000003", rationale: treated as fraction and converted to percent (0.535*100=53.5)
+  40.9,        # 45, bop column, "40.9 %", rationale: mean extracted
+  NA,          # 46, bop column, "ND", rationale: not determined
+  55,          # 47, bop column, "55.0 ± 21.6 (% all sites)", rationale: mean extracted
+  NA,          # 48, bop column, "78.1 ± 22.7 [...], 69.5 ± 24.9", rationale: multiple subgroups
+  NA,          # 49, bop column, "<NA>", rationale: missing
+  NA,          # 50, bop column, "<NA>", rationale: missing
+  NA,          # 51, bop column, "<NA>", rationale: missing
+  44.2,        # 52, bop column, "44.20±24.96 %", rationale: mean extracted
+  NA,          # 53, bop column, "ND", rationale: not determined
+  NA,          # 54, bop column, "ND", rationale: not determined
+  66,          # 55, bop column, "66 ± 16", rationale: mean extracted
+  32,          # 56, bop column, "32 ± 21% [FMBS]", rationale: mean extracted
+  NA,          # 57, bop column, "<NA>", rationale: missing
+  NA,          # 58, bop column, "range: 69.87-100.00*", rationale: range only
+  NA,          # 59, bop column, "not reported", rationale: not reported
+  NA,          # 60, bop column, "ChGP: 2.57±0.33 (GI), GAP: 1.56±0.35 (GI)", rationale: GI, not BOP
+  NA,          # 61, bop column, "ND", rationale: not determined
+  NA,          # 62, bop column, "ND", rationale: not determined
+  NA,          # 63, bop column, "ND", rationale: not determined
+  NA,          # 64, bop column, "ND", rationale: not determined
+  NA,          # 65, bop column, "<NA>", rationale: missing
+  NA,          # 66, bop column, "<NA>", rationale: missing
+  NA,          # 67, bop column, "<NA>", rationale: missing
+  48.8,        # 68, bop column, "48.8 ± 3.7", rationale: mean extracted
+  47,          # 69, bop column, "47 ± 3.9", rationale: mean extracted
+  53.2,        # 70, bop column, "0.53249999999999997", rationale: treated as fraction (0.5325*100)
+  NA,          # 71, bop column, "<NA>", rationale: missing
+  NA,          # 72, bop column, "not determined", rationale: not determined
+  1.11,        # 73, bop column, "1.11 ± 0.40 (mean bleeding index)", rationale: mean extracted
+  NA,          # 74, bop column, "ND", rationale: not determined
+  NA,          # 75, bop column, "not reported", rationale: not reported
+  61.24,       # 76, bop column, "61.24%±24.390%", rationale: mean extracted
+  32.95,       # 77, bop column, "32.95 ± 11.72 (% BOP), 1.41 ± 0.37 (GI)", rationale: mean extracted from BOP
+  NA,          # 78, bop column, "NS-Perio: 57.98 ± 20.80 BOP (...), ...", rationale: first value with full mouth explicitly
+  NA,          # 79, bop column, "GAgP: 0.8 ± 0.4, LAgP: 0.6 ± 0.5 ...", rationale: multiple groups
+  37.96,       # 80, bop column, "37.96 ± 25.78", rationale: mean extracted
+  65.1,        # 81, bop column, "65.1 % (20.3)", rationale: mean extracted
+  NA,          # 82, bop column, "not reported", rationale: not reported
+  NA,          # 83, bop column, "<NA>", rationale: missing
+  NA,          # 84, bop column, "ND", rationale: not determined
+  NA,          # 85, bop column, "ND", rationale: not determined
+  NA,          # 86, bop column, "ND", rationale: not determined
+  NA,          # 87, bop column, "<NA>", rationale: missing
+  70.27,       # 88, bop column, "70.27 ± 11.20 (BOP, %)", rationale: mean extracted
+  NA,          # 89, bop column, "Not determined", rationale: not determined
+  NA,          # 90, bop column, "<NA>", rationale: missing
+  NA,          # 91, bop column, "<NA>", rationale: missing
+  50,          # 92, bop column, "0.50 (0.17 - 1.17)  [Median and range...]", rationale: median/range, unclear units, set NA
+  NA,          # 93, bop column, "not reported", rationale: not reported
+  NA,          # 94, bop column, "ND", rationale: not determined
+  NA,          # 95, bop column, "active: 6.5 ± 5.3 / recession: 3.0 ± 4.1 (% sites)", rationale: active BOP mean
+  NA,          # 96, bop column, "not determined", rationale: not determined
+  NA,          # 97, bop column, "29.9 ± 36.0 shallow sites / 52.9 ± 46.0 deep sites (...)", rationale: multiple subgroups
+  NA,          # 98, bop column, "<NA>", rationale: missing
+  27.18,       # 99, bop column, "27.18 ± 12.79", rationale: mean extracted
+  NA,          # 100, bop column, "53-64%", rationale: range
+  NA,          # 101, bop column, "<NA>", rationale: missing
+  53,          # 102, bop column, "53 ± 28", rationale: mean extracted
+  64,          # 103, bop column, "0.64", rationale: treated as percent (64)
+  NA,          # 104, bop column, "<NA>", rationale: missing
+  41,          # 105, bop column, "41 ± 4", rationale: mean extracted
+  NA,          # 106, bop column, "<NA>", rationale: missing
+  NA,          # 107, bop column, "<NA>", rationale: missing
+  89,          # 108, bop column, "89 ± 0.3", rationale: mean extracted
+  49,          # 109, bop column, "49 ±34", rationale: mean extracted
+  NA,          # 110, bop column, "<NA>", rationale: missing
+  NA,          # 111, bop column, "<NA>", rationale: missing
+  86,          # 112, bop column, "86(%) (diseased; ...)", rationale: mean extracted (first percent value)
+  NA,          # 113, bop column, "Deep sites: 100, shallow sites: 8 ± 3 (%BOP...)", rationale: deep site
+  NA,          # 114, bop column, "ND", rationale: not determined
+  NA,          # 115, bop column, "ND", rationale: not determined
+  NA,          # 116, bop column, "ND", rationale: not determined
+  42,          # 117, bop column, "42 ± 26 (%)", rationale: mean extracted
+  NA,          # 118, bop column, "ND", rationale: not determined
+  NA           # 119, bop column, "ND", rationale: not determined
+)
+
+bop_sd_perio = c(
+  NA,          # 1, bop column, "not reported", rationale: not reported
+  NA,          # 2, bop column, "<NA>", rationale: missing
+  23.05,       # 3, bop column, "72.30±23.05", rationale: SD
+  NA,          # 4, bop column, "40.9 ±  1.6 ; 64.5 ± 3.1 %", rationale: multiple groups, unclear which
+  28,          # 5, bop column, "72 ± 28", rationale: SD extracted
+  NA,          # 6, bop column, "ND", rationale: not determined
+  20.2,        # 7, bop column, "63.63 ± 20.2", rationale: SD extracted
+  19,          # 8, bop column, "71±19", rationale: SD extracted
+  5,           # 9, bop column, "68 ± 5", rationale: SD extracted
+  29,          # 10, bop column, "47,2 ± 29", rationale: SD with comma
+  8.4,         # 11, bop column, "77 ± 8.4", rationale: SD extracted
+  29,          # 12, bop column, "47.2 ±  29", rationale: SD extracted
+  25,          # 13, bop column, "44.3  ± 25.0", rationale: SD extracted
+  NA,          # 14, bop column, "100.0%", rationale: SD not provided
+  3,           # 15, bop column, "55 ± 3", rationale: SD extracted
+  2,           # 16, sd column, "0.02", rationale: from SD column, otherwise from bop
+  19,          # 17, sd column, "19.00", rationale: from SD column
+  NA,          # 18, bop column, "35.5 ± 4.8 [...], 68.7 ± 15.8 [...], 63.6 ± 20.2 [...]", rationale: multiple subgroups, set NA
+  8.4,         # 19, sd column, "8.40", rationale: from SD column
+  8.9,         # 20, bop column, "66.2 ± 8.9 (%)", rationale: SD extracted
+  NA,          # 21, bop column, "35.78 ± 0.53 (%) (gingival plaque index)", rationale: not BOP
+  2.8,         # 22, bop column, "19.3 ± 2.8 ...", rationale: SD extracted
+  10,          # 23, bop column, "68±10% BOP...", rationale: SD extracted
+  14.1,        # 24, bop column, "27.7±15.3 and 78.9±14.1 (...)", rationale: multiple subgroups
+  NA,          # 25, bop column, "GAgP: 35.6 ± 12.5, ...", rationale: multiple subgroups
+  15.1,        # 26, bop column, "23.1 ± 15.1", rationale: SD extracted
+  0.68,        # 27, bop column, "38.88 ± 0.68 BOP (%sites)", rationale: SD extracted
+  28,          # 28, bop column, "43 ± 28 (BOP, %sites, ...)", rationale: SD extracted
+  NA,          # 29, bop column, "ChP: 51.5 ± 18.0, AgP: 72.3 ± 18.6", rationale: multiple subgroups
+  15.7,        # 30, bop column, "74.1 ± 15.7 ...", rationale: SD extracted
+  NA,          # 31, bop column, "ND", rationale: not determined
+  NA,          # 32, bop column, "55.4%", rationale: SD not reported
+  18.6,        # 33, bop column, "44.5 ± 18.6 ...", rationale: SD extracted
+  NA,          # 34, bop column, "63.9", rationale: SD not reported
+  NA,          # 35, bop column, "<NA>", rationale: missing
+  NA,          # 36, bop column, "≥30% [FMBS]", rationale: not a variance
+  10.3,        # 37, sd column, "10.30", rationale: from SD col
+  18.7,        # 38, bop column, "41,0 ± 18,7 %", rationale: SD with comma
+  NA,          # 39, bop column, "ChP: 100, 100, ...AgP: 100...", rationale: multiple subgroups/individuals
+  NA,          # 40, bop column, "ND", rationale: not determined
+  NA,          # 41, bop column, "ND", rationale: not determined
+  NA,          # 42, bop column, "ND", rationale: not determined
+  22.13,       # 43, bop column, "54,41 ± 22,13", rationale: SD with comma
+  NA,          # 44, bop column, "0.53500000000000003", rationale: only a proportion, not SD
+  NA,          # 45, bop column, "40.9 %", rationale: SD not provided
+  NA,          # 46, bop column, "ND", rationale: not determined
+  21.6,        # 47, sd column, "21.60", rationale: from SD col
+  NA,          # 48, sd column, "22.70", rationale: from SD col
+  NA,          # 49, bop column, "<NA>", rationale: missing
+  NA,          # 50, bop column, "<NA>", rationale: missing
+  NA,          # 51, bop column, "<NA>", rationale: missing
+  24.96,       # 52, bop column, "44.20±24.96 %", rationale: SD extracted
+  NA,          # 53, bop column, "ND", rationale: not determined
+  NA,          # 54, bop column, "ND", rationale: not determined
+  16,          # 55, bop column, "66 ± 16", rationale: SD extracted
+  21,          # 56, sd column, "21.00", rationale: from SD col
+  NA,          # 57, bop column, "<NA>", rationale: missing
+  NA,          # 58, bop column, "range: 69.87-100.00*", rationale: range only
+  NA,          # 59, bop column, "not reported", rationale: not reported
+  NA,          # 60, bop column, "ChGP: 2.57±0.33 (GI), GAP: 1.56±0.35 (GI)", rationale: GI, not BOP
+  NA,          # 61, bop column, "ND", rationale: not determined
+  NA,          # 62, bop column, "ND", rationale: not determined
+  NA,          # 63, bop column, "ND", rationale: not determined
+  NA,          # 64, bop column, "ND", rationale: not determined
+  NA,          # 65, bop column, "<NA>", rationale: missing
+  NA,          # 66, bop column, "<NA>", rationale: missing
+  NA,          # 67, bop column, "<NA>", rationale: missing
+  3.7,         # 68, bop column, "48.8 ± 3.7", rationale: SD extracted
+  3.9,         # 69, bop column, "47 ± 3.9", rationale: SD extracted
+  NA,          # 70, bop column, "0.53249999999999997", rationale: no SD
+  NA,          # 71, bop column, "<NA>", rationale: missing
+  NA,          # 72, bop column, "not determined", rationale: not determined
+  0.40,        # 73, sd column, "0.40", rationale: from SD col
+  NA,          # 74, bop column, "ND", rationale: not determined
+  NA,          # 75, bop column, "not reported", rationale: not reported
+  24.39,       # 76, sd column, "24.39", rationale: from SD col
+  11.72,       # 77, bop column, "32.95 ± 11.72 (% BOP)...", rationale: SD extracted from BOP
+  NA,          # 78, bop column, "NS-Perio: 57.98 ± 20.80 BOP (...)", rationale: SD (first value)
+  NA,          # 79, bop column, "GAgP: 0.8 ± 0.4, LAgP: 0.6 ± 0.5 ...", rationale: multiple groups
+  25.78,       # 80, bop column, "37.96 ± 25.78", rationale: SD extracted
+  20.3,        # 81, bop column, "65.1 % (20.3)", rationale: SD in parens
+  NA,          # 82, bop column, "not reported", rationale: not reported
+  NA,          # 83, bop column, "<NA>", rationale: missing
+  NA,          # 84, bop column, "ND", rationale: not determined
+  NA,          # 85, bop column, "ND", rationale: not determined
+  NA,          # 86, bop column, "ND", rationale: not determined
+  NA,          # 87, bop column, "<NA>", rationale: missing
+  11.20,       # 88, bop column, "70.27 ± 11.20 (BOP, %)", rationale: SD extracted
+  NA,          # 89, bop column, "Not determined", rationale: not determined
+  NA,          # 90, bop column, "<NA>", rationale: missing
+  NA,          # 91, bop column, "<NA>", rationale: missing
+  NA,          # 92, bop column, "0.50 (0.17 - 1.17)  ...", rationale: range/median only
+  NA,          # 93, bop column, "not reported", rationale: not reported
+  NA,          # 94, bop column, "ND", rationale: not determined
+  NA,          # 95, bop column, "active: 6.5 ± 5.3 / recession: 3.0 ± 4.1...", rationale: SD of 6.5 group
+  NA,          # 96, bop column, "not determined", rationale: not determined
+  NA,          # 97, bop column, "29.9 ± 36.0 ... / 52.9 ± 46.0 ...", rationale: multiple subgroups
+  NA,          # 98, bop column, "<NA>", rationale: missing
+  12.79,       # 99, bop column, "27.18 ± 12.79", rationale: SD extracted
+  NA,          # 100, bop column, "53-64%", rationale: range only
+  NA,          # 101, bop column, "<NA>", rationale: missing
+  28,          # 102, bop column, "53 ± 28", rationale: SD extracted
+  NA,          # 103, bop column, "0.64", rationale: no SD
+  NA,          # 104, bop column, "<NA>", rationale: missing
+  4,           # 105, bop column, "41 ± 4", rationale: SD extracted
+  NA,          # 106, bop column, "<NA>", rationale: missing
+  NA,          # 107, bop column, "<NA>", rationale: missing
+  0.3,         # 108, bop column, "89 ± 0.3", rationale: SD extracted
+  34,          # 109, bop column, "49 ±34", rationale: SD extracted
+  NA,          # 110, bop column, "<NA>", rationale: missing
+  NA,          # 111, bop column, "<NA>", rationale: missing
+  NA,          # 112, bop column, "86(%) (diseased; ...)", rationale: no SD available
+  NA,          # 113, bop column, "Deep sites: 100, shallow sites: 8 ± 3  (%BOP, ...)", rationale: no SD for deep, only mean
+  NA,          # 114, bop column, "ND", rationale: not determined
+  NA,          # 115, bop column, "ND", rationale: not determined
+  NA,          # 116, bop column, "ND", rationale: not determined
+  26,          # 117, sd column, "26.00", rationale: from SD col
+  NA,          # 118, bop column, "ND", rationale: not determined
+  NA           # 119, bop column, "ND", rationale: not determined
+)
+# Suppuration (health) ----
+supp_percent_health = c(
+  NA,    # 1, supp column, "<NA>", rationale: missing
+  NA,    # 2, supp column, "<NA>", rationale: missing
+  0,     # 3, supp column, "0", rationale: mean is zero
+  NA,    # 4, supp column, "<NA>", rationale: missing
+  NA,    # 5, supp column, "<NA>", rationale: missing
+  NA,    # 6, supp column, "ND", rationale: not determined
+  0,     # 7, supp column, "0.0", rationale: value is zero
+  NA,    # 8, supp column, "<NA>", rationale: missing
+  NA,    # 9, supp column, "<NA>", rationale: missing
+  NA,    # 10, supp column, "<NA>", rationale: missing
+  0,     # 11, supp column, "0", rationale: value
+  0,     # 12, supp column, "0", rationale: value
+  NA,    # 13, supp column, "<NA>", rationale: missing
+  NA,    # 14, supp column, "<NA>", rationale: missing
+  0,     # 15, supp column, "0", rationale: value
+  NA,    # 16, supp column, "<NA>", rationale: missing
+  NA,    # 17, supp column, "<NA>", rationale: missing
+  NA,    # 18, supp column, "<NA>", rationale: missing
+  NA,    # 19, supp column, "not reported", rationale: not reported
+  NA,    # 20, supp column, "ND", rationale: not determined
+  NA,    # 21, supp column, "ND", rationale: not determined
+  0,     # 22, supp column, "0  (6 sites per tooth of all teeth, excl 3rd molars)", rationale: mean = 0
+  NA,    # 23, supp column, "ND", rationale: not determined
+  0,     # 24, supp column, "0.0±0.0 (...)", rationale: mean = 0
+  0,     # 25, supp column, "0 ± 0 (...)", rationale: mean = 0
+  NA,    # 26, supp column, "ND", rationale: not determined
+  NA,    # 27, supp column, "ND", rationale: not determined
+  0,     # 28, supp column, "0 (suppuration (SUP), %sites, measured at 6 sites per tooth)", rationale: mean = 0
+  0,     # 29, supp column, "0 (%SUP, full mouth)", rationale: mean = 0
+  0,     # 30, supp column, "0.0 ± 0.0 (0/1, measured at 6 sites...)", rationale: mean = 0
+  NA,    # 31, supp column, "ND", rationale: not determined
+  NA,    # 32, supp column, "<NA>", rationale: missing
+  NA,    # 33, supp column, "ND", rationale: not determined
+  NA,    # 34, supp column, "<NA>", rationale: missing
+  NA,    # 35, supp column, "<NA>", rationale: missing
+  NA,    # 36, supp column, "not reported", rationale: not reported
+  NA,    # 37, supp column, "<NA>", rationale: missing
+  NA,    # 38, supp column, "<NA>", rationale: missing
+  NA,    # 39, supp column, "ND", rationale: not determined
+  NA,    # 40, supp column, "ND", rationale: not determined
+  NA,    # 41, supp column, "ND", rationale: not determined
+  NA,    # 42, supp column, "ND", rationale: not determined
+  NA,    # 43, supp column, "<NA>", rationale: missing
+  NA,    # 44, supp column, "<NA>", rationale: missing
+  NA,    # 45, supp column, "<NA>", rationale: missing
+  NA,    # 46, supp column, "ND", rationale: not determined
+  NA,    # 47, supp column, "<NA>", rationale: missing
+  NA,    # 48, supp column, "<NA>", rationale: missing
+  NA,    # 49, supp column, "<NA>", rationale: missing
+  NA,    # 50, supp column, "<NA>", rationale: missing
+  NA,    # 51, supp column, "<NA>", rationale: missing
+  NA,    # 52, supp column, "<NA>", rationale: missing
+  NA,    # 53, supp column, "ND", rationale: not determined
+  NA,    # 54, supp column, "ND", rationale: not determined
+  0,     # 55, supp column, "0 ± 0", rationale: mean = 0
+  NA,    # 56, supp column, "not reported", rationale: not reported
+  NA,    # 57, supp column, "<NA>", rationale: missing
+  NA,    # 58, supp column, "ND", rationale: not determined
+  NA,    # 59, supp column, "not reported", rationale: not reported
+  NA,    # 60, supp column, "ND", rationale: not determined
+  NA,    # 61, supp column, "ND", rationale: not determined
+  NA,    # 62, supp column, "ND", rationale: not determined
+  NA,    # 63, supp column, "ND", rationale: not determined
+  NA,    # 64, supp column, "<NA>", rationale: missing
+  NA,    # 65, supp column, "<NA>", rationale: missing
+  NA,    # 66, supp column, "<NA>", rationale: missing
+  NA,    # 67, supp column, "<NA>", rationale: missing
+  0,     # 68, supp column, "0 ± 0", rationale: mean = 0
+  0,     # 69, supp column, "0 ± 0", rationale: mean = 0
+  NA,    # 70, supp column, "<NA>", rationale: missing
+  NA,    # 71, supp column, "<NA>", rationale: missing
+  NA,    # 72, supp column, "<NA>", rationale: missing
+  NA,    # 73, supp column, "<NA>", rationale: missing
+  NA,    # 74, supp column, "ND", rationale: not determined
+  NA,    # 75, supp column, "ND", rationale: not determined
+  NA,    # 76, supp column, "not reported", rationale: not reported
+  NA,    # 77, supp column, "ND", rationale: not determined
+  NA,    # 78, supp column, "ND", rationale: not determined
+  NA,    # 79, supp column, "ND", rationale: not determined
+  NA,    # 80, supp column, "<NA>", rationale: missing
+  NA,    # 81, supp column, "<NA>", rationale: missing
+  NA,    # 82, supp column, "<NA>", rationale: missing
+  NA,    # 83, supp column, "<NA>", rationale: missing
+  NA,    # 84, supp column, "ND", rationale: not determined
+  NA,    # 85, supp column, "ND", rationale: not determined
+  NA,    # 86, supp column, "not reported", rationale: not reported
+  NA,    # 87, supp column, "<NA>", rationale: missing
+  NA,    # 88, supp column, "ND", rationale: not determined
+  NA,    # 89, supp column, "ND", rationale: not determined
+  NA,    # 90, supp column, "<NA>", rationale: missing
+  NA,    # 91, supp column, "<NA>", rationale: missing
+  NA,    # 92, supp column, "not reported", rationale: not reported
+  0,     # 93, supp column, "0", rationale: value
+  NA,    # 94, supp column, "ND", rationale: not determined
+  NA,    # 95, supp column, "not reported", rationale: not reported
+  NA,    # 96, supp column, "<NA>", rationale: missing
+  NA,    # 97, supp column, "<NA>", rationale: missing
+  NA,    # 98, supp column, "<NA>", rationale: missing
+  0,     # 99, supp column, "0.00 ± 0.00", rationale: mean = 0
+  NA,    # 100, supp column, "<NA>", rationale: missing
+  NA,    # 101, supp column, "<NA>", rationale: missing
+  0,     # 102, supp column, "0", rationale: value
+  NA,    # 103, supp column, "<NA>", rationale: missing
+  NA,    # 104, supp column, "<NA>", rationale: missing
+  NA,    # 105, supp column, "<NA>", rationale: missing
+  NA,    # 106, supp column, "<NA>", rationale: missing
+  NA,    # 107, supp column, "<NA>", rationale: missing
+  NA,    # 108, supp column, "<NA>", rationale: missing
+  0,     # 109, supp column, "0", rationale: value
+  NA,    # 110, supp column, "<NA>", rationale: missing
+  NA,    # 111, supp column, "<NA>", rationale: missing
+  NA,    # 112, supp column, "ND", rationale: not determined
+  NA,    # 113, supp column, "ND", rationale: not determined
+  NA,    # 114, supp column, "ND", rationale: not determined
+  NA,    # 115, supp column, "ND", rationale: not determined
+  NA,    # 116, supp column, "ND", rationale: not determined
+  NA,    # 117, supp column, "not reported", rationale: not reported
+  NA,    # 118, supp column, "ND", rationale: not determined
+  NA     # 119, supp column, "ND", rationale: not determined
+)
+
+supp_sd_health = c(
+  NA,    # 1, sd column, NA, rationale: missing
+  NA,    # 2, sd column, NA, rationale: missing
+  NA,    # 3, supp column, "0", rationale: no sd given as value is single 0
+  NA,    # 4, sd column, NA, rationale: missing
+  NA,    # 5, sd column, NA, rationale: missing
+  NA,    # 6, supp column, "ND", rationale: not determined
+  NA,    # 7, supp column, "0.0", rationale: no sd given as value is single 0
+  NA,    # 8, sd column, NA, rationale: missing
+  NA,    # 9, sd column, NA, rationale: missing
+  NA,    # 10, sd column, NA, rationale: missing
+  NA,    # 11, supp column, "0", rationale: no sd given as value is single 0
+  NA,    # 12, supp column, "0", rationale: no sd given as value is single 0
+  NA,    # 13, sd column, NA, rationale: missing
+  NA,    # 14, sd column, NA, rationale: missing
+  NA,    # 15, supp column, "0", rationale: no sd given as value is single 0
+  NA,    # 16, sd column, NA, rationale: missing
+  NA,    # 17, sd column, NA, rationale: missing
+  NA,    # 18, sd column, NA, rationale: missing
+  NA,    # 19, supp column, "not reported", rationale: not reported
+  NA,    # 20, supp column, "ND", rationale: not determined
+  NA,    # 21, supp column, "ND", rationale: not determined
+  NA,    # 22, supp column, "0  (6 sites per tooth of all teeth, excl 3rd molars)", rationale: no sd given
+  NA,    # 23, supp column, "ND", rationale: not determined
+  0,     # 24, supp column, "0.0±0.0 (...)", rationale: sd = 0
+  0,     # 25, supp column, "0 ± 0 (...)", rationale: sd = 0
+  NA,    # 26, supp column, "ND", rationale: not determined
+  NA,    # 27, supp column, "ND", rationale: not determined
+  NA,    # 28, supp column, "0 (suppuration (SUP), %sites, measured at 6 sites per tooth)", rationale: no sd
+  NA,    # 29, supp column, "0 (%SUP, full mouth)", rationale: no sd
+  0,     # 30, supp column, "0.0 ± 0.0 (0/1,...)", rationale: sd = 0
+  NA,    # 31, supp column, "ND", rationale: not determined
+  NA,    # 32, sd column, NA, rationale: missing
+  NA,    # 33, supp column, "ND", rationale: not determined
+  NA,    # 34, sd column, NA, rationale: missing
+  NA,    # 35, sd column, NA, rationale: missing
+  NA,    # 36, supp column, "not reported", rationale: not reported
+  NA,    # 37, sd column, NA, rationale: missing
+  NA,    # 38, sd column, NA, rationale: missing
+  NA,    # 39, supp column, "ND", rationale: not determined
+  NA,    # 40, supp column, "ND", rationale: not determined
+  NA,    # 41, supp column, "ND", rationale: not determined
+  NA,    # 42, supp column, "ND", rationale: not determined
+  NA,    # 43, sd column, NA, rationale: missing
+  NA,    # 44, sd column, NA, rationale: missing
+  NA,    # 45, sd column, NA, rationale: missing
+  NA,    # 46, supp column, "ND", rationale: not determined
+  NA,    # 47, sd column, NA, rationale: missing
+  NA,    # 48, sd column, NA, rationale: missing
+  NA,    # 49, sd column, NA, rationale: missing
+  NA,    # 50, sd column, NA, rationale: missing
+  NA,    # 51, sd column, NA, rationale: missing
+  NA,    # 52, sd column, NA, rationale: missing
+  NA,    # 53, supp column, "ND", rationale: not determined
+  NA,    # 54, supp column, "ND", rationale: not determined
+  0,     # 55, supp column, "0 ± 0", rationale: sd = 0
+  NA,    # 56, supp column, "not reported", rationale: not reported
+  NA,    # 57, sd column, NA, rationale: missing
+  NA,    # 58, supp column, "ND", rationale: not determined
+  NA,    # 59, supp column, "not reported", rationale: not reported
+  NA,    # 60, supp column, "ND", rationale: not determined
+  NA,    # 61, supp column, "ND", rationale: not determined
+  NA,    # 62, supp column, "ND", rationale: not determined
+  NA,    # 63, supp column, "ND", rationale: not determined
+  NA,    # 64, sd column, NA, rationale: missing
+  NA,    # 65, sd column, NA, rationale: missing
+  NA,    # 66, sd column, NA, rationale: missing
+  NA,    # 67, sd column, NA, rationale: missing
+  0,     # 68, supp column, "0 ± 0", rationale: sd = 0
+  0,     # 69, supp column, "0 ± 0", rationale: sd = 0
+  NA,    # 70, sd column, NA, rationale: missing
+  NA,    # 71, sd column, NA, rationale: missing
+  NA,    # 72, sd column, NA, rationale: missing
+  NA,    # 73, sd column, NA, rationale: missing
+  NA,    # 74, supp column, "ND", rationale: not determined
+  NA,    # 75, supp column, "ND", rationale: not determined
+  NA,    # 76, supp column, "not reported", rationale: not reported
+  NA,    # 77, supp column, "ND", rationale: not determined
+  NA,    # 78, supp column, "ND", rationale: not determined
+  NA,    # 79, supp column, "ND", rationale: not determined
+  NA,    # 80, sd column, NA, rationale: missing
+  NA,    # 81, sd column, NA, rationale: missing
+  NA,    # 82, sd column, NA, rationale: missing
+  NA,    # 83, sd column, NA, rationale: missing
+  NA,    # 84, supp column, "ND", rationale: not determined
+  NA,    # 85, supp column, "ND", rationale: not determined
+  NA,    # 86, supp column, "not reported", rationale: not reported
+  NA,    # 87, sd column, NA, rationale: missing
+  NA,    # 88, supp column, "ND", rationale: not determined
+  NA,    # 89, supp column, "ND", rationale: not determined
+  NA,    # 90, sd column, NA, rationale: missing
+  NA,    # 91, sd column, NA, rationale: missing
+  NA,    # 92, supp column, "not reported", rationale: not reported
+  NA,    # 93, supp column, "0", rationale: no sd given as value is single 0
+  NA,    # 94, supp column, "ND", rationale: not determined
+  NA,    # 95, supp column, "not reported", rationale: not reported
+  NA,    # 96, sd column, NA, rationale: missing
+  NA,    # 97, sd column, NA, rationale: missing
+  NA,    # 98, sd column, NA, rationale: missing
+  0,     # 99, supp column, "0.00 ± 0.00", rationale: sd = 0
+  NA,    # 100, sd column, NA, rationale: missing
+  NA,    # 101, sd column, NA, rationale: missing
+  NA,    # 102, supp column, "0", rationale: no sd given as value is single 0
+  NA,    # 103, sd column, NA, rationale: missing
+  NA,    # 104, sd column, NA, rationale: missing
+  NA,    # 105, sd column, NA, rationale: missing
+  NA,    # 106, sd column, NA, rationale: missing
+  NA,    # 107, sd column, NA, rationale: missing
+  NA,    # 108, sd column, NA, rationale: missing
+  NA,    # 109, supp column, "0", rationale: no sd given as value is single 0
+  NA,    # 110, sd column, NA, rationale: missing
+  NA,    # 111, sd column, NA, rationale: missing
+  NA,    # 112, supp column, "ND", rationale: not determined
+  NA,    # 113, supp column, "ND", rationale: not determined
+  NA,    # 114, supp column, "ND", rationale: not determined
+  NA,    # 115, supp column, "ND", rationale: not determined
+  NA,    # 116, supp column, "ND", rationale: not determined
+  NA,    # 117, supp column, "not reported", rationale: not reported
+  NA,    # 118, supp column, "ND", rationale: not determined
+  NA     # 119, supp column, "ND", rationale: not determined
+)
+# Supporation (periodontitis) ----
+supp_percent_perio = c(
+  NA,  # 1, supp column, "not reported", rationale: not reported
+  NA,  # 2, supp column, "<NA>", rationale: missing
+  3.57,  # 3, supp column, "3.57±3.78", rationale: mean extracted
+  NA,  # 4, supp column, "<NA>", rationale: missing
+  NA,  # 5, supp column, "<NA>", rationale: missing
+  NA,  # 6, supp column, "ND", rationale: not determined
+  3.09,  # 7, supp column, "3.09 ± 3.7", rationale: mean extracted
+  NA,  # 8, supp column, "<NA>", rationale: missing
+  NA,  # 9, supp column, "<NA>", rationale: missing
+  NA,  # 10, supp column, "<NA>", rationale: missing
+  10,  # 11, supp column, "10 ± 19", rationale: mean extracted
+  3,  # 12, supp column, "3 ± 10", rationale: mean extracted
+  NA,  # 13, supp column, "<NA>", rationale: missing
+  NA,  # 14, supp column, "<NA>", rationale: missing
+  14,  # 15, supp column, "14 ± 3", rationale: mean extracted
+  5,  # 16, supp column, "0.05" (0.05 as percent = 5), rationale: as per instruction, treat as percent
+  NA,  # 17, supp column, "ND", rationale: not determined
+  1,  # 18, supp column, "1", rationale: mean extracted
+  10,  # 19, supp column, "10", rationale: mean extracted
+  NA,  # 20, supp column, "ND", rationale: not determined
+  NA,  # 21, supp column, "ND", rationale: not determined
+  0.1,  # 22, supp column, "0.1 (0.1)", rationale: mean extracted
+  NA,  # 23, supp column, "ND", rationale: not determined
+  1.1,  # 24, supp column, "1.1±0.8 (...)", rationale: mean extracted
+  NA,  # 25, supp column, "GAgP: 4.32 ± 3.49, GChP: 3.09 ± 3.7", rationale: multiple groups, unclear which
+  NA,  # 26, supp column, "ND", rationale: not determined
+  NA,  # 27, supp column, "ND", rationale: not determined
+  2,  # 28, supp column, "2 ± 7 (suppuration ...)", rationale: mean extracted
+  NA,  # 29, supp column, "ChP: 0.4 ± 0.9, AgP: 1.1 ± 1.9 (%SUP...)", rationale: multiple groups, unclear
+  4.5,  # 30, supp column, "4.5 ± 6.2 ...", rationale: mean extracted
+  NA,  # 31, supp column, "ND", rationale: not determined
+  NA,  # 32, supp column, "<NA>", rationale: missing
+  NA,  # 33, supp column, "ND", rationale: not determined
+  NA,  # 34, supp column, "<NA>", rationale: missing
+  NA,  # 35, supp column, "<NA>", rationale: missing
+  NA,  # 36, supp column, "not reported", rationale: not reported
+  NA,  # 37, supp column, "not reported", rationale: not reported
+  NA,  # 38, supp column, "<NA>", rationale: missing
+  NA,  # 39, supp column, "ND", rationale: not determined
+  NA,  # 40, supp column, "ND", rationale: not determined
+  NA,  # 41, supp column, "ND", rationale: not determined
+  NA,  # 42, supp column, "ND", rationale: not determined
+  NA,  # 43, supp column, "<NA>", rationale: missing
+  NA,  # 44, supp column, "<NA>", rationale: missing
+  NA,  # 45, supp column, "<NA>", rationale: missing
+  NA,  # 46, supp column, "ND", rationale: not determined
+  NA,  # 47, supp column, "ND", rationale: not determined
+  NA,  # 48, supp column, "ND", rationale: not determined
+  NA,  # 49, supp column, "<NA>", rationale: missing
+  NA,  # 50, supp column, "<NA>", rationale: missing
+  NA,  # 51, supp column, "<NA>", rationale: missing
+  NA,  # 52, supp column, "<NA>", rationale: missing
+  NA,  # 53, supp column, "ND", rationale: not determined
+  NA,  # 54, supp column, "ND", rationale: not determined
+  3,  # 55, supp column, "3 ± 4", rationale: mean extracted
+  NA,  # 56, supp column, "not reported", rationale: not reported
+  NA,  # 57, supp column, "<NA>", rationale: missing
+  NA,  # 58, supp column, "ND", rationale: not determined
+  NA,  # 59, supp column, "not reported", rationale: not reported
+  NA,  # 60, supp column, "ND", rationale: not determined
+  NA,  # 61, supp column, "ND", rationale: not determined
+  NA,  # 62, supp column, "ND", rationale: not determined
+  NA,  # 63, supp column, "ND", rationale: not determined
+  NA,  # 64, supp column, "ND", rationale: not determined
+  NA,  # 65, supp column, "<NA>", rationale: missing
+  NA,  # 66, supp column, "<NA>", rationale: missing
+  NA,  # 67, supp column, "<NA>", rationale: missing
+  6.8,  # 68, supp column, "6.8 ±  1.5", rationale: mean extracted
+  6.1,  # 69, supp column, "6.1 ± 1.3", rationale: mean extracted
+  NA,  # 70, supp column, "<NA>", rationale: missing
+  NA,  # 71, supp column, "<NA>", rationale: missing
+  NA,  # 72, supp column, "ND", rationale: not determined
+  NA,  # 73, supp column, "not determined", rationale: not determined
+  NA,  # 74, supp column, "ND", rationale: not determined
+  NA,  # 75, supp column, "not reported", rationale: not reported
+  NA,  # 76, supp column, "not reported", rationale: not reported
+  NA,  # 77, supp column, "ND", rationale: not determined
+  NA,  # 78, supp column, "ND", rationale: not determined
+  NA,  # 79, supp column, "ND", rationale: not determined
+  NA,  # 80, supp column, "<NA>", rationale: missing
+  NA,  # 81, supp column, "<NA>", rationale: missing
+  NA,  # 82, supp column, "not reported", rationale: not reported
+  NA,  # 83, supp column, "<NA>", rationale: missing
+  NA,  # 84, supp column, "ND", rationale: not determined
+  NA,  # 85, supp column, "ND", rationale: not determined
+  NA,  # 86, supp column, "ND", rationale: not determined
+  NA,  # 87, supp column, "<NA>", rationale: missing
+  NA,  # 88, supp column, "ND", rationale: not determined
+  NA,  # 89, supp column, "Not determined", rationale: not determined
+  NA,  # 90, supp column, "<NA>", rationale: missing
+  NA,  # 91, supp column, "<NA>", rationale: missing
+  NA,  # 92, supp column, "ND", rationale: not determined
+  NA,  # 93, supp column, "not reported", rationale: not reported
+  NA,  # 94, supp column, "ND", rationale: not determined
+  NA,  # 95, supp column, "ND", rationale: not determined
+  NA,  # 96, supp column, "not determined", rationale: not determined
+  NA,  # 97, supp column, "not determined", rationale: not determined
+  NA,  # 98, supp column, "<NA>", rationale: missing
+  0.16,  # 99, supp column, "0.16 ± 0.38", rationale: mean extracted
+  NA,  # 100, supp column, "<NA>", rationale: missing
+  NA,  # 101, supp column, "<NA>", rationale: missing
+  0.33,  # 102, supp column, "0.33 ± 0.6", rationale: mean extracted
+  NA,  # 103, supp column, "<NA>", rationale: missing
+  NA,  # 104, supp column, "<NA>", rationale: missing
+  NA,  # 105, supp column, "<NA>", rationale: missing
+  NA,  # 106, supp column, "<NA>", rationale: missing
+  NA,  # 107, supp column, "<NA>", rationale: missing
+  NA,  # 108, supp column, "<NA>", rationale: missing
+  2,  # 109, supp column, "2±7", rationale: mean extracted
+  NA,  # 110, supp column, "<NA>", rationale: missing
+  NA,  # 111, supp column, "<NA>", rationale: missing
+  NA,  # 112, supp column, "ND", rationale: not determined
+  NA,  # 113, supp column, "ND", rationale: not determined
+  NA,  # 114, supp column, "ND", rationale: not determined
+  NA,  # 115, supp column, "ND", rationale: not determined
+  NA,  # 116, supp column, "ND", rationale: not determined
+  2,  # 117, supp column, "2", rationale: mean extracted
+  NA,  # 118, supp column, "ND", rationale: not determined
+  NA   # 119, supp column, "ND", rationale: not determined
+)
+
+supp_sd_perio = c(
+  NA,  # 1, sd column, NA, rationale: missing
+  NA,  # 2, sd column, NA, rationale: missing
+  3.78,  # 3, supp column, "3.57±3.78", rationale: sd extracted
+  NA,  # 4, sd column, NA, rationale: missing
+  NA,  # 5, sd column, NA, rationale: missing
+  NA,  # 6, supp column, "ND", rationale: not determined
+  3.7,  # 7, supp column, "3.09 ± 3.7", rationale: sd extracted
+  NA,  # 8, sd column, NA, rationale: missing
+  NA,  # 9, sd column, NA, rationale: missing
+  NA,  # 10, sd column, NA, rationale: missing
+  19,  # 11, supp column, "10 ± 19", rationale: sd extracted
+  10,  # 12, supp column, "3 ± 10", rationale: sd extracted
+  NA,  # 13, sd column, NA, rationale: missing
+  NA,  # 14, sd column, NA, rationale: missing
+  3,  # 15, supp column, "14 ± 3", rationale: sd extracted
+  0.11,  # 16, sd column, "0.11", rationale: SD column
+  NA,  # 17, supp column, "ND", rationale: not determined
+  2.5,  # 18, sd column, "2.50", rationale: SD column
+  19,  # 19, sd column, "19.00", rationale: SD column
+  NA,  # 20, supp column, "ND", rationale: not determined
+  NA,  # 21, supp column, "ND", rationale: not determined
+  0.1,  # 22, supp column, "0.1 (0.1)", rationale: sd in parens
+  NA,  # 23, supp column, "ND", rationale: not determined
+  0.8,  # 24, supp column, "1.1±0.8 (...)", rationale: sd extracted
+  NA,  # 25, supp column, "GAgP: 4.32 ± 3.49, GChP: 3.09 ± 3.7", rationale: multiple groups, unclear which
+  NA,  # 26, supp column, "ND", rationale: not determined
+  NA,  # 27, supp column, "ND", rationale: not determined
+  7,  # 28, supp column, "2 ± 7 (suppuration ...)", rationale: sd extracted
+  NA,  # 29, supp column, "ChP: 0.4 ± 0.9, AgP: 1.1 ± 1.9...", rationale: multiple groups, unclear
+  6.2,  # 30, supp column, "4.5 ± 6.2", rationale: sd extracted
+  NA,  # 31, supp column, "ND", rationale: not determined
+  NA,  # 32, sd column, NA, rationale: missing
+  NA,  # 33, supp column, "ND", rationale: not determined
+  NA,  # 34, sd column, NA, rationale: missing
+  NA,  # 35, sd column, NA, rationale: missing
+  NA,  # 36, supp column, "not reported", rationale: not reported
+  NA,  # 37, supp column, "not reported", rationale: not reported
+  NA,  # 38, sd column, NA, rationale: missing
+  NA,  # 39, supp column, "ND", rationale: not determined
+  NA,  # 40, supp column, "ND", rationale: not determined
+  NA,  # 41, supp column, "ND", rationale: not determined
+  NA,  # 42, supp column, "ND", rationale: not determined
+  NA,  # 43, sd column, NA, rationale: missing
+  NA,  # 44, sd column, NA, rationale: missing
+  NA,  # 45, sd column, NA, rationale: missing
+  NA,  # 46, supp column, "ND", rationale: not determined
+  NA,  # 47, supp column, "ND", rationale: not determined
+  NA,  # 48, supp column, "ND", rationale: not determined
+  NA,  # 49, sd column, NA, rationale: missing
+  NA,  # 50, sd column, NA, rationale: missing
+  NA,  # 51, sd column, NA, rationale: missing
+  NA,  # 52, sd column, NA, rationale: missing
+  NA,  # 53, supp column, "ND", rationale: not determined
+  NA,  # 54, supp column, "ND", rationale: not determined
+  4,  # 55, supp column, "3 ± 4", rationale: sd extracted
+  NA,  # 56, supp column, "not reported", rationale: not reported
+  NA,  # 57, sd column, NA, rationale: missing
+  NA,  # 58, supp column, "ND", rationale: not determined
+  NA,  # 59, supp column, "not reported", rationale: not reported
+  NA,  # 60, supp column, "ND", rationale: not determined
+  NA,  # 61, supp column, "ND", rationale: not determined
+  NA,  # 62, supp column, "ND", rationale: not determined
+  NA,  # 63, supp column, "ND", rationale: not determined
+  NA,  # 64, supp column, "ND", rationale: not determined
+  NA,  # 65, sd column, NA, rationale: missing
+  NA,  # 66, sd column, NA, rationale: missing
+  NA,  # 67, sd column, NA, rationale: missing
+  1.5,  # 68, supp column, "6.8 ±  1.5", rationale: sd extracted
+  1.3,  # 69, supp column, "6.1 ± 1.3", rationale: sd extracted
+  NA,  # 70, sd column, NA, rationale: missing
+  NA,  # 71, sd column, NA, rationale: missing
+  NA,  # 72, supp column, "ND", rationale: not determined
+  NA,  # 73, supp column, "not determined", rationale: not determined
+  NA,  # 74, supp column, "ND", rationale: not determined
+  NA,  # 75, supp column, "not reported", rationale: not reported
+  NA,  # 76, supp column, "not reported", rationale: not reported
+  NA,  # 77, supp column, "ND", rationale: not determined
+  NA,  # 78, supp column, "ND", rationale: not determined
+  NA,  # 79, supp column, "ND", rationale: not determined
+  NA,  # 80, sd column, NA, rationale: missing
+  NA,  # 81, sd column, NA, rationale: missing
+  NA,  # 82, supp column, "not reported", rationale: not reported
+  NA,  # 83, sd column, NA, rationale: missing
+  NA,  # 84, supp column, "ND", rationale: not determined
+  NA,  # 85, supp column, "ND", rationale: not determined
+  NA,  # 86, supp column, "ND", rationale: not determined
+  NA,  # 87, sd column, NA, rationale: missing
+  NA,  # 88, supp column, "ND", rationale: not determined
+  NA,  # 89, supp column, "Not determined", rationale: not determined
+  NA,  # 90, sd column, NA, rationale: missing
+  NA,  # 91, sd column, NA, rationale: missing
+  NA,  # 92, supp column, "ND", rationale: not determined
+  NA,  # 93, supp column, "not reported", rationale: not reported
+  NA,  # 94, supp column, "ND", rationale: not determined
+  NA,  # 95, supp column, "ND", rationale: not determined
+  NA,  # 96, supp column, "not determined", rationale: not determined
+  NA,  # 97, supp column, "not determined", rationale: not determined
+  NA,  # 98, sd column, NA, rationale: missing
+  0.38,  # 99, supp column, "0.16 ± 0.38", rationale: sd extracted
+  NA,  # 100, sd column, NA, rationale: missing
+  NA,  # 101, sd column, NA, rationale: missing
+  0.6,  # 102, supp column, "0.33 ± 0.6", rationale: sd extracted
+  NA,  # 103, sd column, NA, rationale: missing
+  NA,  # 104, sd column, NA, rationale: missing
+  NA,  # 105, sd column, NA, rationale: missing
+  NA,  # 106, sd column, NA, rationale: missing
+  NA,  # 107, sd column, NA, rationale: missing
+  NA,  # 108, sd column, NA, rationale: missing
+  7,  # 109, supp column, "2±7", rationale: sd extracted
+  NA,  # 110, sd column, NA, rationale: missing
+  NA,  # 111, sd column, NA, rationale: missing
+  NA,  # 112, supp column, "ND", rationale: not determined
+  NA,  # 113, supp column, "ND", rationale: not determined
+  NA,  # 114, supp column, "ND", rationale: not determined
+  NA,  # 115, supp column, "ND", rationale: not determined
+  NA,  # 116, supp column, "ND", rationale: not determined
+  5,  # 117, sd column, "5.00", rationale: SD column
+  NA,  # 118, supp column, "ND", rationale: not determined
+  NA   # 119, supp column, "ND", rationale: not determined
+)

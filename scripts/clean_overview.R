@@ -144,13 +144,13 @@ gpt_seqs <-
 table(gpt_seqs$Original == seq_type)
 
 # inspect
-View(gpt_seqs |> 
-       mutate(preserved_original = `Diagnostic Method` == Original))
+# View(gpt_seqs |> 
+#        mutate(preserved_original = `Diagnostic Method` == Original))
 
 # create output for collaborator to review
-gpt_seqs |> 
-  dplyr::select(-Original) |> 
-  write_csv('output/gpt_seqs_to_validate.csv')
+# gpt_seqs |> 
+#   dplyr::select(-Original) |> 
+#   write_csv('output/gpt_seqs_to_validate.csv')
 
 # get possible PMIDs ----
 
@@ -260,6 +260,26 @@ View(data.frame(original_num_percent = df$`Smokers (n,%) (periodontal health)`,
 View(data.frame(original_num_percent = df$`Smokers (n,%) (periodontitis)`,
                 original_percent = df$`Smokers (%) (periodontitis)`,
                 smokers_num_perio, smokers_percent_perio))
+
+
+# bleeding on probing
+View(data.frame(original_bop = df$`Bleeding on probing (periodontal health)`,
+                original_bop_sd = df$`Bleeding on probing (SD) (periodontal health)`,
+                bop_percent_health, bop_sd_health))
+
+View(data.frame(original_bop = df$`Bleeding on probing (periodontitis)`,
+                original_bop_sd = df$`Bleeding on probing (SD) (periodontitis)`,
+                bop_percent_perio, bop_sd_perio))
+
+# supporation
+View(data.frame(original_sup = df$`Suppuration (periodontal health)`,
+                original_sup_sd = df$`Suppuration (SD) (periodontal health)`,
+                supp_percent_health, supp_sd_health))
+
+View(data.frame(original_sup = df$`Suppuration (periodontitis)`,
+                original_sup_sd = df$`Suppuration (SD) (periodontitis)`,
+                supp_percent_perio, supp_sd_perio))
+
 
 # load in microbe data ----
 
