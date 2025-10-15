@@ -280,6 +280,52 @@ View(data.frame(original_sup = df$`Suppuration (periodontitis)`,
                 original_sup_sd = df$`Suppuration (SD) (periodontitis)`,
                 supp_percent_perio, supp_sd_perio))
 
+# number of samples
+View(data.frame(original_num_total = df$`Number of subgingival samples (TOTAL)`,
+                original_num_health = df$`Number of subgingival samples - periodontal health group`,
+                original_num_perio = df$`Number of subgingival samples - periodontitis group`))
+
+
+# join cleaned up columns ----
+
+cleaned_df <- tibble::tibble(
+  # use bugsigdb column names
+  "Study design" = designs,
+  "Location of subjects" = locs,
+  "Host species" = "Homo sapiens",
+  "Body site" = body_site,
+  "Condition" = "Periodontitis",
+  "Group 0 name" = group0_name,
+  "Group 1 name" = group1_name,
+  "Group 1 definition" = group1_def,
+  "Group 0 sample size" = group0_size,
+  "Group 1 sample size" = group1_size_summed,
+  "Sequencing type" = gpt_seqs$`Sequencing type`,
+  "16S variable region" = gpt_seqs$`16S variable region`,
+  "Sequencing platform" = gpt_seqs$`Sequencing platform`,
+  
+  # periodontits specific columns
+  "Group 0 age mean" =  age_mean_health,
+  "Group 0 age sd" =  age_sd_health,
+  "Group 1 age mean" =  age_mean_perio,
+  "Group 1 age sd" =  age_sd_perio,
+  "Group 0 num males" =  males_num_health,
+  "Group 1 num males" =  males_num_perio,
+  "Group 0 percent males" =  males_percent_health,
+  "Group 1 percent males" =  males_percent_perio,
+  "Group 0 num smokers" =  smokers_num_health,
+  "Group 1 num smokers" =  smokers_num_perio,
+  "Group 0 percent smokers" =  smokers_percent_health,
+  "Group 1 percent smokers" =  smokers_percent_perio,
+  "Group 0 bleeding on probing percent" =  bop_percent_health,
+  "Group 0 bleeding on probing SD" =  bop_sd_health,
+  "Group 1 bleeding on probing percent" =  bop_percent_perio,
+  "Group 1 bleeding on probing SD" =  bop_sd_perio,
+  "Group 0 suppuration percent" =  supp_percent_health,
+  "Group 0 suppuration SD" =  supp_sd_health,
+  "Group 1 suppuration percent" =  supp_percent_perio,
+  "Group 1 suppuration SD" =  supp_sd_perio,
+)
 
 # load in microbe data ----
 
