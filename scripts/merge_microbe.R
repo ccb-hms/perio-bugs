@@ -136,10 +136,10 @@ original_names <- unlist(lapply(
 original_names <- unique(original_names)
 
 # save list for chatGPT
-writeLines(
-  original_names, 
-  'output/original_names.txt'
-)
+# writeLines(
+#   original_names, 
+#   'output/original_names.txt'
+# )
 
 # chatGPT guesses for official taxon names in old_database
 gpt_res <- read.csv('output/gpt_names.csv')
@@ -257,9 +257,9 @@ View(filter(taxid_tbl, original_name != cleaned_names))
 
 # save results for Feres lab to validate
 # don't need to validate entries where original and clean are the same
-taxid_tbl |> 
-  filter(original_name != cleaned_names) |> 
-  write.csv('output/taxon_ids_to_validate.csv')
+# taxid_tbl |> 
+#   filter(original_name != cleaned_names) |> 
+#   write.csv('output/taxon_ids_to_validate.csv')
 
 # add taxon ids for differential species tables using lookup table (taxid_tbl)
 add_taxid <- function(tbl, taxid_tbl) {
@@ -271,6 +271,143 @@ add_taxid <- function(tbl, taxid_tbl) {
 
 old_database$db_up <- lapply(old_database$db_up, add_taxid, taxid_tbl = taxid_tbl)
 old_database$db_dn <- lapply(old_database$db_dn, add_taxid, taxid_tbl = taxid_tbl)
+
+# cleanup sarahs_db2 taxon ids ----
+
+# Human Oral Microbiome
+homd <- data.table::fread('data/HOMD_taxon_table2025-08-26_1756207550.txt')
+homd <- homd |> 
+  select(HMT_ID:Species, Synonyms, NCBI_taxon_id)
+
+# convert list of lists into a single data.frame
+rbind_taxdbs <- function(db) {
+  study_nums <- names(db$db_up)
+  for (study_num in study_nums) {
+    # add study number to each table
+    db$db_up[[study_num]]$Number <- study_num
+    db$db_dn[[study_num]]$Number <- study_num
+    
+    # add direction to each table
+    db$db_up[[study_num]]$direction <- "up"
+    db$db_dn[[study_num]]$direction <- "dn"
+  }
+  
+  do.call(rbind, c(db$db_up, db$db_dn))
+}
+
+sarahs_db2_df <- rbind_taxdbs(sarahs_db2)
+
+# remove working columns
+# NOTE: "... - condensed" removes blank rows
+# NOTE: "... w/ numerical values" are rows where there is a 0-9 in corresponding taxon name
+# NOTE: "Taxon ID" values not aligned with "Family", "Genus", "Species" (possibly aligned with "... - condensed")
+sarahs_db2_df <- 
+  select(sarahs_db2_df, Family, Genus, Species, direction, Number)
+
+# work with original annotations of Family, Genus, Species
+sarahs_db2_df <- sarahs_db2_df |> 
+  mutate(most_specific_name = most_specific_name_base(sarahs_db2_df)) |>
+  # remove duplicate Genus identifier
+  mutate(most_specific_name = gsub('^([A-Z][a-z]+) \\1 ', '\\1 ', most_specific_name)) |> 
+  filter(!is.na(most_specific_name))
+
+# add exact HOMD Genus species matches
+homd_names <- data.frame(
+  most_specific_name = most_specific_name_base(homd),
+  taxid = homd$NCBI_taxon_id
+  ) |> 
+  distinct(most_specific_name, .keep_all = TRUE)
+
+
+sarahs_db2_df <- left_join(
+  sarahs_db2_df, homd_names, keep = TRUE, suffix = c('_sarahs', '_homd'))
+
+table(is.na(sarahs_db2_df$taxid))
+
+needs_fixing <- sarahs_db2_df |> 
+  filter(is.na(taxid)) |> 
+  pull(most_specific_name_sarahs) |> 
+  unique()
+
+# try to get taxids
+res <- lapply(needs_fixing, taxizedb::name2taxid, out_type = 'summary')
+
+# either multiple results or none
+orig_ambig <- sapply(res, function(df) nrow(df) > 1)
+orig_absnt <- sapply(res, function(df) nrow(df) == 0)
+table(orig_ambig)
+table(orig_absnt)
+
+needs_fixing[orig_ambig]
+needs_fixing[orig_absnt]
+
+res <- do.call(rbind, res)
+res$id <- as.numeric(res$id)
+
+# fill in hits
+sarahs_db2_df <- sarahs_db2_df |> 
+  left_join(res, join_by(most_specific_name_sarahs == name)) |> 
+  mutate(taxid = coalesce(taxid, id)) |> 
+  select(-id)
+
+# second attempt with chatGPT names ----
+# PROMPT:
+# For the following list of bacterial taxon names, get the closest matching official
+# NCBI taxon names (Genus species) for the included table.
+# 
+# Format the result as a csv with each line having the row number, the original name
+# I am providing as well as the corresponding official NCBI taxon name.
+# provide the first 300 rows and then prompt me for the next batch.
+# 
+# cat(needs_fixing[orig_absnt], sep='\n')
+
+gpt_res <- read.csv('output/gpt_names_sarah2.csv', stringsAsFactors = FALSE) |> 
+  separate_rows(ncbi_name, sep = ";") |> 
+  rename(ncbi_name_split = ncbi_name)
+
+gpt_original <- gpt_res$original_name
+gpt_names <- gpt_res$ncbi_name_split
+
+all.equal(unique(gpt_original), needs_fixing[orig_absnt])
+
+# convert names to taxids
+res <- lapply(gpt_names, taxizedb::name2taxid, out_type = 'summary')
+
+# either multiple results or none
+gpt_ambig <- sapply(res, function(df) nrow(df) > 1)
+gpt_absnt <- sapply(res, function(df) nrow(df) == 0)
+table(gpt_ambig)
+table(gpt_absnt)
+
+gpt_names[gpt_absnt]
+
+# third attempt asking gemini in google (uses search) ----
+# fixed up remaining (LOTS) manually in the csv
+
+gem_res <- read.csv('output/gemini_names_sarah2.csv', stringsAsFactors = FALSE) |> 
+  select(-notes, -taxon_id)
+
+gem_names <- gem_res$ncbi_name
+
+res <- lapply(gem_names, taxizedb::name2taxid, out_type = 'summary')
+
+# either multiple results or none
+gem_ambig <- sapply(res, function(df) nrow(df) > 1)
+gem_absnt <- sapply(res, function(df) nrow(df) == 0)
+table(gem_ambig)
+table(gem_absnt)
+
+gem_names[gem_ambig]
+gem_names[gem_absnt]
+
+# bind and remove eukaryotic Kingella
+res <- do.call(rbind, res) |> 
+  distinct() |> 
+  filter(id != '52002') |>
+  right_join(gem_res, join_by(name == ncbi_name))
+
+View(res)
+
 
 # merge all differentially up and down tables
 diff_species <- list(
