@@ -50,7 +50,7 @@ process_database <- function(db) {
   ))
 }
 
-# NOTE: sarahs_db2 has taxonomy ids (yay!)
+# NOTE: sarahs_db2 has some taxonomy ids
 # for processing "Sarah's Work (2)"
 process_sarahs_db2 <- function(db) {
   db$...15 <- db$Reference <- NULL
@@ -151,12 +151,22 @@ setdiff(gpt_original, original_names)
 setdiff(original_names, gpt_original)
 all.equal(unique(original_names), gpt_original)
 
-# first atempt with original names ----
+# first attempt with original names ----
 # convert names to taxids
 
 # this gets about 10 additional on first pass (chatGPT gets at least 9 anyway)
 # original_names <- gsub('_ot', 'oral taxon', original_names)
-# original_names <- gsub('sp[.]?', '.', original_names)
+# original_names <- gsub('sp[.]?', 'sp.', original_names)
+
+# Human Oral Microbiome
+homd <- data.table::fread('data/HOMD_taxon_table2025-08-26_1756207550.txt')
+homd <- homd |> 
+  select(HMT_ID:Species, Synonyms, NCBI_taxon_id)
+
+# check in HOMD
+homd_names <- most_specific_name_base(homd)
+in.homd <- original_names %in% homd_names
+table(in.homd)
 
 res <- lapply(original_names, taxizedb::name2taxid, out_type = 'summary')
 
@@ -168,6 +178,9 @@ table(orig_absnt)
 
 original_names[orig_ambig]
 gpt_names[orig_ambig]
+
+# any additional in HOMD --> No
+table(in.homd & orig_absnt)
 
 # second attempt with GPT names ----
 use.gpt <- orig_absnt | orig_ambig
@@ -274,11 +287,6 @@ old_database$db_dn <- lapply(old_database$db_dn, add_taxid, taxid_tbl = taxid_tb
 
 # cleanup sarahs_db2 taxon ids ----
 
-# Human Oral Microbiome
-homd <- data.table::fread('data/HOMD_taxon_table2025-08-26_1756207550.txt')
-homd <- homd |> 
-  select(HMT_ID:Species, Synonyms, NCBI_taxon_id)
-
 # convert list of lists into a single data.frame
 rbind_taxdbs <- function(db) {
   study_nums <- names(db$db_up)
@@ -296,13 +304,15 @@ rbind_taxdbs <- function(db) {
 }
 
 sarahs_db2_df <- rbind_taxdbs(sarahs_db2)
+old_database_df <- rbind_taxdbs(old_database)
 
 # remove working columns
 # NOTE: "... - condensed" removes blank rows
 # NOTE: "... w/ numerical values" are rows where there is a 0-9 in corresponding taxon name
 # NOTE: "Taxon ID" values not aligned with "Family", "Genus", "Species" (possibly aligned with "... - condensed")
 sarahs_db2_df <- 
-  select(sarahs_db2_df, Family, Genus, Species, direction, Number)
+  select(sarahs_db2_df, Family, Genus, Species, direction, Number) |> 
+  distinct()
 
 # work with original annotations of Family, Genus, Species
 sarahs_db2_df <- sarahs_db2_df |> 
@@ -363,7 +373,8 @@ sarahs_db2_df <- sarahs_db2_df |>
 
 gpt_res <- read.csv('output/gpt_names_sarah2.csv', stringsAsFactors = FALSE) |> 
   separate_rows(ncbi_name, sep = ";") |> 
-  rename(ncbi_name_split = ncbi_name)
+  rename(ncbi_name_split = ncbi_name) |> 
+  select(-row)
 
 gpt_original <- gpt_res$original_name
 gpt_names <- gpt_res$ncbi_name_split
@@ -380,6 +391,20 @@ table(gpt_ambig)
 table(gpt_absnt)
 
 gpt_names[gpt_absnt]
+
+# join back to chatGPT results
+res <- do.call(rbind, res) |> 
+  distinct() |> 
+  right_join(gpt_res, join_by(name == ncbi_name_split)) |> 
+  mutate(id = as.numeric(id)) |> 
+  select(-name)
+
+# fill in hits
+# many-to-many expected due to split above
+sarahs_db2_df <- sarahs_db2_df |> 
+  left_join(res, join_by(most_specific_name_sarahs == original_name), relationship = 'many-to-many') |> 
+  mutate(taxid = coalesce(taxid, id)) |> 
+  select(-id)
 
 # third attempt asking gemini in google (uses search) ----
 # fixed up remaining (LOTS) manually in the csv
@@ -404,15 +429,24 @@ gem_names[gem_absnt]
 res <- do.call(rbind, res) |> 
   distinct() |> 
   filter(id != '52002') |>
-  right_join(gem_res, join_by(name == ncbi_name))
+  right_join(gem_res, join_by(name == ncbi_name)) |> 
+  mutate(id = as.numeric(id)) |> 
+  select(-name)
 
-View(res)
+# fill in hits
+sarahs_db2_df <- sarahs_db2_df |> 
+  left_join(res, join_by(most_specific_name_sarahs == original_name)) |> 
+  mutate('Taxon ID' = coalesce(taxid, id)) |> 
+  select(-id, taxid)
 
+# have taxids for all
+sum(is.na(sarahs_db2_df$taxid))
+sum(is.na(old_database_df$`Taxon ID`))
 
 # merge all differentially up and down tables
-diff_species <- list(
-  db_up = c(old_database$db_up, sarahs_db2$db_up),
-  db_dn = c(old_database$db_dn, sarahs_db2$db_dn)
-)
+diff_species <- rbind(
+  old_database_df |> select('Number', 'Taxon ID', 'direction'),
+  sarahs_db2_df |> select('Number', 'Taxon ID', 'direction')
+) |> distinct()
 
 saveRDS(diff_species, 'output/diff_species.rds')
