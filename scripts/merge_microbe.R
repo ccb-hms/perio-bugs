@@ -154,10 +154,6 @@ all.equal(unique(original_names), gpt_original)
 # first attempt with original names ----
 # convert names to taxids
 
-# this gets about 10 additional on first pass (chatGPT gets at least 9 anyway)
-# original_names <- gsub('_ot', 'oral taxon', original_names)
-# original_names <- gsub('sp[.]?', 'sp.', original_names)
-
 # Human Oral Microbiome
 homd <- data.table::fread('data/HOMD_taxon_table2025-08-26_1756207550.txt')
 homd <- homd |> 
@@ -168,22 +164,26 @@ homd_names <- most_specific_name_base(homd)
 in.homd <- original_names %in% homd_names
 table(in.homd)
 
-res <- lapply(original_names, taxizedb::name2taxid, out_type = 'summary')
+# this gets about 10 additional on first pass (chatGPT gets at least 9 anyway)
+cleaned_names <- gsub('_ot', 'oral taxon', original_names)
+cleaned_names <- gsub(' sp(\\.)? ', ' sp. ', cleaned_names)
+
+res <- lapply(cleaned_names, taxizedb::name2taxid, out_type = 'summary')
 
 # either multiple results or none
-orig_ambig <- sapply(res, function(df) nrow(df) > 1)
-orig_absnt <- sapply(res, function(df) nrow(df) == 0)
-table(orig_ambig)
-table(orig_absnt)
+cleaned_ambig <- sapply(res, function(df) nrow(df) > 1)
+cleaned_absnt <- sapply(res, function(df) nrow(df) == 0)
+table(cleaned_ambig)
+table(cleaned_absnt)
 
-original_names[orig_ambig]
-gpt_names[orig_ambig]
+original_names[cleaned_ambig]
+gpt_names[cleaned_ambig]
 
-# any additional in HOMD --> No
-table(in.homd & orig_absnt)
+# any additional in HOMD? --> No
+table(in.homd & cleaned_absnt)
 
 # second attempt with GPT names ----
-use.gpt <- orig_absnt | orig_ambig
+use.gpt <- (cleaned_absnt | cleaned_ambig) & !in.homd
 gpt_names <- gpt_names[use.gpt]
 
 # fix up some identified errors 
@@ -249,24 +249,36 @@ table(simple_ambig)
 table(simple_absnt)
 
 # for checking the few remaining
-original_names[use.gpt][use.simple][simple_absnt]
+cleaned_names[use.gpt][use.simple][simple_absnt]
 
 # final result ----
-cleaned_names <- original_names
-cleaned_names[use.gpt] <- gpt_names
-cleaned_names[use.gpt][use.simple] <- simple_names
+final_names <- cleaned_names
+final_names[use.gpt] <- gpt_names
+final_names[use.gpt][use.simple] <- simple_names
 
 taxid_tbl <- data.frame(
   original_name = original_names,
+  cleaned_name = cleaned_names,
   gpt_name = NA,
   simple_name = NA,
-  taxid = taxizedb::name2taxid(cleaned_names)
+  taxid = taxizedb::name2taxid(final_names)
 )
 
 taxid_tbl$gpt_name[use.gpt] <- gpt_names
 taxid_tbl$simple_name[use.gpt][use.simple] <- simple_names
 
-View(filter(taxid_tbl, original_name != cleaned_names))
+# check if HOMD taxids are the same
+homd_taxids <- homd$NCBI_taxon_id
+names(homd_taxids) <- homd_names
+
+homd.same <- homd_taxids[original_names[in.homd]] == taxid_tbl$taxid[in.homd]
+table(homd.same)
+
+# taxid from taxizedb is correct
+homd_taxids[original_names[in.homd]][!homd.same]
+taxid_tbl[in.homd, ][!homd.same, ]
+
+View(filter(taxid_tbl, final_names != original_name))
 
 # save results for Feres lab to validate
 # don't need to validate entries where original and clean are the same
@@ -372,7 +384,7 @@ sarahs_db2_df <- sarahs_db2_df |>
 # cat(needs_fixing[orig_absnt], sep='\n')
 
 gpt_res <- read.csv('output/gpt_names_sarah2.csv', stringsAsFactors = FALSE) |> 
-  separate_rows(ncbi_name, sep = ";") |> 
+  tidyr::separate_rows(ncbi_name, sep = ";") |> 
   rename(ncbi_name_split = ncbi_name) |> 
   select(-row)
 
@@ -440,7 +452,7 @@ sarahs_db2_df <- sarahs_db2_df |>
   select(-id, taxid)
 
 # have taxids for all
-sum(is.na(sarahs_db2_df$taxid))
+sum(is.na(sarahs_db2_df$`Taxon ID`))
 sum(is.na(old_database_df$`Taxon ID`))
 
 # merge all differentially up and down tables
