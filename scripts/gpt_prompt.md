@@ -1,7 +1,6 @@
-For the following table with columns "Males (n,%) (periodontal health)" and "Males % (periodontal health)", generate two vectors names "males_num_health" and "males_percent_health" that has exactly the same number of values (119 total). Note that the column "Males % (periodontal health)" often has missing values that can be obtained from the "Males (n,%) (periodontal health)" column. If you see a fraction (e.g. 0.37) treat that as a percentage (37) to add to the new "males_percent_health" vector
+For the following table generate two vectors named `males_num_health` and `males_percent_health` that have the same number of values (119 each). Note that the column "Males % (periodontal health)" often has missing values that can be obtained from the "Males (n,%) (periodontal health)" column. If you see a fraction (e.g. 0.37) treat that as a percentage (37) to add to the new `males_percent_health` vector
 
 ``` r
-> print(df[, c("Males (n,%) (periodontal health)", "Males % (periodontal health)")], n=119)
 # A tibble: 119 × 2
     `Males (n,%) (periodontal health)`        `Males % (periodontal health)`
     <chr>                                     <chr>                         
@@ -36,24 +35,24 @@ and the corresponding fixed values:
 
 ``` r
 males_num_health = c(
-  46, # extracted from "46 (31,5%)" in (n, %) col
-  13, # extracted from "n=13" (n, %) col
-  NA, # (n, %) col has fraction only "0.37"
-  17, # extracted from (n, %) col "17"
-  7,  # extracted from (n, %) col "7"
-  1,  # extracted from (n, %) col "1 (10.00%)"
-  72, # extracted from (n, %) col "n 72"
-  8   # extracted from (n, %) col "8"
+  46,    # 1, from (n, %) col, "46 (31,5%)"
+  13,    # 2, from (n, %) col, "n=13"
+  NA,    # 3, (n, %) col has fraction only "0.37"
+  17,    # 4, from (n, %) col, "17"
+  7,     # 5, from (n, %) col, "7"
+  1,     # 6, from (n, %) col, "1 (10.00%)"
+  72,    # 7, from (n, %) col, "n 72"
+  8      # 8, from (n, %) col, "8"
 )
 males_percent_health = c(
-  31.5,  # extracted from "46 (31,5%)" in (n, %) col
-  NA,    # percent absent in both of original cols
-  37,    # fraction from (n, %) col treated as percentage "0.37"
-  32.1,  # extracted from % col value of "32.1%*"
-  50,    # extracted from % col value of "50"
-  10,    # extracted from (n, %) col "1 (10.00%)"
-  NA,    # percent absent in both of original cols
-  53.3   # extracted from % col value of "53.3"
+  31.5,  # 1, from (n, %) col, "46 (31,5%)"
+  NA,    # 2, percent absent in both of original cols
+  37,    # 3, from (n, %) col, "0.37", treated as percentage
+  32.1,  # 4, from % col, "32.1%*"
+  50,    # 5, from % col, "50"
+  10,    # 6, from (n, %) col, "1 (10.00%)"
+  NA,    # 7, percent absent in both of original cols
+  53.3   # 8, from % col, "53.3"
 )
 ```
 
