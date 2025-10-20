@@ -318,6 +318,45 @@ rbind_taxdbs <- function(db) {
 sarahs_db2_df <- rbind_taxdbs(sarahs_db2)
 old_database_df <- rbind_taxdbs(old_database)
 
+# extract annotated taxon id <--> Genus species for checking later
+annotated_names <- tibble(
+  Genus = sarahs_db2_df$`Genus w/ numerical values`,
+  Species = sarahs_db2_df$`Species w/ numerical values - condensed`,
+  'Taxon ID' = sarahs_db2_df$`Taxon ID`
+) |> 
+  filter(!is.na(`Taxon ID`))
+
+# TODO: adjust workflow to incorporate gsub cleaning
+clean_names <- function(x) {
+  # Remove all [ ... ] and any spaces immediately after them
+  x <- gsub("\\[[^]]*\\]\\s*", "", x)
+  
+  # Remove space, open parenthesis, numbers, close parenthesis at end of string
+  x <- gsub(" \\([0-9]+\\)$", "", x)
+  
+  # Remove "V1-2" or "V1 2" (optionally surrounded by whitespace)
+  x <- gsub("\\s*V1[ -]2\\s*", " ", x)
+  
+  # replace OT and HOT with oral taxon
+  x <- gsub("\\bOT ([0-9]+)\\b", "oral taxon \\1", x)
+  x <- gsub("\\bHOT ([0-9]+)\\b", "oral taxon \\1", x)
+  
+  # remove duplicate Genus identifier
+  x <- gsub('^([A-Z][a-z]+) \\1 ', '\\1 ', x)
+  
+  # Collapse any runs of multiple spaces to single spaces, then trim
+  x <- gsub(" +", " ", x)
+  x <- trimws(x)
+  
+  return(x)
+}
+
+annotated_names <- annotated_names |> 
+  mutate(most_specific_name = most_specific_name_base(annotated_names)) |> 
+  mutate(most_specific_name = gsub('^([A-Z][a-z]+) \\1 ', '\\1 ', most_specific_name)) |> 
+  distinct()
+
+
 # remove working columns
 # NOTE: "... - condensed" removes blank rows
 # NOTE: "... w/ numerical values" are rows where there is a 0-9 in corresponding taxon name
@@ -337,7 +376,7 @@ sarahs_db2_df <- sarahs_db2_df |>
 homd_names <- data.frame(
   most_specific_name = most_specific_name_base(homd),
   taxid = homd$NCBI_taxon_id
-  ) |> 
+) |> 
   distinct(most_specific_name, .keep_all = TRUE)
 
 
@@ -345,6 +384,27 @@ sarahs_db2_df <- left_join(
   sarahs_db2_df, homd_names, keep = TRUE, suffix = c('_sarahs', '_homd'))
 
 table(is.na(sarahs_db2_df$taxid))
+
+# check if HOMD is usefull
+homd_success_names <- sarahs_db2_df |> 
+  filter(!is.na(taxid)) |> 
+  pull(most_specific_name_sarahs) |> 
+  unique()
+
+homd_success_taxids <- sarahs_db2_df |> 
+  filter(!is.na(taxid)) |> 
+  pull(taxid) |> 
+  unique() |> 
+  as.character()
+
+res <- lapply(homd_success_names, taxizedb::name2taxid, out_type = 'summary')
+homd_absnt <- sapply(res, function(df) nrow(df) == 0)
+homd_success_calc_taxids <- do.call(rbind, res)$id
+
+# 5 cases where HOMD taxids not found by taxizedb
+# 1 different taxid
+table(homd_absnt)
+all.equal(homd_success_calc_taxids, homd_success_taxids[!homd_absnt])
 
 needs_fixing <- sarahs_db2_df |> 
   filter(is.na(taxid)) |> 
@@ -371,6 +431,8 @@ sarahs_db2_df <- sarahs_db2_df |>
   left_join(res, join_by(most_specific_name_sarahs == name)) |> 
   mutate(taxid = coalesce(taxid, id)) |> 
   select(-id)
+
+
 
 # second attempt with chatGPT names ----
 # PROMPT:
@@ -418,6 +480,13 @@ sarahs_db2_df <- sarahs_db2_df |>
   mutate(taxid = coalesce(taxid, id)) |> 
   select(-id)
 
+# how many left?
+sarahs_db2_df |> 
+  filter(is.na(taxid)) |> 
+  pull(most_specific_name_sarahs) |> 
+  unique() |> 
+  length()
+
 # third attempt asking gemini in google (uses search) ----
 # fixed up remaining (LOTS) manually in the csv
 
@@ -454,6 +523,61 @@ sarahs_db2_df <- sarahs_db2_df |>
 # have taxids for all
 sum(is.na(sarahs_db2_df$`Taxon ID`))
 sum(is.na(old_database_df$`Taxon ID`))
+
+# check concordance with annotated taxids
+annotated_names <- annotated_names |> 
+  select(most_specific_name, `Taxon ID`) |> 
+  left_join(
+    sarahs_db2_df |> select(most_specific_name_sarahs, `Taxon ID`), 
+    join_by(most_specific_name == most_specific_name_sarahs),
+  ) |> 
+  distinct() |> 
+  rename(
+    taxid_annot = `Taxon ID.x`,
+    taxid_calc = `Taxon ID.y`
+  )
+
+table(annotated_names$taxid_annot == annotated_names$taxid_calc)
+
+taxonomic_tree_distance <- function(taxid1, taxid2) {
+  # Retrieve lineages
+  cl1 <- taxizedb::classification(taxid1, db = "ncbi")[[1]]
+  cl2 <- taxizedb::classification(taxid2, db = "ncbi")[[1]]
+  
+  # annotated taxid not found
+  if (length(cl1) == 1 && is.na(cl1)) return(NA)
+  
+  # Remove nodes with 'no rank'
+  cl1 <- cl1[cl1$rank != "no rank", , drop = FALSE]
+  cl2 <- cl2[cl2$rank != "no rank", , drop = FALSE]
+  
+  # Find where the lineages diverge
+  min_length <- min(nrow(cl1), nrow(cl2))
+  split_index <- 0
+  for (i in seq_len(min_length)) {
+    if (cl1$name[i] != cl2$name[i]) {
+      split_index <- i - 1
+      break
+    }
+    if (i == min_length) split_index <- min_length
+  }
+  
+  steps1 <- nrow(cl1) - split_index
+  steps2 <- nrow(cl2) - split_index
+  distance <- steps1 + steps2
+  mrca <- if (split_index > 0) cl1$name[split_index] else NA
+  
+  return(distance)
+}
+
+annotated_names  <- annotated_names |> 
+  filter(taxid_annot != taxid_calc) |> 
+  # e.g. '199 / 203' becomes NA
+  filter(!is.na(taxid_annot)) |> 
+  rowwise() |> 
+  mutate(tree_distance = taxonomic_tree_distance(taxid_annot, taxid_calc))
+
+table(annotated_names[, 'tree_distance'])
 
 # merge all differentially up and down tables
 diff_species <- rbind(
