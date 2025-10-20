@@ -326,7 +326,12 @@ annotated_names <- tibble(
 ) |> 
   filter(!is.na(`Taxon ID`))
 
-# TODO: adjust workflow to incorporate gsub cleaning
+clean_names_simple <- function(x) {
+  # remove duplicate Genus identifier
+  x <- gsub('^([A-Z][a-z]+) \\1 ', '\\1 ', x)
+  return(x)
+}
+
 clean_names <- function(x) {
   # Remove all [ ... ] and any spaces immediately after them
   x <- gsub("\\[[^]]*\\]\\s*", "", x)
@@ -342,7 +347,7 @@ clean_names <- function(x) {
   x <- gsub("\\bHOT ([0-9]+)\\b", "oral taxon \\1", x)
   
   # remove duplicate Genus identifier
-  x <- gsub('^([A-Z][a-z]+) \\1 ', '\\1 ', x)
+  x <- gsub('^([A-Z][a-z]+) \\1 ', '\\1 ', x, ignore.case = TRUE)
   
   # Collapse any runs of multiple spaces to single spaces, then trim
   x <- gsub(" +", " ", x)
@@ -353,7 +358,7 @@ clean_names <- function(x) {
 
 annotated_names <- annotated_names |> 
   mutate(most_specific_name = most_specific_name_base(annotated_names)) |> 
-  mutate(most_specific_name = gsub('^([A-Z][a-z]+) \\1 ', '\\1 ', most_specific_name)) |> 
+  mutate(most_specific_name = clean_names(most_specific_name)) |> 
   distinct()
 
 
@@ -363,14 +368,13 @@ annotated_names <- annotated_names |>
 # NOTE: "Taxon ID" values not aligned with "Family", "Genus", "Species" (possibly aligned with "... - condensed")
 sarahs_db2_df <- 
   select(sarahs_db2_df, Family, Genus, Species, direction, Number) |> 
+  mutate(most_specific_name = most_specific_name_base(sarahs_db2_df)) |>
+  filter(!is.na(most_specific_name)) |>
+  mutate(most_specific_name = clean_names(most_specific_name)) |> 
   distinct()
 
-# work with original annotations of Family, Genus, Species
-sarahs_db2_df <- sarahs_db2_df |> 
-  mutate(most_specific_name = most_specific_name_base(sarahs_db2_df)) |>
-  # remove duplicate Genus identifier
-  mutate(most_specific_name = gsub('^([A-Z][a-z]+) \\1 ', '\\1 ', most_specific_name)) |> 
-  filter(!is.na(most_specific_name))
+# 838 unique cleaned Genus species
+length(unique(sarahs_db2_df$most_specific_name))
 
 # add exact HOMD Genus species matches
 homd_names <- data.frame(
@@ -401,7 +405,7 @@ res <- lapply(homd_success_names, taxizedb::name2taxid, out_type = 'summary')
 homd_absnt <- sapply(res, function(df) nrow(df) == 0)
 homd_success_calc_taxids <- do.call(rbind, res)$id
 
-# 5 cases where HOMD taxids not found by taxizedb
+# 7 cases where HOMD taxids not found by taxizedb
 # 1 different taxid
 table(homd_absnt)
 all.equal(homd_success_calc_taxids, homd_success_taxids[!homd_absnt])
@@ -448,12 +452,14 @@ sarahs_db2_df <- sarahs_db2_df |>
 gpt_res <- read.csv('output/gpt_names_sarah2.csv', stringsAsFactors = FALSE) |> 
   tidyr::separate_rows(ncbi_name, sep = ";") |> 
   rename(ncbi_name_split = ncbi_name) |> 
-  select(-row)
+  mutate(original_name = clean_names(original_name)) |> 
+  select(-row) |> 
+  filter(original_name %in% needs_fixing[orig_absnt])
 
 gpt_original <- gpt_res$original_name
 gpt_names <- gpt_res$ncbi_name_split
 
-all.equal(unique(gpt_original), needs_fixing[orig_absnt])
+all.equal(needs_fixing[orig_absnt], unique(gpt_original))
 
 # convert names to taxids
 res <- lapply(gpt_names, taxizedb::name2taxid, out_type = 'summary')
@@ -481,17 +487,22 @@ sarahs_db2_df <- sarahs_db2_df |>
   select(-id)
 
 # how many left?
-sarahs_db2_df |> 
+needs_fixing <- sarahs_db2_df |> 
   filter(is.na(taxid)) |> 
   pull(most_specific_name_sarahs) |> 
-  unique() |> 
-  length()
+  unique()
+
+length(needs_fixing)
 
 # third attempt asking gemini in google (uses search) ----
-# fixed up remaining (LOTS) manually in the csv
+# fixed up remaining manually in the csv
 
 gem_res <- read.csv('output/gemini_names_sarah2.csv', stringsAsFactors = FALSE) |> 
-  select(-notes, -taxon_id)
+  select(-notes, -taxon_id) |> 
+  mutate(original_name = clean_names(original_name)) |> 
+  filter(original_name %in% needs_fixing) |> 
+  distinct()
+  
 
 gem_names <- gem_res$ncbi_name
 
@@ -577,7 +588,7 @@ annotated_names  <- annotated_names |>
   rowwise() |> 
   mutate(tree_distance = taxonomic_tree_distance(taxid_annot, taxid_calc))
 
-table(annotated_names[, 'tree_distance'])
+table(annotated_names$tree_distance)
 
 # merge all differentially up and down tables
 diff_species <- rbind(
