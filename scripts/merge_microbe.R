@@ -1,6 +1,7 @@
 library(readxl)
 library(dplyr)
 
+# setup -----
 # Get all sheet names
 microbe_file <- 'data/Cleaned Micro List RY_final.xlsx'
 microbe_sheets <- excel_sheets(microbe_file)
@@ -81,6 +82,39 @@ process_sarahs_db2 <- function(db) {
   
 }
 
+# get most specific name from df of differentially abundant species
+most_specific_name_base <- function(df) {
+  specific_cols <- c("Species", "Genus", "Family", "Order", "Class", "Phylum", "Kingdom", "Domain")
+  apply(df, 1, function(row) {
+    g <- row["Genus"]
+    s <- row["Species"]
+    if(!is.na(g) && g != "" && !is.na(s) && s != "") {
+      paste(g, s)
+    } else {
+      vals <- row[specific_cols]
+      vals <- vals[vals != "" & !is.na(vals)]
+      vals[1]
+    }
+  })
+}
+
+# convert list of lists into a single data.frame
+rbind_taxdbs <- function(db) {
+  study_nums <- names(db$db_up)
+  for (study_num in study_nums) {
+    # add study number to each table
+    db$db_up[[study_num]]$Number <- study_num
+    db$db_dn[[study_num]]$Number <- study_num
+    
+    # add direction to each table
+    db$db_up[[study_num]]$direction <- "up"
+    db$db_dn[[study_num]]$direction <- "dn"
+  }
+  
+  do.call(rbind, c(db$db_up, db$db_dn))
+}
+
+
 new_database <- process_database(microbe$`New DATABASE`)
 old_database <- process_database(microbe$`Old DATABASE`)
 sarahs_db <- process_database(microbe$`Sarah's Work`)
@@ -112,22 +146,7 @@ table(
     unique(c(names(old_database$db_up), names(sarahs_db2$db_up)))
 )
 
-# get most specific name from df of differentially abundant species
-most_specific_name_base <- function(df) {
-  specific_cols <- c("Species", "Genus", "Family", "Order", "Class", "Phylum", "Kingdom", "Domain")
-  apply(df, 1, function(row) {
-    g <- row["Genus"]
-    s <- row["Species"]
-    if(!is.na(g) && g != "" && !is.na(s) && s != "") {
-      paste(g, s)
-    } else {
-      vals <- row[specific_cols]
-      vals <- vals[vals != "" & !is.na(vals)]
-      vals[1]
-    }
-  })
-}
-
+# Old DATABASE: setup ----
 original_names <- unlist(lapply(
   c(old_database$db_up, old_database$db_dn), 
   function(tbl) most_specific_name_base(tbl)
@@ -151,7 +170,7 @@ setdiff(gpt_original, original_names)
 setdiff(original_names, gpt_original)
 all.equal(unique(original_names), gpt_original)
 
-# first attempt with original names ----
+# Old DATABASE: first attempt with original names ----
 # convert names to taxids
 
 # Human Oral Microbiome
@@ -182,7 +201,7 @@ gpt_names[cleaned_ambig]
 # any additional in HOMD? --> No
 table(in.homd & cleaned_absnt)
 
-# second attempt with GPT names ----
+# Old DATABASE: second attempt with GPT names ----
 use.gpt <- (cleaned_absnt | cleaned_ambig) & !in.homd
 gpt_names <- gpt_names[use.gpt]
 
@@ -220,7 +239,7 @@ table(gpt_absnt)
 
 gpt_names[gpt_absnt]
 
-# third attempt with simplified names ----
+# Old DATABASE: third attempt with simplified names ----
 use.simple <- gpt_absnt | gpt_ambig
 
 needs_fixing <- gpt_names[use.simple]
@@ -251,7 +270,7 @@ table(simple_absnt)
 # for checking the few remaining
 cleaned_names[use.gpt][use.simple][simple_absnt]
 
-# final result ----
+# Old DATABASE: final result ----
 final_names <- cleaned_names
 final_names[use.gpt] <- gpt_names
 final_names[use.gpt][use.simple] <- simple_names
@@ -297,34 +316,10 @@ add_taxid <- function(tbl, taxid_tbl) {
 old_database$db_up <- lapply(old_database$db_up, add_taxid, taxid_tbl = taxid_tbl)
 old_database$db_dn <- lapply(old_database$db_dn, add_taxid, taxid_tbl = taxid_tbl)
 
-# cleanup sarahs_db2 taxon ids ----
-
-# convert list of lists into a single data.frame
-rbind_taxdbs <- function(db) {
-  study_nums <- names(db$db_up)
-  for (study_num in study_nums) {
-    # add study number to each table
-    db$db_up[[study_num]]$Number <- study_num
-    db$db_dn[[study_num]]$Number <- study_num
-    
-    # add direction to each table
-    db$db_up[[study_num]]$direction <- "up"
-    db$db_dn[[study_num]]$direction <- "dn"
-  }
-  
-  do.call(rbind, c(db$db_up, db$db_dn))
-}
-
-sarahs_db2_df <- rbind_taxdbs(sarahs_db2)
+# merge all tables into one
 old_database_df <- rbind_taxdbs(old_database)
 
-# extract annotated taxon id <--> Genus species for checking later
-annotated_names <- tibble(
-  Genus = sarahs_db2_df$`Genus w/ numerical values`,
-  Species = sarahs_db2_df$`Species w/ numerical values - condensed`,
-  'Taxon ID' = sarahs_db2_df$`Taxon ID`
-) |> 
-  filter(!is.na(`Taxon ID`))
+# Sarah's Work (2): setup ----
 
 clean_names_simple <- function(x) {
   # remove duplicate Genus identifier
@@ -356,11 +351,23 @@ clean_names <- function(x) {
   return(x)
 }
 
+# merge all tables into one
+sarahs_db2_df <- rbind_taxdbs(sarahs_db2)
+
+# extract annotated taxon id <--> Genus species for checking later
+annotated_names <- tibble(
+  Genus = sarahs_db2_df$`Genus w/ numerical values`,
+  Species = sarahs_db2_df$`Species w/ numerical values - condensed`,
+  'Taxon ID' = sarahs_db2_df$`Taxon ID`) |> 
+  filter(!is.na(`Taxon ID`))
+
 annotated_names <- annotated_names |> 
   mutate(most_specific_name = most_specific_name_base(annotated_names)) |> 
   mutate(most_specific_name = clean_names(most_specific_name)) |> 
   distinct()
 
+# 588 unique cleaned annotated Genus species
+length(unique(annotated_names$most_specific_name))
 
 # remove working columns
 # NOTE: "... - condensed" removes blank rows
@@ -376,6 +383,7 @@ sarahs_db2_df <-
 # 838 unique cleaned Genus species
 length(unique(sarahs_db2_df$most_specific_name))
 
+# Sarah's Work (2): first attempt with HOMD database ----
 # add exact HOMD Genus species matches
 homd_names <- data.frame(
   most_specific_name = most_specific_name_base(homd),
@@ -383,13 +391,12 @@ homd_names <- data.frame(
 ) |> 
   distinct(most_specific_name, .keep_all = TRUE)
 
-
 sarahs_db2_df <- left_join(
   sarahs_db2_df, homd_names, keep = TRUE, suffix = c('_sarahs', '_homd'))
 
 table(is.na(sarahs_db2_df$taxid))
 
-# check if HOMD is usefull
+# check if HOMD is useful
 homd_success_names <- sarahs_db2_df |> 
   filter(!is.na(taxid)) |> 
   pull(most_specific_name_sarahs) |> 
@@ -410,6 +417,8 @@ homd_success_calc_taxids <- do.call(rbind, res)$id
 table(homd_absnt)
 all.equal(homd_success_calc_taxids, homd_success_taxids[!homd_absnt])
 
+# Sarah's Work (2): second attempt with cleaned names ----
+
 needs_fixing <- sarahs_db2_df |> 
   filter(is.na(taxid)) |> 
   pull(most_specific_name_sarahs) |> 
@@ -425,7 +434,7 @@ table(orig_ambig)
 table(orig_absnt)
 
 needs_fixing[orig_ambig]
-needs_fixing[orig_absnt]
+# needs_fixing[orig_absnt]
 
 res <- do.call(rbind, res)
 res$id <- as.numeric(res$id)
@@ -436,9 +445,11 @@ sarahs_db2_df <- sarahs_db2_df |>
   mutate(taxid = coalesce(taxid, id)) |> 
   select(-id)
 
+# update what needs fixing
+needs_fixing <- needs_fixing[orig_absnt]
 
-
-# second attempt with chatGPT names ----
+# Sarah's Work (2): third attempt with chatGPT names ----
+#
 # PROMPT:
 # For the following list of bacterial taxon names, get the closest matching official
 # NCBI taxon names (Genus species) for the included table.
@@ -447,19 +458,19 @@ sarahs_db2_df <- sarahs_db2_df |>
 # I am providing as well as the corresponding official NCBI taxon name.
 # provide the first 300 rows and then prompt me for the next batch.
 # 
-# cat(needs_fixing[orig_absnt], sep='\n')
+# cat(needs_fixing, sep='\n')
 
 gpt_res <- read.csv('output/gpt_names_sarah2.csv', stringsAsFactors = FALSE) |> 
   tidyr::separate_rows(ncbi_name, sep = ";") |> 
   rename(ncbi_name_split = ncbi_name) |> 
   mutate(original_name = clean_names(original_name)) |> 
   select(-row) |> 
-  filter(original_name %in% needs_fixing[orig_absnt])
+  filter(original_name %in% needs_fixing)
 
 gpt_original <- gpt_res$original_name
 gpt_names <- gpt_res$ncbi_name_split
 
-all.equal(needs_fixing[orig_absnt], unique(gpt_original))
+all.equal(needs_fixing, unique(gpt_original))
 
 # convert names to taxids
 res <- lapply(gpt_names, taxizedb::name2taxid, out_type = 'summary')
@@ -494,7 +505,7 @@ needs_fixing <- sarahs_db2_df |>
 
 length(needs_fixing)
 
-# third attempt asking gemini in google (uses search) ----
+# Sarah's Work (2): fourth attempt asking Google AI mode ----
 # fixed up remaining manually in the csv
 
 gem_res <- read.csv('output/gemini_names_sarah2.csv', stringsAsFactors = FALSE) |> 
@@ -531,25 +542,7 @@ sarahs_db2_df <- sarahs_db2_df |>
   mutate('Taxon ID' = coalesce(taxid, id)) |> 
   select(-id, taxid)
 
-# have taxids for all
-sum(is.na(sarahs_db2_df$`Taxon ID`))
-sum(is.na(old_database_df$`Taxon ID`))
-
-# check concordance with annotated taxids
-annotated_names <- annotated_names |> 
-  select(most_specific_name, `Taxon ID`) |> 
-  left_join(
-    sarahs_db2_df |> select(most_specific_name_sarahs, `Taxon ID`), 
-    join_by(most_specific_name == most_specific_name_sarahs),
-  ) |> 
-  distinct() |> 
-  rename(
-    taxid_annot = `Taxon ID.x`,
-    taxid_calc = `Taxon ID.y`
-  )
-
-table(annotated_names$taxid_annot == annotated_names$taxid_calc)
-
+# Sarah's Work (2): check concordance with annotated taxids ----
 taxonomic_tree_distance <- function(taxid1, taxid2) {
   # Retrieve lineages
   cl1 <- taxizedb::classification(taxid1, db = "ncbi")[[1]]
@@ -581,6 +574,20 @@ taxonomic_tree_distance <- function(taxid1, taxid2) {
   return(distance)
 }
 
+annotated_names <- annotated_names |> 
+  select(most_specific_name, `Taxon ID`) |> 
+  left_join(
+    sarahs_db2_df |> select(most_specific_name_sarahs, `Taxon ID`), 
+    join_by(most_specific_name == most_specific_name_sarahs),
+  ) |> 
+  distinct() |> 
+  rename(
+    taxid_annot = `Taxon ID.x`,
+    taxid_calc = `Taxon ID.y`
+  )
+
+table(annotated_names$taxid_annot == annotated_names$taxid_calc)
+
 annotated_names  <- annotated_names |> 
   filter(taxid_annot != taxid_calc) |> 
   # e.g. '199 / 203' becomes NA
@@ -590,7 +597,12 @@ annotated_names  <- annotated_names |>
 
 table(annotated_names$tree_distance)
 
-# merge all differentially up and down tables
+# Old DATABASE and Sarah's Work (2): merge all and save ---
+
+# have taxids for all
+sum(is.na(sarahs_db2_df$`Taxon ID`))
+sum(is.na(old_database_df$`Taxon ID`))
+
 diff_species <- rbind(
   old_database_df |> select('Number', 'Taxon ID', 'direction'),
   sarahs_db2_df |> select('Number', 'Taxon ID', 'direction')
