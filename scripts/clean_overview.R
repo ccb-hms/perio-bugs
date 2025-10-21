@@ -241,8 +241,7 @@ View(data.frame(original_mean = df$`Age mean (periodontitis)`,
 View(data.frame(original = df$`Males (n,%)`, 
                 males_num, males_percent))
 
-View(data.frame(original_num_percent = df$`Males (n,%) (periodontal health)`, 
-                original_percent = df$`Males % (periodontal health)`,
+View(tibble(df[, c('Males (n,%) (periodontal health)', 'Males % (periodontal health)')],
                 males_num_health, males_percent_health))
 
 View(data.frame(original_num_percent = df$`Males (n,%) (periodontitis)`, 

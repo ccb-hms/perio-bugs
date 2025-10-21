@@ -161,6 +161,15 @@ original_names <- unique(original_names)
 # )
 
 # chatGPT guesses for official taxon names in old_database
+#
+# PROMPT:
+# I want the official NCBI taxon names for the following list of microbes. 
+# Generate a csv file that includes the original name I supply as well as the 
+# official NCBI taxon name. Give me the first 100 lines then prompt me for
+# the next batch:
+#
+# cat(original_names, sep='\n')
+#
 gpt_res <- read.csv('output/gpt_names.csv')
 gpt_names <- gpt_res$NCBI_Official_Taxon_Name
 gpt_original <- gpt_res$Original_Name
