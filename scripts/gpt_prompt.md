@@ -41,8 +41,9 @@ males_num_health = c(
   17,    # 4, from (n, %) col, "17"
   7,     # 5, from (n, %) col, "7"
   1,     # 6, from (n, %) col, "1 (10.00%)"
-  72,    # 7, from (n, %) col, "n 72"
-  8      # 8, from (n, %) col, "8"
+  10,    # 7, from (n, %) col, "N=10"
+  72,    # 8, from (n, %) col, "n 72"
+  8      # 9, from (n, %) col, "8"
 )
 males_percent_health = c(
   31.5,  # 1, from (n, %) col, "46 (31,5%)"
@@ -52,7 +53,8 @@ males_percent_health = c(
   50,    # 5, from % col, "50"
   10,    # 6, from (n, %) col, "1 (10.00%)"
   NA,    # 7, percent absent in both of original cols
-  53.3   # 8, from % col, "53.3"
+  NA,    # 8, percent absent in both of original cols
+  53.3   # 9, from % col, "53.3"
 )
 ```
 
