@@ -42,15 +42,18 @@ designs[grepl('cross', designs) &
 # TODO: clarify "cohort" and "non-randomized studies of interventions*"
 
 # Location of subjects ----
+
+# controlled terms for location
 reference_locs <- extract_unique(bugsigdb$`Location of subjects`)
 reference_locs
 
+# actual location values 
 locs <- df$Country
 
 # values that might need fixing
 unique(locs[!locs %in% reference_locs])
 
-# replace with bugsigdb values
+# replace with reference values
 locs <- gsub(' and ', ',', locs)
 locs <- gsub(', ', ',', locs)
 locs[locs == 'Brasil'] <- 'Brazil'
