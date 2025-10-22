@@ -3191,3 +3191,248 @@ supp_sd_perio = c(
   NA,  # 118, supp column, "ND", rationale: not determined
   NA   # 119, supp column, "ND", rationale: not determined
 )
+
+# PD (periodontitis) and PD SD (periodontitis) ----
+mean_PD = c(
+  NA,      # 1, original_PD, "NA"
+  38.5,    # 2, original_PD, "38.5 ± 17.4"
+  4.36,    # 3, original_PD, "4.3600000000000003"
+  NA,      # 4, original_PD, "2.9 ±  0.06 ;  3.9   ± 0.09 mm"
+  4.5,     # 5, original_PD, "4.5"
+  3.5,     # 6, original_PD, "3.5 mm"
+  3.85,    # 7, original_PD, "3.85 ± 0.7"
+  4.60,    # 8, original_PD, "4.5999999999999996"
+  4.10,    # 9, original_PD, "4.0999999999999996"
+  3.2,     # 10, original_PD, "3.2"
+  4.8,     # 11, original_PD, "4.8"
+  3.2,     # 12, original_PD, "3.2 ± 1.2"
+  3.3,     # 13, original_PD, "3.3"
+  7.4,     # 14, original_PD, "7.4"
+  3.3,     # 15, original_PD, "3.3"
+  5.78,    # 16, original_PD, "5.78"
+  4.60,    # 17, original_PD, "4.5999999999999996"
+  3.96,    # 18, original_PD, "3.96"
+  4.8,     # 19, original_PD, "4.8"
+  4.5,     # 20, original_PD, "4.5"
+  5.9,     # 21, original_PD, "5.9"
+  NA,      # 22, original_PD, "ND (6 sites per tooth of all teeth, excl 3rd molars)"
+  3.9,     # 23, original_PD, "3.9"
+  3.7,     # 24, original_PD, "3.7"
+  NA,      # 25, original_PD, "GAgP: 4.1 ± 0.9, GChP: 4.0 ± 1.1 (measured at six sites per tooth (measured at six sites per tooth (MB, B, DB, DL, L and ML) in all teeth except 3rd molars"
+  NA,      # 26, original_PD, "2.3 ± 4.4 (sites with PD ≥7 mm (%)), 6.5 ± 5.2 ((sites with PD 4 to 6 mm (%)), (the same as reported by Lages et al., 2012)"
+  5.59,    # 27, original_PD, "5.59"
+  2.9,     # 28, original_PD, "2.9"
+  NA,      # 29, original_PD, "ChP: 2.8 ± 0.5, AgP: 4.6 ± 0.7 (full mouth)"
+  4.62,    # 30, original_PD, "4.62"
+  NA,      # 31, original_PD, "≥5 (PD (mm) in > 30% of sites)"
+  3.4,     # 32, original_PD, "3.4"
+  3,       # 33, original_PD, "3"
+  2.30,    # 34, original_PD, "2.2999999999999998"
+  NA,      # 35, original_PD, "5.3 (6.7)"
+  6.4,     # 36, original_PD, "6.4"
+  6.2,     # 37, original_PD, "6.2"
+  2.7,     # 38, original_PD, "2.7"
+  NA,      # 39, original_PD, "ChP: 4.26 ± 1.70, 4.56 ± 1.60, 4.22 ± 1.48, AgP: 4.55 ± 1.45, 4.49 ± 1.35, 3.86 ± 1.14 (individual values) (at six sites per tooth)"
+  NA,      # 40, original_PD, "ND\r\nrecommendations (1997)"
+  NA,      # 41, original_PD, "ND"
+  NA,      # 42, original_PD, "range: 5-8 (8,6,6,5,5,6)  (average depth in millimeters of the 4 deepest periodontal pockets)"
+  3.81,    # 43, original_PD, "3.81"
+  3.9,     # 44, original_PD, "3.9"
+  3.6,     # 45, original_PD, "3.6"
+  NA,      # 46, original_PD, "CP: 4.4 ± 1.3, AgP: 5.9 ± 2.2, sampled sites: CP: 5.6 ± 1.1, AgP: 8.2 ± 1.5, measured at 6 sites per tooth: MB, B, DB, DL, L , ML, full mouth for CP, sampled sites for AgP"
+  3.7,     # 47, original_PD, "3.7"
+  5.45,    # 48, original_PD, "5.45"
+  NA,      # 49, original_PD, "7.9 ± 1.3   5.8 ± 1.4  mm"
+  NA,      # 50, original_PD, NA
+  NA,      # 51, original_PD, NA
+  3.5,     # 52, original_PD, "3.5"
+  NA,      # 53, original_PD, "ND (range: 4-10 mm)"
+  44473,   # 54, original_PD, "44473"
+  3.66,    # 55, original_PD, "3.66"
+  3.05,    # 56, original_PD, "3.05"
+  NA,      # 57, original_PD, NA
+  NA,      # 58, original_PD, "range: 11-57* and 7-74* (no. of pockets 4-5mm and >6mm)"
+  6.53,    # 59, original_PD, "6.53"
+  NA,      # 60, original_PD, "ChGP: 7.81±0.62, GAP: 9.08±0.70"
+  5.95,    # 61, original_PD, "5.95"
+  NA,      # 62, original_PD, "ND"
+  NA,      # 63, original_PD, "ND"
+  NA,      # 64, original_PD, "NA"
+  NA,      # 65, original_PD, NA
+  NA,      # 66, original_PD, NA
+  5.73,    # 67, original_PD, "5.73±0.17 mm"
+  4,       # 68, original_PD, "4"
+  3.9,     # 69, original_PD, "3.9"
+  2.83,    # 70, original_PD, "2.8250000000000002"
+  NA,      # 71, original_PD, NA
+  NA,      # 72, original_PD, "NA"
+  6.3,     # 73, original_PD, "6.3"
+  NA,      # 74, original_PD, "ND"
+  NA,      # 75, original_PD, "NA"
+  2.93,    # 76, original_PD, "2.93"
+  3.73,    # 77, original_PD, "3.73"
+  NA,      # 78, original_PD, "NS-Perio: 3.35 ± 0.64 (measured at 6 sites per tooth, full mouth), 5.84 ± 0.87 (measured at 6 sites per tooth, sampled sites), S-Perio: 4.84 ± 0.55 (measured at 6 sites per tooth, sampled sites), mean values"
+  NA,      # 79, original_PD, "GAgP: 3.7 ± 0.6, LAgP: 3.0 ± 0.8 (measured at 6 sites per tooth for all teeth excluding 3rd molars)"
+  2.83,    # 80, original_PD, "2.83"
+  3.7,     # 81, original_PD, "3.7"
+  NA,      # 82, original_PD, "NA"
+  NA,      # 83, original_PD, NA
+  NA,      # 84, original_PD, "ND"
+  NA,      # 85, original_PD, "ND"
+  6.97,    # 86, original_PD, "6.97"
+  NA,      # 87, original_PD, NA
+  4.66,    # 88, original_PD, "4.66"
+  NA,      # 89, original_PD, "NA"
+  6.22,    # 90, original_PD, "6.22"
+  NA,      # 91, original_PD, NA
+  6.98,    # 92, original_PD, "6.98"
+  7.7,     # 93, original_PD, "7.7"
+  NA,      # 94, original_PD, "ND"
+  2.30,    # 95, original_PD, "2.2999999999999998"
+  NA,      # 96, original_PD, "NA"
+  6.15,    # 97, original_PD, "6.15"
+  NA,      # 98, original_PD, NA
+  2.70,    # 99, original_PD, "2.70 ± 0.29"
+  NA,      # 100, original_PD, "2,3  ; 3,1"
+  NA,      # 101, original_PD, NA
+  3.9,     # 102, original_PD, "3.9"
+  3.03,    # 103, original_PD, "3.03"
+  NA,      # 104, original_PD, NA
+  2.53,    # 105, original_PD, "2.5299999999999998"
+  NA,      # 106, original_PD, NA
+  NA,      # 107, original_PD, "7.1 (1.9, 4-13)"
+  7.1,     # 108, original_PD, "7.1"
+  3.2,     # 109, original_PD, "3.2"
+  5.6,     # 110, original_PD, "5.6"
+  NA,      # 111, original_PD, NA
+  5.7,     # 112, original_PD, "5.7"
+  NA,      # 113, original_PD, "Deep sites: 6.0 ± 1.5, shallow sites: 2.4 ± 0.9"
+  6.8,     # 114, original_PD, "6.8"
+  NA,      # 115, original_PD, "ND"
+  NA,      # 116, original_PD, "ND"
+  3.42,    # 117, original_PD, "3.42"
+  NA,      # 118, original_PD, "ND"
+  NA       # 119, original_PD, "ND (Community Periodontal Index (CPI) available only: 2.67 (2.50–3.00))"
+)
+
+sd_PD = c(
+  NA,      # 1, original_PD_SD, NA
+  17.4,    # 2, original_PD, "38.5 ± 17.4"
+  0.88,    # 3, original_PD_SD, "0.88"
+  NA,      # 4, original_PD_SD, NA ("2.9 ±  0.06 ;  3.9   ± 0.09 mm" -> multiple values)
+  1.2,     # 5, original_PD_SD, "1.2"
+  NA,      # 6, original_PD_SD, NA
+  0.7,     # 7, original_PD, "3.85 ± 0.7"
+  0.13,    # 8, original_PD_SD, "0.13"
+  0.22,    # 9, original_PD_SD, "0.22"
+  1.2,     # 10, original_PD_SD, "1.2"
+  0.6,     # 11, original_PD_SD, "0.6"
+  1.2,     # 12, original_PD, "3.2 ± 1.2"
+  0.12,    # 13, original_PD_SD, "0.12"
+  1.7,     # 14, original_PD_SD, "1.7"
+  0.2,     # 15, original_PD_SD, "0.2"
+  0.61,    # 16, original_PD_SD, "0.61"
+  0.13,    # 17, original_PD_SD, "0.13"
+  NA,      # 18, original_PD_SD, NA
+  0.6,     # 19, original_PD_SD, "0.6"
+  0.7,     # 20, original_PD_SD, "0.7"
+  0.8,     # 21, original_PD_SD, "0.8"
+  NA,      # 22, original_PD_SD, NA
+  0.7,     # 23, original_PD_SD, "0.7"
+  0.7,     # 24, original_PD_SD, "0.7"
+  NA,      # 25, original_PD_SD, NA
+  NA,      # 26, original_PD_SD, NA
+  1.17,    # 27, original_PD_SD, "1.17"
+  1.1,     # 28, original_PD_SD, "1.1"
+  NA,      # 29, original_PD_SD, NA ("ChP: 2.8 ± 0.5, AgP: 4.6 ± 0.7 (full mouth)" -> multiple)
+  0.81,    # 30, original_PD_SD, "0.81"
+  NA,      # 31, original_PD_SD, NA
+  NA,      # 32, original_PD_SD, NA
+  0.7,     # 33, original_PD_SD, "0.7"
+  NA,      # 34, original_PD_SD, NA
+  NA,      # 35, original_PD_SD, NA
+  1.1,     # 36, original_PD_SD, "1.1"
+  0.5,     # 37, original_PD_SD, "0.5"
+  0.7,     # 38, original_PD_SD, "0.7"
+  NA,      # 39, original_PD_SD, NA
+  NA,      # 40, original_PD_SD, NA
+  NA,      # 41, original_PD_SD, NA
+  NA,      # 42, original_PD_SD, NA
+  0.57,    # 43, original_PD_SD, "0.57"
+  1.1,     # 44, original_PD_SD, "1.1"
+  0.7,     # 45, original_PD_SD, "0.7"
+  NA,      # 46, original_PD_SD, NA
+  1,       # 47, original_PD_SD, "1"
+  1.25,    # 48, original_PD_SD, "1.25"
+  NA,      # 49, original_PD_SD, NA
+  NA,      # 50, original_PD_SD, NA
+  NA,      # 51, original_PD_SD, NA
+  0.73,    # 52, original_PD_SD, "0.73"
+  NA,      # 53, original_PD_SD, NA
+  NA,      # 54, original_PD_SD, NA
+  0.86,    # 55, original_PD_SD, "0.86"
+  0.6,     # 56, original_PD_SD, "0.6"
+  NA,      # 57, original_PD_SD, NA
+  NA,      # 58, original_PD_SD, NA
+  NA,      # 59, original_PD_SD, NA
+  NA,      # 60, original_PD_SD, NA
+  0.7,     # 61, original_PD_SD, "0.7"
+  NA,      # 62, original_PD_SD, NA
+  NA,      # 63, original_PD_SD, NA
+  NA,      # 64, original_PD_SD, NA
+  NA,      # 65, original_PD_SD, NA
+  NA,      # 66, original_PD_SD, NA
+  0.17,    # 67, original_PD, "5.73±0.17 mm"
+  0.2,     # 68, original_PD_SD, "0.2"
+  0.2,     # 69, original_PD_SD, "0.2"
+  NA,      # 70, original_PD_SD, NA
+  NA,      # 71, original_PD_SD, NA
+  NA,      # 72, original_PD_SD, NA
+  1.26,    # 73, original_PD_SD, "1.26"
+  NA,      # 74, original_PD_SD, NA
+  NA,      # 75, original_PD_SD, NA
+  0.871,   # 76, original_PD_SD, "0.871"
+  0.53,    # 77, original_PD_SD, "0.53"
+  NA,      # 78, original_PD_SD, NA
+  NA,      # 79, original_PD_SD, NA
+  0.82,    # 80, original_PD_SD, "0.82"
+  0.8,     # 81, original_PD_SD, "0.8"
+  NA,      # 82, original_PD_SD, NA
+  NA,      # 83, original_PD_SD, NA
+  NA,      # 84, original_PD_SD, NA
+  NA,      # 85, original_PD_SD, NA
+  1.18,    # 86, original_PD_SD, "1.18"
+  NA,      # 87, original_PD_SD, NA
+  0.22,    # 88, original_PD_SD, "0.22"
+  NA,      # 89, original_PD_SD, NA
+  0.97,    # 90, original_PD_SD, "0.97"
+  NA,      # 91, original_PD_SD, NA
+  NA,      # 92, original_PD_SD, NA
+  1.3,     # 93, original_PD_SD, "1.3"
+  NA,      # 94, original_PD_SD, NA
+  NA,      # 95, original_PD_SD, NA
+  NA,      # 96, original_PD_SD, NA
+  NA,      # 97, original_PD_SD, NA
+  NA,      # 98, original_PD_SD, NA
+  0.29,    # 99, original_PD, "2.70 ± 0.29"
+  NA,      # 100, original_PD_SD, NA
+  NA,      # 101, original_PD_SD, NA
+  0.9,     # 102, original_PD_SD, "0.9"
+  NA,      # 103, original_PD_SD, NA
+  NA,      # 104, original_PD_SD, NA
+  0.04,    # 105, original_PD_SD, "0.04"
+  NA,      # 106, original_PD_SD, NA
+  NA,      # 107, original_PD_SD, NA
+  1.3,     # 108, original_PD_SD, "1.3"
+  0.6,     # 109, original_PD_SD, "0.6"
+  NA,      # 110, original_PD_SD, NA
+  NA,      # 111, original_PD_SD, NA
+  1.36,    # 112, original_PD_SD, "1.36"
+  NA,      # 113, original_PD_SD, NA
+  1.1,     # 114, original_PD_SD, "1.1"
+  NA,      # 115, original_PD_SD, NA
+  NA,      # 116, original_PD_SD, NA
+  0.81,    # 117, original_PD_SD, "0.81"
+  NA,      # 118, original_PD_SD, NA
+  NA       # 119, original_PD_SD, NA
+)
