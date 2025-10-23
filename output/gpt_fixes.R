@@ -3436,3 +3436,493 @@ sd_PD = c(
   NA,      # 118, original_PD_SD, NA
   NA       # 119, original_PD_SD, NA
 )
+
+# Clinical attachment loss/level (mm; mean+-SD) (periodontitis) ----
+mean_CAL_PD = c(
+  NA,                   # 1, original_clinical_attachment_loss_mean_PD: "not reported"
+  39.5,                 # 2, original_clinical_attachment_loss_mean_PD: "39.5± 16.3"
+  4.41,                 # 3, original_clinical_attachment_loss_mean_PD: "4.41±1.27"
+  NA,                   # 4, original_clinical_attachment_loss_mean_PD: "3.5 ±   0.08 ;  4.3 ±  0.12"
+  4.70,                 # 5, original_clinical_attachment_loss_mean_PD: "4.7 ± 1.1"
+  NA,                   # 6, original_clinical_attachment_loss_mean_PD: "ND"
+  4.33,                 # 7, original_clinical_attachment_loss_mean_PD: "4.33 ± 1.0"
+  5.40,                 # 8, original_clinical_attachment_loss_mean_PD: "5.4±0.16"
+  4.10,                 # 9, original_clinical_attachment_loss_mean_PD: "4.1 ± 0.19"
+  3.90,                 # 10, original_clinical_attachment_loss_mean_PD: "3,9 ± 1,5 mm"
+  5.60,                 # 11, original_clinical_attachment_loss_mean_PD: "5.6 ± 0.9"
+  3.90,                 # 12, original_clinical_attachment_loss_mean_PD: "3.9 ± 1.5"
+  3.80,                 # 13, original_clinical_attachment_loss_mean_PD: "3.8 ± 0.16"
+  NA,                   # 14, original_clinical_attachment_loss_mean_PD: NA
+  3.60,                 # 15, original_clinical_attachment_loss_mean_PD: "3.6 ± 0.2"
+  5.06,                 # 16, original_clinical_attachment_loss_mean_PD: "5.0599999999999996"
+  5.40,                 # 17, original_clinical_attachment_loss_mean_PD: "5.4"
+  NA,                   # 18, original_clinical_attachment_loss_mean_PD: "3.0 ± 0.4 [localised aggressive periodontitis], 4.7 ± 1.2 [generalised aggressive periodontitis], 4.3 ± 1.0 [chronic periodontitis]"
+  5.60,                 # 19, original_clinical_attachment_loss_mean_PD: "5.6"
+  4.20,                 # 20, original_clinical_attachment_loss_mean_PD: "4.2 ± 0.7"
+  NA,                   # 21, original_clinical_attachment_loss_mean_PD: "ND"
+  NA,                   # 22, original_clinical_attachment_loss_mean_PD: "ND (6 sites per tooth of all teeth, excl 3rd molars)"
+  4.90,                 # 23, original_clinical_attachment_loss_mean_PD: "4.9±0.7mm full-mouth"
+  4.50,                 # 24, original_clinical_attachment_loss_mean_PD: "4.5±1.3 (measured at six sites per tooth (measured at six sites per tooth (MB, B, DB, DL, L and ML) in all teeth, excl 3rd molars)"
+  NA,                   # 25, original_clinical_attachment_loss_mean_PD: "GAgP: 3.8 ± 1.1B, GChP: 3.7 ± 1.0 (measured at six sites per tooth (measured at six sites per tooth (MB, B, DB, DL, L and ML) in all teeth, excl 3rd molars)"
+  NA,                   # 26, original_clinical_attachment_loss_mean_PD: "7.2 ± 9.0, sites with CAL ≥4 mm (%), (the same as reported by Lages et al., 2012)"
+  NA,                   # 27, original_clinical_attachment_loss_mean_PD: "ND"
+  3.70,                 # 28, original_clinical_attachment_loss_mean_PD: "3.7 ± 1.5 (measured at 6 sites per tooth)"
+  NA,                   # 29, original_clinical_attachment_loss_mean_PD: "ChP: 3.3 ± 1.2, AgP: 5.2 ± 1.0 (full mouth)"
+  4.53,                 # 30, original_clinical_attachment_loss_mean_PD: "4.53 ± 1.23 (measured at 6 sites per tooth (MB, B, DB, DL, L and ML) in all teeth excl 3rd molars)"
+  NA,                   # 31, original_clinical_attachment_loss_mean_PD: "≥3 (CAL (mm) in >30% of sites)"
+  3.30,                 # 32, original_clinical_attachment_loss_mean_PD: "3.3"
+  3.90,                 # 33, original_clinical_attachment_loss_mean_PD: "3.9 ± 0.9"
+  1.90,                 # 34, original_clinical_attachment_loss_mean_PD: "1.9"
+  4.10,                 # 35, original_clinical_attachment_loss_mean_PD: "4.1 (6.4)"
+  3.40,                 # 36, original_clinical_attachment_loss_mean_PD: "3.4"
+  NA,                   # 37, original_clinical_attachment_loss_mean_PD: "not reported"
+  2.40,                 # 38, original_clinical_attachment_loss_mean_PD: "2,4 ± 1,8"
+  NA,                   # 39, original_clinical_attachment_loss_mean_PD: "ChP: 3.13 ± 1.97, 2.76 ± 1.97, 3.04 ± 3.00, AgP: 2.04 ± 1.53, 3.73 ± 2.32, 3.03 ± 1.55 (individual values) (at six sites per tooth)"
+  5.90,                 # 40, original_clinical_attachment_loss_mean_PD: "5.9 ± 1.2,  assessed according to WHO recommendations (1997)"
+  NA,                   # 41, original_clinical_attachment_loss_mean_PD: "ND"
+  NA,                   # 42, original_clinical_attachment_loss_mean_PD: "range: 0-3 (3,2,2,2,2.5,0) (average tooth support tissue loss in millimeters of the 4 deepest periodontal pockets' sites)"
+  4.04,                 # 43, original_clinical_attachment_loss_mean_PD: "4.04 ± 1.19"
+  4.20,                 # 44, original_clinical_attachment_loss_mean_PD: "4,2 ± 1,6"
+  NA,                   # 45, original_clinical_attachment_loss_mean_PD: NA
+  NA,                   # 46, original_clinical_attachment_loss_mean_PD: "CP: 5.1 ± 1.5, AgP: 6.5 ± 2.1, measured at 6 sites per tooth: MB, B, DB, DL, L , ML, full mouth excl 3rd molars"
+  4.70,                 # 47, original_clinical_attachment_loss_mean_PD: "4.7"
+  NA,                   # 48, original_clinical_attachment_loss_mean_PD: "6.5 ± 1.5 [aggressive periodontitis], 5.9 ± 1.4 [chronic periodontitis]"
+  NA,                   # 49, original_clinical_attachment_loss_mean_PD: NA
+  NA,                   # 50, original_clinical_attachment_loss_mean_PD: NA
+  NA,                   # 51, original_clinical_attachment_loss_mean_PD: NA
+  3.73,                 # 52, original_clinical_attachment_loss_mean_PD: "3.73±0.85"
+  NA,                   # 53, original_clinical_attachment_loss_mean_PD: "ND"
+  NA,                   # 54, original_clinical_attachment_loss_mean_PD: "ND"
+  NA,                   # 55, original_clinical_attachment_loss_mean_PD: NA
+  2.81,                 # 56, original_clinical_attachment_loss_mean_PD: "2.81"
+  NA,                   # 57, original_clinical_attachment_loss_mean_PD: NA
+  NA,                   # 58, original_clinical_attachment_loss_mean_PD: "ND"
+  NA,                   # 59, original_clinical_attachment_loss_mean_PD: "7.01 ± 1.17 [non-smokers], 6.23 ± 1.05 [smokers]"
+  NA,                   # 60, original_clinical_attachment_loss_mean_PD: "ND"
+  5.34,                 # 61, original_clinical_attachment_loss_mean_PD: "5.34 ± 0.85 (measured at 4 sites per tooth (MesioB, DB, MidB and MidL/P))"
+  NA,                   # 62, original_clinical_attachment_loss_mean_PD: "ND"
+  NA,                   # 63, original_clinical_attachment_loss_mean_PD: "ND"
+  NA,                   # 64, original_clinical_attachment_loss_mean_PD: "ND"
+  NA,                   # 65, original_clinical_attachment_loss_mean_PD: NA
+  NA,                   # 66, original_clinical_attachment_loss_mean_PD: NA
+  NA,                   # 67, original_clinical_attachment_loss_mean_PD: NA
+  4.60,                 # 68, original_clinical_attachment_loss_mean_PD: "4.6  ± 0.2"
+  4.20,                 # 69, original_clinical_attachment_loss_mean_PD: "4.2 ± 0.2"
+  2.73,                 # 70, original_clinical_attachment_loss_mean_PD: "2,725 mm"
+  NA,                   # 71, original_clinical_attachment_loss_mean_PD: NA
+  NA,                   # 72, original_clinical_attachment_loss_mean_PD: "not determined"
+  6.90,                 # 73, original_clinical_attachment_loss_mean_PD: "6.9"
+  NA,                   # 74, original_clinical_attachment_loss_mean_PD: "ND"
+  NA,                   # 75, original_clinical_attachment_loss_mean_PD: "not reported"
+  3.37,                 # 76, original_clinical_attachment_loss_mean_PD: "3.37"
+  4.15,                 # 77, original_clinical_attachment_loss_mean_PD: "4.15 ± 0.92"
+  NA,                   # 78, original_clinical_attachment_loss_mean_PD: "NS-Perio: 3.98 ± 1.12 (measured at 6 sites per tooth, full mouth), 6.03 ± 1.02 (measured at 6 sites per tooth, sampled sites), S-Perio: 6.23 ± 0.94 (measured at 6 sites per tooth, full mouth)"
+  NA,                   # 79, original_clinical_attachment_loss_mean_PD: "GAgP: 4.0 ± 2.2, LAgP: 2.9 ± 2.3  (measured at 6 sites per tooth for all teeth excluding 3rd molars)"
+  3.59,                 # 80, original_clinical_attachment_loss_mean_PD: "3.59 ± 1.44"
+  3.10,                 # 81, original_clinical_attachment_loss_mean_PD: "3.1 (1.3)"
+  NA,                   # 82, original_clinical_attachment_loss_mean_PD: "not reported"
+  NA,                   # 83, original_clinical_attachment_loss_mean_PD: NA
+  NA,                   # 84, original_clinical_attachment_loss_mean_PD: "ND"
+  NA,                   # 85, original_clinical_attachment_loss_mean_PD: "ND"
+  NA,                   # 86, original_clinical_attachment_loss_mean_PD: "ND"
+  NA,                   # 87, original_clinical_attachment_loss_mean_PD: NA
+  5.23,                 # 88, original_clinical_attachment_loss_mean_PD: "5.23 ± 0.31 (measured at six sites around each tooth, excl 3rd molars)"
+  NA,                   # 89, original_clinical_attachment_loss_mean_PD: "Not determined"
+  NA,                   # 90, original_clinical_attachment_loss_mean_PD: NA
+  NA,                   # 91, original_clinical_attachment_loss_mean_PD: NA
+  NA,                   # 92, original_clinical_attachment_loss_mean_PD: "ND"
+  NA,                   # 93, original_clinical_attachment_loss_mean_PD: "not reported"
+  NA,                   # 94, original_clinical_attachment_loss_mean_PD: "ND"
+  NA,                   # 95, original_clinical_attachment_loss_mean_PD: "active: 1.6 ± 0.2 / recession: 1.6 ± 0.5 (attachment level)"
+  NA,                   # 96, original_clinical_attachment_loss_mean_PD: "not determined"
+  NA,                   # 97, original_clinical_attachment_loss_mean_PD: ">=4mm"
+  NA,                   # 98, original_clinical_attachment_loss_mean_PD: NA
+  2.98,                 # 99, original_clinical_attachment_loss_mean_PD: "2.98 ± 1.17"
+  NA,                   # 100, original_clinical_attachment_loss_mean_PD: "1,7 - 3.0"
+  NA,                   # 101, original_clinical_attachment_loss_mean_PD: NA
+  4.20,                 # 102, original_clinical_attachment_loss_mean_PD: "4.2 ± 1.2"
+  2.93,                 # 103, original_clinical_attachment_loss_mean_PD: "2.93"
+  NA,                   # 104, original_clinical_attachment_loss_mean_PD: NA
+  1.70,                 # 105, original_clinical_attachment_loss_mean_PD: "1.70 ± 0.02"
+  NA,                   # 106, original_clinical_attachment_loss_mean_PD: NA
+  5.30,                 # 107, original_clinical_attachment_loss_mean_PD: "5.3 (2.4, 2-13)"
+  NA,                   # 108, original_clinical_attachment_loss_mean_PD: "nd = not determined"
+  3.00,                 # 109, original_clinical_attachment_loss_mean_PD: "3.0±1.2"
+  1.00,                 # 110, original_clinical_attachment_loss_mean_PD: "1"
+  NA,                   # 111, original_clinical_attachment_loss_mean_PD: NA
+  NA,                   # 112, original_clinical_attachment_loss_mean_PD: "5.4 ± 2.16 (diseased; all sites) (subgingival sampling sites; single-site samples from two contralateral teeth of each subject, from 15 to 46 (maxilla or mandible), with at least one tooth per quadrant"
+  NA,                   # 113, original_clinical_attachment_loss_mean_PD: "Deep sites: 6.7 ± 2.9, shallow sites: 1.1 ± 0.9"
+  NA,                   # 114, original_clinical_attachment_loss_mean_PD: "≥5 mm (sampled sites)"
+  NA,                   # 115, original_clinical_attachment_loss_mean_PD: "ND"
+  NA,                   # 116, original_clinical_attachment_loss_mean_PD: "ND"
+  3.53,                 # 117, original_clinical_attachment_loss_mean_PD: "3.53"
+  NA,                   # 118, original_clinical_attachment_loss_mean_PD: "ND"
+  0.92                  # 119, original_clinical_attachment_loss_mean_PD: "0.92 (0.54–1.79) (median, interquartile range)"
+)
+
+sd_CAL_PD = c(
+  NA,                   # 1, original_clinical_attachment_loss_sd_PD: NA, but sd = 16.3 from mean column ("39.5± 16.3")
+  16.3,                 # 2, original_clinical_attachment_loss_sd_PD: NA, but sd = 16.3 from mean column ("39.5± 16.3")
+  1.27,                 # 3, original_clinical_attachment_loss_sd_PD: NA, from mean column ("4.41±1.27")
+  NA,                   # 4, original_clinical_attachment_loss_sd_PD: NA, multiple values, treat as NA
+  1.10,                 # 5, original_clinical_attachment_loss_sd_PD: NA, from mean column ("4.7 ± 1.1")
+  NA,                   # 6, original_clinical_attachment_loss_sd_PD: NA, "ND"
+  1.00,                 # 7, original_clinical_attachment_loss_sd_PD: NA, from mean column ("4.33 ± 1.0")
+  0.16,                 # 8, original_clinical_attachment_loss_sd_PD: NA, from mean column ("5.4±0.16")
+  0.19,                 # 9, original_clinical_attachment_loss_sd_PD: NA, from mean column ("4.1 ± 0.19")
+  1.50,                 # 10, original_clinical_attachment_loss_sd_PD: NA, from mean column ("3,9 ± 1,5 mm")
+  0.90,                 # 11, original_clinical_attachment_loss_sd_PD: NA, from mean column ("5.6 ± 0.9")
+  1.50,                 # 12, original_clinical_attachment_loss_sd_PD: NA, from mean column ("3.9 ± 1.5")
+  0.16,                 # 13, original_clinical_attachment_loss_sd_PD: NA, from mean column ("3.8 ± 0.16")
+  NA,                   # 14, original_clinical_attachment_loss_sd_PD: NA
+  0.20,                 # 15, original_clinical_attachment_loss_sd_PD: NA, from mean column ("3.6 ± 0.2")
+  0.91,                 # 16, original_clinical_attachment_loss_sd_PD: 0.91
+  0.16,                 # 17, original_clinical_attachment_loss_sd_PD: 0.16
+  NA,                   # 18, original_clinical_attachment_loss_sd_PD: NA, multiple values
+  0.90,                 # 19, original_clinical_attachment_loss_sd_PD: 0.9
+  0.70,                 # 20, original_clinical_attachment_loss_sd_PD: NA, from mean column ("4.2 ± 0.7")
+  NA,                   # 21, original_clinical_attachment_loss_sd_PD: NA, "ND"
+  NA,                   # 22, original_clinical_attachment_loss_sd_PD: NA, "ND"
+  0.70,                 # 23, original_clinical_attachment_loss_sd_PD: NA, from mean column ("4.9±0.7mm full-mouth")
+  1.30,                 # 24, original_clinical_attachment_loss_sd_PD: NA, from mean column ("4.5±1.3")
+  NA,                   # 25, original_clinical_attachment_loss_sd_PD: NA, multiple values
+  NA,                   # 26, original_clinical_attachment_loss_sd_PD: NA, multiple values
+  NA,                   # 27, original_clinical_attachment_loss_sd_PD: NA, "ND"
+  1.50,                 # 28, original_clinical_attachment_loss_sd_PD: NA, from mean column ("3.7 ± 1.5")
+  NA,                   # 29, original_clinical_attachment_loss_sd_PD: NA, multiple values
+  1.23,                 # 30, original_clinical_attachment_loss_sd_PD: NA, from mean column ("4.53 ± 1.23")
+  NA,                   # 31, original_clinical_attachment_loss_sd_PD: NA, cannot extract
+  NA,                   # 32, original_clinical_attachment_loss_sd_PD: NA, not reported
+  0.90,                 # 33, original_clinical_attachment_loss_sd_PD: NA, from mean column ("3.9 ± 0.9")
+  NA,                   # 34, original_clinical_attachment_loss_sd_PD: NA, not reported
+  NA,                   # 35, original_clinical_attachment_loss_sd_PD: NA, not reported ("4.1 (6.4)" -- SD is unclear)
+  1.30,                 # 36, original_clinical_attachment_loss_sd_PD: 1.3
+  NA,                   # 37, original_clinical_attachment_loss_sd_PD: NA
+  1.80,                 # 38, original_clinical_attachment_loss_sd_PD: NA, from mean column ("2,4 ± 1,8")
+  NA,                   # 39, original_clinical_attachment_loss_sd_PD: NA, multiple values
+  1.20,                 # 40, original_clinical_attachment_loss_sd_PD: NA, from mean column ("5.9 ± 1.2")
+  NA,                   # 41, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 42, original_clinical_attachment_loss_sd_PD: NA
+  1.19,                 # 43, original_clinical_attachment_loss_sd_PD: NA, from mean column ("4.04 ± 1.19")
+  1.60,                 # 44, original_clinical_attachment_loss_sd_PD: NA, from mean column ("4,2 ± 1,6")
+  NA,                   # 45, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 46, original_clinical_attachment_loss_sd_PD: NA, multiple values
+  1.60,                 # 47, original_clinical_attachment_loss_sd_PD: 1.6
+  NA,                   # 48, original_clinical_attachment_loss_sd_PD: NA, multiple values
+  NA,                   # 49, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 50, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 51, original_clinical_attachment_loss_sd_PD: NA
+  0.85,                 # 52, original_clinical_attachment_loss_sd_PD: NA, from mean column ("3.73±0.85")
+  NA,                   # 53, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 54, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 55, original_clinical_attachment_loss_sd_PD: NA
+  0.60,                 # 56, original_clinical_attachment_loss_sd_PD: 0.6
+  NA,                   # 57, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 58, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 59, original_clinical_attachment_loss_sd_PD: NA, multiple values
+  NA,                   # 60, original_clinical_attachment_loss_sd_PD: NA
+  0.85,                 # 61, original_clinical_attachment_loss_sd_PD: NA, from mean column ("5.34 ± 0.85 (measured at 4 sites per tooth...)")
+  NA,                   # 62, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 63, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 64, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 65, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 66, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 67, original_clinical_attachment_loss_sd_PD: NA
+  0.20,                 # 68, original_clinical_attachment_loss_sd_PD: NA, from mean column ("4.6  ± 0.2")
+  0.20,                 # 69, original_clinical_attachment_loss_sd_PD: NA, from mean column ("4.2 ± 0.2")
+  NA,                   # 70, original_clinical_attachment_loss_sd_PD: NA, not reported
+  NA,                   # 71, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 72, original_clinical_attachment_loss_sd_PD: NA
+  1.50,                 # 73, original_clinical_attachment_loss_sd_PD: 1.5
+  NA,                   # 74, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 75, original_clinical_attachment_loss_sd_PD: NA
+  1.96,                 # 76, original_clinical_attachment_loss_sd_PD: 1.96
+  0.92,                 # 77, original_clinical_attachment_loss_sd_PD: NA, from mean column ("4.15 ± 0.92")
+  NA,                   # 78, original_clinical_attachment_loss_sd_PD: NA, multiple values
+  NA,                   # 79, original_clinical_attachment_loss_sd_PD: NA, multiple values
+  1.44,                 # 80, original_clinical_attachment_loss_sd_PD: NA, from mean column ("3.59 ± 1.44")
+  NA,                   # 81, original_clinical_attachment_loss_sd_PD: NA, ("3.1 (1.3)" -- not clear if sd)
+  NA,                   # 82, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 83, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 84, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 85, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 86, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 87, original_clinical_attachment_loss_sd_PD: NA
+  0.31,                 # 88, original_clinical_attachment_loss_sd_PD: NA, from mean column ("5.23 ± 0.31")
+  NA,                   # 89, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 90, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 91, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 92, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 93, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 94, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 95, original_clinical_attachment_loss_sd_PD: NA, multiple values
+  NA,                   # 96, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 97, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 98, original_clinical_attachment_loss_sd_PD: NA
+  1.17,                 # 99, original_clinical_attachment_loss_sd_PD: NA, from mean column ("2.98 ± 1.17")
+  NA,                   # 100, original_clinical_attachment_loss_sd_PD: NA, not extractable
+  NA,                   # 101, original_clinical_attachment_loss_sd_PD: NA
+  1.20,                 # 102, original_clinical_attachment_loss_sd_PD: NA, from mean column ("4.2 ± 1.2")
+  NA,                   # 103, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 104, original_clinical_attachment_loss_sd_PD: NA
+  0.02,                 # 105, original_clinical_attachment_loss_sd_PD: NA, from mean column ("1.70 ± 0.02")
+  NA,                   # 106, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 107, original_clinical_attachment_loss_sd_PD: NA, "5.3 (2.4, 2-13)" -- SD ambiguous, treat as NA
+  NA,                   # 108, original_clinical_attachment_loss_sd_PD: NA
+  1.20,                 # 109, original_clinical_attachment_loss_sd_PD: NA, from mean column ("3.0±1.2")
+  NA,                   # 110, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 111, original_clinical_attachment_loss_sd_PD: NA
+  2.16,                 # 112, original_clinical_attachment_loss_sd_PD: NA, from mean column ("5.4 ± 2.16 ...")
+  NA,                   # 113, original_clinical_attachment_loss_sd_PD: NA, multiple values
+  NA,                   # 114, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 115, original_clinical_attachment_loss_sd_PD: NA
+  NA,                   # 116, original_clinical_attachment_loss_sd_PD: NA
+  1.14,                 # 117, original_clinical_attachment_loss_sd_PD: 1.14
+  NA,                   # 118, original_clinical_attachment_loss_sd_PD: NA
+  NA                    # 119, original_clinical_attachment_loss_sd_PD: NA ("0.92 (0.54–1.79)" -- not a sd, but IQR)
+)
+
+# Clinical attachment loss/level (mm; mean+-SD) (healthy) ----
+mean_CAL_health = c(
+  NA,        # 1, original_clinical_attachment_loss_mean_health, "NA"
+  0.1,       # 2, original_clinical_attachment_loss_mean_health, "0.1± 0.6"
+  2.39,      # 3, original_clinical_attachment_loss_mean_health, "2.39±0.35"
+  1.7,       # 4, original_clinical_attachment_loss_mean_health, "1.7 ±  0.06 mm"
+  1.7,       # 5, original_clinical_attachment_loss_mean_health, "1.7 ± 0.4"
+  NA,        # 6, original_clinical_attachment_loss_mean_health, "ND"
+  2.2,       # 7, original_clinical_attachment_loss_mean_health, "2.20 ± 0.2"
+  2.8,       # 8, original_clinical_attachment_loss_mean_health, "2.8±0.1"
+  1.9,       # 9, original_clinical_attachment_loss_mean_health, "1.9 ± 0.04"
+  2.2,       #10, original_clinical_attachment_loss_mean_health, "2,2 ± 0,6 mm"
+  2.7,       #11, original_clinical_attachment_loss_mean_health, "2.7 ± 0.1"
+  2.2,       #12, original_clinical_attachment_loss_mean_health, "2.2  ±  0.6"
+  2.1,       #13, original_clinical_attachment_loss_mean_health, "2.1 ± 0.07"
+  NA,        #14, original_clinical_attachment_loss_mean_health, NA
+  1.7,       #15, original_clinical_attachment_loss_mean_health, "1.7 ± 0.1"
+  1.05,      #16, original_clinical_attachment_loss_mean_health, "1.05"
+  2.8,       #17, original_clinical_attachment_loss_mean_health, "2.8"
+  2.1,       #18, original_clinical_attachment_loss_mean_health, "2.1"
+  2.7,       #19, original_clinical_attachment_loss_mean_health, "2.7"
+  0.6,       #20, original_clinical_attachment_loss_mean_health, "0.6 ± 0.2"
+  NA,        #21, original_clinical_attachment_loss_mean_health, "ND"
+  NA,        #22, original_clinical_attachment_loss_mean_health, "ND (<4 mm: 99% / 4–6 mm: 1% / >6 mm: 0% (% of sites); 6 sites per tooth of all teeth, excl 3rd molars)"
+  1.6,       #23, original_clinical_attachment_loss_mean_health, "1.6±0.7mm full-mouth"
+  0.9,       #24, original_clinical_attachment_loss_mean_health, "0.9±0.2 (measured at six sites per tooth (MB, B, DB, DL, L and ML) in all teeth, excl 3rd molars)"
+  0.7,       #25, original_clinical_attachment_loss_mean_health, "0.7 ± 0.3 (measured at six sites per tooth (MB, B, DB, DL, L and ML) in all teeth, excl 3rd molars)"
+  NA,        #26, original_clinical_attachment_loss_mean_health, "2.9 ± 2.7, sites with CAL ≥4 mm (%), (the same as reported by Lages et al., 2012)"  (has a comma, multiple/statistic)
+  NA,        #27, original_clinical_attachment_loss_mean_health, "ND"
+  2.0,       #28, original_clinical_attachment_loss_mean_health, "2.0 ± 0.6 (measured at 6 sites per tooth)"
+  1.3,       #29, original_clinical_attachment_loss_mean_health, "1.3 ± 0.5 (full mouth)"
+  1.04,      #30, original_clinical_attachment_loss_mean_health, "1.04 ± 0.5 (measured at 6 sites per tooth (MB, B, DB, DL, L and ML) in all teeth excl 3rd molars)"
+  NA,        #31, original_clinical_attachment_loss_mean_health, "≤1 (CAL in >30% of sites)"
+  NA,        #32, original_clinical_attachment_loss_mean_health, NA
+  1.4,       #33, original_clinical_attachment_loss_mean_health, "1.4 ± 0.2"
+  0,         #34, original_clinical_attachment_loss_mean_health, "0"
+  0.2,       #35, original_clinical_attachment_loss_mean_health, "0.2 (0.5)"
+  0,         #36, original_clinical_attachment_loss_sd_health, 0
+  NA,        #37, original_clinical_attachment_loss_mean_health, "NA"
+  0.1,       #38, original_clinical_attachment_loss_mean_health, "0,1 ± 0,1"
+  NA,        #39, original_clinical_attachment_loss_mean_health, "0, 0, 0 (individual values) (at six sites per tooth)"
+  NA,        #40, original_clinical_attachment_loss_mean_health, "ND\r\nrecommendations (1997)"
+  NA,        #41, original_clinical_attachment_loss_mean_health, "ND"
+  NA,        #42, original_clinical_attachment_loss_mean_health, "range: 0* (0,0,0,0,0) (average tooth support tissue loss in millimeters of the 4 deepest periodontal pockets' sites)"
+  1.17,      #43, original_clinical_attachment_loss_mean_health, "1,17 ± 0,89"
+  1.0,       #44, original_clinical_attachment_loss_mean_health, "1,0 ± 1,2"
+  NA,        #45, original_clinical_attachment_loss_mean_health, NA
+  0.4,       #46, original_clinical_attachment_loss_mean_health, "0.4 ± 0.2, measured at 6 sites per tooth: MB, B, DB, DL, L , ML, full mouth excl 3rd molars"
+  NA,        #47, original_clinical_attachment_loss_mean_health, "NA"
+  3,         #48, original_clinical_attachment_loss_mean_health, "3"
+  NA,        #49, original_clinical_attachment_loss_mean_health, NA
+  NA,        #50, original_clinical_attachment_loss_mean_health, NA
+  NA,        #51, original_clinical_attachment_loss_mean_health, NA
+  0,         #52, original_clinical_attachment_loss_mean_health, "0"
+  NA,        #53, original_clinical_attachment_loss_mean_health, "ND"
+  NA,        #54, original_clinical_attachment_loss_mean_health, "ND"
+  NA,        #55, original_clinical_attachment_loss_mean_health, NA
+  1.38,      #56, original_clinical_attachment_loss_mean_health, "1.38"
+  NA,        #57, original_clinical_attachment_loss_mean_health, NA
+  NA,        #58, original_clinical_attachment_loss_mean_health, "ND"
+  0,         #59, original_clinical_attachment_loss_sd_health, 0
+  NA,        #60, original_clinical_attachment_loss_mean_health, "ND"
+  0.17,      #61, original_clinical_attachment_loss_mean_health, "0.17 ± 0.11 (measured at 4 sites per tooth (MesioB, DB, MidB and MidL/P))"
+  NA,        #62, original_clinical_attachment_loss_mean_health, "ND"
+  NA,        #63, original_clinical_attachment_loss_mean_health, "ND"
+  NA,        #64, original_clinical_attachment_loss_mean_health, "NA"
+  NA,        #65, original_clinical_attachment_loss_mean_health, NA
+  NA,        #66, original_clinical_attachment_loss_mean_health, NA
+  NA,        #67, original_clinical_attachment_loss_mean_health, NA
+  2.0,       #68, original_clinical_attachment_loss_mean_health, "2 ± 0.03"
+  2.0,       #69, original_clinical_attachment_loss_mean_health, "2 ± 0.03"
+  1.575,     #70, original_clinical_attachment_loss_mean_health, "1,575 mm"
+  NA,        #71, original_clinical_attachment_loss_mean_health, NA
+  NA,        #72, original_clinical_attachment_loss_mean_health, "NA"
+  NA,        #73, original_clinical_attachment_loss_mean_health, "NA"
+  NA,        #74, original_clinical_attachment_loss_mean_health, "ND"
+  NA,        #75, original_clinical_attachment_loss_sd_health, 0.1
+  0,         #76, original_clinical_attachment_loss_mean_health, "0"
+  1.18,      #77, original_clinical_attachment_loss_mean_health, "1.18 ± 0.23"
+  NA,        #78, original_clinical_attachment_loss_mean_health, "2.25 ± 0.37 (measured at 6 sites per tooth, full mouth), 2.42 ± 0.36 (measured at 6 sites per tooth, sampled sites)" (has comma/semicolon, set NA)
+  NA,        #79, original_clinical_attachment_loss_mean_health, "ND"
+  2.07,      #80, original_clinical_attachment_loss_mean_health, "2.07 ± 0.42"
+  NA,        #81, original_clinical_attachment_loss_mean_health, "1.0 (0.7)"
+  NA,        #82, original_clinical_attachment_loss_mean_health, "NA"
+  NA,        #83, original_clinical_attachment_loss_mean_health, NA
+  NA,        #84, original_clinical_attachment_loss_mean_health, "ND"
+  NA,        #85, original_clinical_attachment_loss_mean_health, "ND"
+  NA,        #86, original_clinical_attachment_loss_mean_health, "NA"
+  NA,        #87, original_clinical_attachment_loss_mean_health, NA
+  1.98,      #88, original_clinical_attachment_loss_mean_health, "1.98 ± 0.30 (measured at six sites around each tooth, excl 3rd molars)"
+  NA,        #89, original_clinical_attachment_loss_sd_health, 0.8
+  NA,        #90, original_clinical_attachment_loss_mean_health, NA
+  NA,        #91, original_clinical_attachment_loss_mean_health, NA
+  NA,        #92, original_clinical_attachment_loss_sd_health, 0
+  NA,        #93, original_clinical_attachment_loss_sd_health, 0.17
+  NA,        #94, original_clinical_attachment_loss_mean_health, NA
+  1.35,      #95, original_clinical_attachment_loss_mean_health, "1.35"
+  NA,        #96, original_clinical_attachment_loss_mean_health, "NA"
+  NA,        #97, original_clinical_attachment_loss_mean_health, "NA"
+  NA,        #98, original_clinical_attachment_loss_mean_health, NA
+  1.5,       #99, original_clinical_attachment_loss_mean_health, "1.50 ±0.63"
+  0.6,       #100, original_clinical_attachment_loss_mean_health, "0.6"
+  NA,        #101, original_clinical_attachment_loss_mean_health, NA
+  1.3,       #102, original_clinical_attachment_loss_mean_health, "1.3 ± 0.5"
+  0.59,      #103, original_clinical_attachment_loss_mean_health, "0.59"
+  NA,        #104, original_clinical_attachment_loss_mean_health, NA
+  1.14,      #105, original_clinical_attachment_loss_mean_health, "1.14 ± 0.02"
+  NA,        #106, original_clinical_attachment_loss_mean_health, NA
+  0,         #107, original_clinical_attachment_loss_mean_health, "0"
+  1.4,       #108, original_clinical_attachment_loss_mean_health, "1.4 ± 0.4"
+  1.6,       #109, original_clinical_attachment_loss_mean_health, "1.6±0.5"
+  0.18,      #110, original_clinical_attachment_loss_mean_health, "0.18"
+  NA,        #111, original_clinical_attachment_loss_mean_health, NA
+  0.5,       #112, original_clinical_attachment_loss_mean_health, "0.5 ± 1.13  (subgingival sampling sites; single-site samples from two contralateral teeth of each subject, from mesiopalatal and distobuccal sites)"
+  0.8,       #113, original_clinical_attachment_loss_mean_health, "0.8 ± 0.7"
+  NA,        #114, original_clinical_attachment_loss_mean_health, "≤3 mm (sampled sites)"
+  NA,        #115, original_clinical_attachment_loss_mean_health, "ND"
+  NA,        #116, original_clinical_attachment_loss_mean_health, "ND"
+  2.0,       #117, original_clinical_attachment_loss_mean_health, "2"
+  NA,        #118, original_clinical_attachment_loss_mean_health, "ND"
+  NA         #119, original_clinical_attachment_loss_mean_health, "0.00 (0.00–0.17) (median, interquartile range)"
+)
+
+sd_CAL_health = c(
+  NA,       # 1, original_clinical_attachment_loss_sd_health, NA
+  0.6,      # 2, original_clinical_attachment_loss_mean_health, "0.1± 0.6"
+  0.35,     # 3, original_clinical_attachment_loss_mean_health, "2.39±0.35"
+  0.06,     # 4, original_clinical_attachment_loss_mean_health, "1.7 ±  0.06 mm"
+  0.4,      # 5, original_clinical_attachment_loss_mean_health, "1.7 ± 0.4"
+  NA,       # 6, original_clinical_attachment_loss_sd_health, NA
+  0.2,      # 7, original_clinical_attachment_loss_mean_health, "2.20 ± 0.2"
+  0.1,      # 8, original_clinical_attachment_loss_mean_health, "2.8±0.1"
+  0.04,     # 9, original_clinical_attachment_loss_mean_health, "1.9 ± 0.04"
+  0.6,      #10, original_clinical_attachment_loss_mean_health, "2,2 ± 0,6 mm"
+  0.1,      #11, original_clinical_attachment_loss_mean_health, "2.7 ± 0.1"
+  0.6,      #12, original_clinical_attachment_loss_mean_health, "2.2  ±  0.6"
+  0.07,     #13, original_clinical_attachment_loss_mean_health, "2.1 ± 0.07"
+  NA,       #14, original_clinical_attachment_loss_sd_health, NA
+  0.1,      #15, original_clinical_attachment_loss_mean_health, "1.7 ± 0.1"
+  NA,       #16, original_clinical_attachment_loss_sd_health, NA
+  NA,       #17, original_clinical_attachment_loss_sd_health, NA
+  NA,       #18, original_clinical_attachment_loss_sd_health, NA
+  NA,       #19, original_clinical_attachment_loss_sd_health, NA
+  0.2,      #20, original_clinical_attachment_loss_mean_health, "0.6 ± 0.2"
+  NA,       #21, original_clinical_attachment_loss_sd_health, NA
+  NA,       #22, original_clinical_attachment_loss_sd_health, NA
+  0.7,      #23, original_clinical_attachment_loss_mean_health, "1.6±0.7mm full-mouth"
+  0.2,      #24, original_clinical_attachment_loss_mean_health, "0.9±0.2 (measured at six sites per tooth (MB, B, DB, DL, L and ML) in all teeth, excl 3rd molars)"
+  0.3,      #25, original_clinical_attachment_loss_mean_health, "0.7 ± 0.3 (measured at six sites per tooth (MB, B, DB, DL, L and ML) in all teeth, excl 3rd molars)"
+  NA,       #26, original_clinical_attachment_loss_mean_health, "2.9 ± 2.7, sites with CAL ≥4 mm (%), (the same as reported by Lages et al., 2012)" (has a comma, multiple/statistic)
+  NA,       #27, original_clinical_attachment_loss_sd_health, NA
+  0.6,      #28, original_clinical_attachment_loss_mean_health, "2.0 ± 0.6 (measured at 6 sites per tooth)"
+  0.5,      #29, original_clinical_attachment_loss_mean_health, "1.3 ± 0.5 (full mouth)"
+  0.5,      #30, original_clinical_attachment_loss_mean_health, "1.04 ± 0.5 (measured at 6 sites per tooth (MB, B, DB, DL, L and ML) in all teeth excl 3rd molars)"
+  NA,       #31, original_clinical_attachment_loss_mean_health, "≤1 (CAL in >30% of sites)"
+  NA,       #32, original_clinical_attachment_loss_sd_health, NA
+  0.2,      #33, original_clinical_attachment_loss_mean_health, "1.4 ± 0.2"
+  NA,       #34, original_clinical_attachment_loss_sd_health, NA
+  0.5,      #35, original_clinical_attachment_loss_mean_health, "0.2 (0.5)"
+  0,        #36, original_clinical_attachment_loss_sd_health, 0
+  NA,       #37, original_clinical_attachment_loss_sd_health, NA
+  0.1,      #38, original_clinical_attachment_loss_mean_health, "0,1 ± 0,1"
+  NA,       #39, original_clinical_attachment_loss_mean_health, "0, 0, 0 (individual values) (at six sites per tooth)"
+  NA,       #40, original_clinical_attachment_loss_mean_health, "ND\r\nrecommendations (1997)"
+  NA,       #41, original_clinical_attachment_loss_sd_health, NA
+  NA,       #42, original_clinical_attachment_loss_sd_health, NA
+  0.89,     #43, original_clinical_attachment_loss_mean_health, "1,17 ± 0,89"
+  1.2,      #44, original_clinical_attachment_loss_mean_health, "1,0 ± 1,2"
+  NA,       #45, original_clinical_attachment_loss_sd_health, NA
+  0.2,      #46, original_clinical_attachment_loss_mean_health, "0.4 ± 0.2, measured at 6 sites per tooth: MB, B, DB, DL, L , ML, full mouth excl 3rd molars"
+  NA,       #47, original_clinical_attachment_loss_sd_health, NA
+  NA,       #48, original_clinical_attachment_loss_sd_health, NA
+  NA,       #49, original_clinical_attachment_loss_sd_health, NA
+  NA,       #50, original_clinical_attachment_loss_sd_health, NA
+  NA,       #51, original_clinical_attachment_loss_sd_health, NA
+  NA,       #52, original_clinical_attachment_loss_sd_health, NA
+  NA,       #53, original_clinical_attachment_loss_sd_health, NA
+  NA,       #54, original_clinical_attachment_loss_sd_health, NA
+  NA,       #55, original_clinical_attachment_loss_sd_health, NA
+  0.24,     #56, original_clinical_attachment_loss_sd_health, 0.24
+  NA,       #57, original_clinical_attachment_loss_sd_health, NA
+  NA,       #58, original_clinical_attachment_loss_sd_health, NA
+  0,        #59, original_clinical_attachment_loss_sd_health, 0
+  NA,       #60, original_clinical_attachment_loss_sd_health, NA
+  0.11,     #61, original_clinical_attachment_loss_mean_health, "0.17 ± 0.11 (measured at 4 sites per tooth (MesioB, DB, MidB and MidL/P))"
+  NA,       #62, original_clinical_attachment_loss_sd_health, NA
+  NA,       #63, original_clinical_attachment_loss_sd_health, NA
+  NA,       #64, original_clinical_attachment_loss_sd_health, NA
+  NA,       #65, original_clinical_attachment_loss_sd_health, NA
+  NA,       #66, original_clinical_attachment_loss_sd_health, NA
+  NA,       #67, original_clinical_attachment_loss_sd_health, NA
+  0.03,     #68, original_clinical_attachment_loss_mean_health, "2 ± 0.03"
+  0.03,     #69, original_clinical_attachment_loss_mean_health, "2 ± 0.03"
+  NA,       #70, original_clinical_attachment_loss_sd_health, NA
+  NA,       #71, original_clinical_attachment_loss_sd_health, NA
+  NA,       #72, original_clinical_attachment_loss_sd_health, NA
+  NA,       #73, original_clinical_attachment_loss_sd_health, NA
+  NA,       #74, original_clinical_attachment_loss_sd_health, NA
+  0.1,      #75, original_clinical_attachment_loss_sd_health, 0.1
+  NA,       #76, original_clinical_attachment_loss_sd_health, NA
+  0.23,     #77, original_clinical_attachment_loss_mean_health, "1.18 ± 0.23"
+  NA,       #78, original_clinical_attachment_loss_mean_health, "2.25 ± 0.37 (measured at 6 sites per tooth, full mouth), 2.42 ± 0.36 (measured at 6 sites per tooth, sampled sites)" (has comma, NA)
+  NA,       #79, original_clinical_attachment_loss_sd_health, NA
+  0.42,     #80, original_clinical_attachment_loss_mean_health, "2.07 ± 0.42"
+  NA,       #81, original_clinical_attachment_loss_mean_health, "1.0 (0.7)"
+  NA,       #82, original_clinical_attachment_loss_sd_health, NA
+  NA,       #83, original_clinical_attachment_loss_sd_health, NA
+  NA,       #84, original_clinical_attachment_loss_sd_health, NA
+  NA,       #85, original_clinical_attachment_loss_sd_health, NA
+  NA,       #86, original_clinical_attachment_loss_sd_health, NA
+  NA,       #87, original_clinical_attachment_loss_sd_health, NA
+  0.30,     #88, original_clinical_attachment_loss_mean_health, "1.98 ± 0.30 (measured at six sites around each tooth, excl 3rd molars)"
+  0.8,      #89, original_clinical_attachment_loss_sd_health, 0.8
+  NA,       #90, original_clinical_attachment_loss_sd_health, NA
+  NA,       #91, original_clinical_attachment_loss_sd_health, NA
+  0,        #92, original_clinical_attachment_loss_sd_health, 0
+  0.17,     #93, original_clinical_attachment_loss_sd_health, 0.17
+  NA,       #94, original_clinical_attachment_loss_sd_health, NA
+  NA,       #95, original_clinical_attachment_loss_sd_health, NA
+  NA,       #96, original_clinical_attachment_loss_sd_health, NA
+  NA,       #97, original_clinical_attachment_loss_sd_health, NA
+  NA,       #98, original_clinical_attachment_loss_sd_health, NA
+  0.63,     #99, original_clinical_attachment_loss_mean_health, "1.50 ±0.63"
+  NA,       #100, original_clinical_attachment_loss_sd_health, NA
+  NA,       #101, original_clinical_attachment_loss_sd_health, NA
+  0.5,      #102, original_clinical_attachment_loss_mean_health, "1.3 ± 0.5"
+  NA,       #103, original_clinical_attachment_loss_sd_health, NA
+  NA,       #104, original_clinical_attachment_loss_sd_health, NA
+  0.02,     #105, original_clinical_attachment_loss_mean_health, "1.14 ± 0.02"
+  NA,       #106, original_clinical_attachment_loss_sd_health, NA
+  NA,       #107, original_clinical_attachment_loss_sd_health, NA
+  0.4,      #108, original_clinical_attachment_loss_mean_health, "1.4 ± 0.4"
+  0.5,      #109, original_clinical_attachment_loss_mean_health, "1.6±0.5"
+  NA,       #110, original_clinical_attachment_loss_sd_health, NA
+  NA,       #111, original_clinical_attachment_loss_sd_health, NA
+  1.13,     #112, original_clinical_attachment_loss_mean_health, "0.5 ± 1.13  (subgingival sampling sites; single-site samples from two contralateral teeth of each subject, from mesiopalatal and distobuccal sites)"
+  0.7,      #113, original_clinical_attachment_loss_mean_health, "0.8 ± 0.7"
+  NA,       #114, original_clinical_attachment_loss_sd_health, "≤3 mm (sampled sites)"
+  NA,       #115, original_clinical_attachment_loss_sd_health, NA
+  NA,       #116, original_clinical_attachment_loss_sd_health, NA
+  NA,       #117, original_clinical_attachment_loss_sd_health, NA
+  NA,       #118, original_clinical_attachment_loss_sd_health, NA
+  NA        #119, original_clinical_attachment_loss_mean_health, "0.00 (0.00–0.17) (median, interquartile range)"
+)
