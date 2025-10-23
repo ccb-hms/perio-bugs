@@ -3926,3 +3926,742 @@ sd_CAL_health = c(
   NA,       #118, original_clinical_attachment_loss_sd_health, NA
   NA        #119, original_clinical_attachment_loss_mean_health, "0.00 (0.00–0.17) (median, interquartile range)"
 )
+
+# Plaque (mean +/SD) (periodontitis) ----
+plaque_mean_PD = c(
+  NA,      # 1, original_plaque_mean_PD, "not reported"
+  NA,      # 2, original_plaque_mean_PD, NA
+  48.79,   # 3, original_plaque_mean_PD, "48.79±11.91"
+  NA,      # 4, original_plaque_mean_PD, "ND"
+  59,      # 5, original_plaque_mean_PD, "59 ± 31"
+  NA,      # 6, original_plaque_mean_PD, "ND"
+  84.73,   # 7, original_plaque_mean_PD, "84.73 ± 10.7"
+  72,      # 8, original_plaque_mean_PD, "72±20"
+  NA,      # 9, original_plaque_mean_PD, NA
+  NA,      #10, original_plaque_mean_PD, NA
+  NA,      #11, original_plaque_mean_PD, NA
+  NA,      #12, original_plaque_mean_PD, NA
+  62.9,    #13, original_plaque_mean_PD, "62.9 ± 23.4"
+  NA,      #14, original_plaque_mean_PD, NA
+  70,      #15, original_plaque_mean_PD, "70 ± 4"
+  NA,      #16, original_plaque_mean_PD, "not reported"
+  72,      #17, original_plaque_mean_PD, "72"
+  NA,      #18, original_plaque_mean_PD, "41.7 ± 8.1 [localised aggressive periodontitis], 49.2 ± 12.9 [generalised aggressive periodontitis], 84.7 ± 10.7 [chronic periodontitis]" (multi; NA)
+  79.0,    #19, original_plaque_mean_PD, "79.0 ± 15.0 (%)"
+  56.9,    #20, original_plaque_mean_PD, "56.9 ± 9.1 (PI)"
+  46.21,   #21, original_plaque_mean_PD, "46.21 ± 10.20 (visible plaque index)"
+  48.5,    #22, original_plaque_mean_PD, "48.5 ± 4.1, presence of supragingival plaque (PL), (%sites), (6 sites per tooth of all teeth,\r\n excl 3rd molars)"
+  67,      #23, original_plaque_mean_PD, "67 ± 15% plaque, full-mouth"
+  80.0,    #24, original_plaque_mean_PD, "80.0±15.6 (% sites with visible plaque (0/1), measured at six sites per tooth (measured at six sites per tooth (MB, B, DB, DL, L and ML) in all teeth, excl 3rd molars))"
+  NA,      #25, original_plaque_mean_PD, "GAgP: 78.1 ± 16.7, GChP: 86.4 ± 18.9 (% sites with visible plaque (0/1), measured at six sites per tooth (measured at six sites …" (multi: NA)
+  1.2,     #26, original_plaque_mean_PD, "1.2 ± 0.9 (Plaque index)"
+  48.22,   #27, original_plaque_mean_PD, "48.22 ± 10.7 (% of sites with visible plaque / visible plaque index (yes/no))\r\n\u0002(visible plaque index (yes/no))"
+  45,      #28, original_plaque_mean_PD, "45 ± 30 (presence or absence of supragingival biofilm (SB), %sites, measured at 6 sites per tooth)"
+  NA,      #29, original_plaque_mean_PD, "ChP: 55.7 ± 25.6, AgP: 72.3 ± 18.6  (%SB, full mouth, presence/absence of visible supragingival biofilm)" (multi: NA)
+  74.1,    #30, original_plaque_mean_PD, "74.1 ± 10.4 (visible plaque (0/1) measured at 6 sites per tooth (MB, B, DB, DL, L and ML) in all teeth excl 3rd molars)"
+  NA,      #31, original_plaque_mean_PD, "ND"
+  NA,      #32, original_plaque_mean_PD, NA
+  82.4,    #33, original_plaque_mean_PD, "82.4±9.6 (%surfaces with plaque)"
+  78.4,    #34, original_plaque_mean_PD, "78.400000000000006"
+  NA,      #35, original_plaque_mean_PD, NA
+  NA,      #36, original_plaque_mean_PD, "not reported"
+  NA,      #37, original_plaque_mean_PD, "not reported"
+  NA,      #38, original_plaque_mean_PD, NA
+  NA,      #39, original_plaque_mean_PD, "ND"
+  2.18,    #40, original_plaque_mean_PD, "2.18±0.43 (OHI-S), assessed according to WHO recommendations (1997)"
+  NA,      #41, original_plaque_mean_PD, "ND"
+  NA,      #42, original_plaque_mean_PD, "ND"
+  46.82,   #43, original_plaque_mean_PD, "46,82 ± 16,05"
+  NA,      #44, original_plaque_mean_PD, NA
+  NA,      #45, original_plaque_mean_PD, NA
+  NA,      #46, original_plaque_mean_PD, "CP: 54 ± 19, AgP: 39 ± 17, Sites with plaque (%)/plaque index (PI), measured at 6 sites per tooth: MB, B, DB, DL, L , ML, full m…"
+  69.9,    #47, original_plaque_mean_PD, "69.900000000000006"
+  52.3,    #48, original_plaque_mean_PD, "52.3"
+  NA,      #49, original_plaque_mean_PD, NA
+  NA,      #50, original_plaque_mean_PD, NA
+  NA,      #51, original_plaque_mean_PD, NA
+  NA,      #52, original_plaque_mean_PD, NA
+  NA,      #53, original_plaque_mean_PD, "ND"
+  NA,      #54, original_plaque_mean_PD, "ND"
+  75,      #55, original_plaque_mean_PD, "75 ± 23"
+  NA,      #56, original_plaque_mean_PD, "not reported"
+  NA,      #57, original_plaque_mean_PD, NA
+  47.2,    #58, original_plaque_mean_PD, "47.2 ± 31.2 (diseased) periodontal sites"
+  2.61,    #59, original_plaque_mean_PD, "2.61"
+  NA,      #60, original_plaque_mean_PD, "ChGP: 2.25±0.48 (PI), GAP: 1.06±0.35 (PI)" (multi: NA)
+  NA,      #61, original_plaque_mean_PD, "ND"
+  NA,      #62, original_plaque_mean_PD, "ND"
+  NA,      #63, original_plaque_mean_PD, "ND"
+  NA,      #64, original_plaque_mean_PD, "ND"
+  NA,      #65, original_plaque_mean_PD, NA
+  NA,      #66, original_plaque_mean_PD, NA
+  NA,      #67, original_plaque_mean_PD, NA
+  51.7,    #68, original_plaque_mean_PD, "51.7 ± 5.6"
+  51.9,    #69, original_plaque_mean_PD, "51.9 ± 5.7"
+  NA,      #70, original_plaque_mean_PD, NA
+  NA,      #71, original_plaque_mean_PD, NA
+  NA,      #72, original_plaque_mean_PD, "not determined"
+  66.9,    #73, original_plaque_mean_PD, "66.900000000000006"
+  NA,      #74, original_plaque_mean_PD, "ND"
+  NA,      #75, original_plaque_mean_PD, "not reported"
+  2.38,    #76, original_plaque_mean_PD, "2.38"
+  0.93,    #77, original_plaque_mean_PD, "0.93 ± 0.25 (PI)"
+  NA,      #78, original_plaque_mean_PD, "NS-Perio: 53.29 ± 27.44 BPL (%, bacterial plaque levels, presence/absence, measured at 6 sites per tooth, full mouth), S-Perio: …" (multi: NA)
+  NA,      #79, original_plaque_mean_PD, "GAgP: 4.1 ± 1.3, LAgP: 4.0 ± 2.0 (the Turesky modification…)" (multi: NA)
+  0.30,    #80, original_plaque_mean_PD, "0.30  ± 0.49"
+  51.2,    #81, original_plaque_mean_PD, "51.2 % (24.5)"
+  NA,      #82, original_plaque_mean_PD, "not reported"
+  NA,      #83, original_plaque_mean_PD, NA
+  NA,      #84, original_plaque_mean_PD, "ND"
+  NA,      #85, original_plaque_mean_PD, "ND"
+  NA,      #86, original_plaque_mean_PD, "ND"
+  NA,      #87, original_plaque_mean_PD, NA
+  2.52,    #88, original_plaque_mean_PD, "2.52 ± 0.20 (PI)"
+  NA,      #89, original_plaque_mean_PD, "Not determined"
+  NA,      #90, original_plaque_mean_PD, NA
+  NA,      #91, original_plaque_mean_PD, NA
+  0.79,    #92, original_plaque_mean_PD, "0.79 (0.71 - 1.00) [Median and range, plaque was recorded as absent (0), detectable with a probe (1), just visible to the naked …"
+  NA,      #93, original_plaque_mean_PD, "not reported"
+  NA,      #94, original_plaque_mean_PD, "ND"
+  NA,      #95, original_plaque_mean_PD, "active: 47.3 ± 29.7 / recession: 41.4 ± 29.0 (% sites)" (multi: NA)
+  NA,      #96, original_plaque_mean_PD, "not determined"
+  NA,      #97, original_plaque_mean_PD, "not determined"
+  NA,      #98, original_plaque_mean_PD, NA
+  1.58,    #99, original_plaque_mean_PD, "1.58 ± 0.73"
+  NA,      #100, original_plaque_mean_PD, "58-61%"
+  NA,      #101, original_plaque_mean_PD, NA
+  NA,      #102, original_plaque_mean_PD, NA
+  0.61,    #103, original_plaque_mean_PD, "0.61"
+  NA,      #104, original_plaque_mean_PD, NA
+  0.93,    #105, original_plaque_mean_PD, "0.93 ± 0.10"
+  NA,      #106, original_plaque_mean_PD, NA
+  NA,      #107, original_plaque_mean_PD, NA
+  95,      #108, original_plaque_mean_PD, "95 ± 0.2"
+  70,      #109, original_plaque_mean_PD, "70 ±32"
+  NA,      #110, original_plaque_mean_PD, NA
+  NA,      #111, original_plaque_mean_PD, NA
+  NA,      #112, original_plaque_mean_PD, "ND"
+  NA,      #113, original_plaque_mean_PD, "ND"
+  NA,      #114, original_plaque_mean_PD, "ND"
+  NA,      #115, original_plaque_mean_PD, "ND"
+  NA,      #116, original_plaque_mean_PD, "ND"
+  75,      #117, original_plaque_mean_PD, "75"
+  NA,      #118, original_plaque_mean_PD, "ND"
+  1.71     #119, original_plaque_mean_PD, "1.71 (1.52–1.96) (PI, recorded on index teeth, median, interquartile range)"
+)
+
+plaque_sd_PD = c(
+  NA,       # 1, original_plaque_sd_PD, NA
+  NA,       # 2, original_plaque_sd_PD, NA
+  11.91,    # 3, original_plaque_mean_PD, "48.79±11.91"
+  NA,       # 4, original_plaque_sd_PD, NA
+  31,       # 5, original_plaque_mean_PD, "59 ± 31"
+  NA,       # 6, original_plaque_sd_PD, NA
+  10.7,     # 7, original_plaque_mean_PD, "84.73 ± 10.7"
+  20,       # 8, original_plaque_mean_PD, "72±20"
+  NA,       # 9, original_plaque_sd_PD, NA
+  NA,       #10, original_plaque_sd_PD, NA
+  NA,       #11, original_plaque_sd_PD, NA
+  NA,       #12, original_plaque_sd_PD, NA
+  23.4,     #13, original_plaque_mean_PD, "62.9 ± 23.4"
+  NA,       #14, original_plaque_sd_PD, NA
+  4,        #15, original_plaque_mean_PD, "70 ± 4"
+  NA,       #16, original_plaque_sd_PD, NA
+  20,       #17, original_plaque_sd_PD, 20
+  NA,       #18, original_plaque_mean_PD, "41.7 ± 8.1 [localised aggressive periodontitis], 49.2 ± 12.9 [generalised aggressive periodontitis], 84.7 ± 10.7 [chronic periodontitis]" (multi; NA)
+  15,       #19, original_plaque_sd_PD, 15
+  9.1,      #20, original_plaque_mean_PD, "56.9 ± 9.1 (PI)"
+  10.2,     #21, original_plaque_mean_PD, "46.21 ± 10.20 (visible plaque index)"
+  4.1,      #22, original_plaque_mean_PD, "48.5 ± 4.1, presence of supragingival plaque (PL), (%sites), (6 sites per tooth of all teeth,\r\n excl 3rd molars)"
+  15,       #23, original_plaque_mean_PD, "67 ± 15% plaque, full-mouth"
+  15.6,     #24, original_plaque_mean_PD, "80.0±15.6 (% sites with visible plaque (0/1), measured at six sites per tooth (measured at six sites per tooth (MB, B, DB, DL, L and ML) in all teeth, excl 3rd molars))"
+  NA,       #25, original_plaque_mean_PD, "GAgP: 78.1 ± 16.7, GChP: 86.4 ± 18.9 (% sites with visible plaque (0/1), ..." (multi; NA)
+  0.9,      #26, original_plaque_mean_PD, "1.2 ± 0.9 (Plaque index)"
+  10.7,     #27, original_plaque_mean_PD, "48.22 ± 10.7 (% of sites with visible plaque / visible plaque index (yes/no))\r\n\u0002(visible plaque index (yes/no))"
+  30,       #28, original_plaque_mean_PD, "45 ± 30 (presence or absence of supragingival biofilm (SB), %sites, measured at 6 sites per tooth)"
+  NA,       #29, original_plaque_mean_PD, "ChP: 55.7 ± 25.6, AgP: 72.3 ± 18.6  (%SB, full mouth, presence/absence of visible supragingival biofilm)" (multi: NA)
+  10.4,     #30, original_plaque_mean_PD, "74.1 ± 10.4 (visible plaque ...)"
+  NA,       #31, original_plaque_sd_PD, NA
+  NA,       #32, original_plaque_sd_PD, NA
+  9.6,      #33, original_plaque_mean_PD, "82.4±9.6 (%surfaces with plaque)"
+  NA,       #34, original_plaque_sd_PD, NA
+  NA,       #35, original_plaque_sd_PD, NA
+  NA,       #36, original_plaque_sd_PD, NA
+  NA,       #37, original_plaque_sd_PD, NA
+  NA,       #38, original_plaque_sd_PD, NA
+  NA,       #39, original_plaque_sd_PD, NA
+  0.43,     #40, original_plaque_mean_PD, "2.18±0.43 (OHI-S), assessed according to WHO recommendations (1997)"
+  NA,       #41, original_plaque_sd_PD, NA
+  NA,       #42, original_plaque_sd_PD, NA
+  16.05,    #43, original_plaque_mean_PD, "46,82 ± 16,05"
+  NA,       #44, original_plaque_sd_PD, NA
+  NA,       #45, original_plaque_sd_PD, NA
+  NA,       #46, original_plaque_mean_PD, "CP: 54 ± 19, AgP: 39 ± 17, Sites with plaque ..." (multi; NA)
+  20.3,     #47, original_plaque_sd_PD, 20.3
+  28.5,     #48, original_plaque_sd_PD, 28.5
+  NA,       #49, original_plaque_sd_PD, NA
+  NA,       #50, original_plaque_sd_PD, NA
+  NA,       #51, original_plaque_sd_PD, NA
+  NA,       #52, original_plaque_sd_PD, NA
+  NA,       #53, original_plaque_sd_PD, NA
+  NA,       #54, original_plaque_sd_PD, NA
+  23,       #55, original_plaque_mean_PD, "75 ± 23"
+  NA,       #56, original_plaque_sd_PD, NA
+  NA,       #57, original_plaque_sd_PD, NA
+  31.2,     #58, original_plaque_mean_PD, "47.2 ± 31.2 (diseased) periodontal sites"
+  0.55,     #59, original_plaque_sd_PD, 0.55
+  NA,       #60, original_plaque_mean_PD, "ChGP: 2.25±0.48 (PI), GAP: 1.06±0.35 (PI)" (multi: NA)
+  NA,       #61, original_plaque_sd_PD, NA
+  NA,       #62, original_plaque_sd_PD, NA
+  NA,       #63, original_plaque_sd_PD, NA
+  NA,       #64, original_plaque_sd_PD, NA
+  NA,       #65, original_plaque_sd_PD, NA
+  NA,       #66, original_plaque_sd_PD, NA
+  NA,       #67, original_plaque_sd_PD, NA
+  5.6,      #68, original_plaque_mean_PD, "51.7 ± 5.6"
+  5.7,      #69, original_plaque_mean_PD, "51.9 ± 5.7"
+  NA,       #70, original_plaque_sd_PD, NA
+  NA,       #71, original_plaque_sd_PD, NA
+  NA,       #72, original_plaque_sd_PD, NA
+  34.7,     #73, original_plaque_sd_PD, 34.7
+  NA,       #74, original_plaque_sd_PD, NA
+  NA,       #75, original_plaque_sd_PD, NA
+  3.74,     #76, original_plaque_sd_PD, 3.74
+  0.25,     #77, original_plaque_mean_PD, "0.93 ± 0.25 (PI)"
+  NA,       #78, original_plaque_mean_PD, "NS-Perio: 53.29 ± 27.44 ... S-Perio: ..." (multi: NA)
+  NA,       #79, original_plaque_mean_PD, "GAgP: 4.1 ± 1.3, LAgP: 4.0 ± 2.0 ..." (multi: NA)
+  0.49,     #80, original_plaque_mean_PD, "0.30  ± 0.49"
+  24.5,     #81, original_plaque_mean_PD, "51.2 % (24.5)"
+  NA,       #82, original_plaque_sd_PD, NA
+  NA,       #83, original_plaque_sd_PD, NA
+  NA,       #84, original_plaque_sd_PD, NA
+  NA,       #85, original_plaque_sd_PD, NA
+  NA,       #86, original_plaque_sd_PD, NA
+  NA,       #87, original_plaque_sd_PD, NA
+  0.20,     #88, original_plaque_mean_PD, "2.52 ± 0.20 (PI)"
+  NA,       #89, original_plaque_sd_PD, NA
+  NA,       #90, original_plaque_sd_PD, NA
+  NA,       #91, original_plaque_sd_PD, NA
+  NA,       #92, original_plaque_mean_PD, "0.79 (0.71 - 1.00) ..." (range not SD, leave NA)
+  NA,       #93, original_plaque_sd_PD, NA
+  NA,       #94, original_plaque_sd_PD, NA
+  NA,       #95, original_plaque_mean_PD, "active: 47.3 ± 29.7 / recession: 41.4 ± 29.0 ..." (multi: NA)
+  NA,       #96, original_plaque_sd_PD, NA
+  NA,       #97, original_plaque_sd_PD, NA
+  NA,       #98, original_plaque_sd_PD, NA
+  0.73,     #99, original_plaque_mean_PD, "1.58 ± 0.73"
+  NA,       #100, original_plaque_sd_PD, "58-61%"
+  NA,       #101, original_plaque_sd_PD, NA
+  NA,       #102, original_plaque_sd_PD, NA
+  NA,       #103, original_plaque_sd_PD, NA
+  NA,       #104, original_plaque_sd_PD, NA
+  0.10,     #105, original_plaque_mean_PD, "0.93 ± 0.10"
+  NA,       #106, original_plaque_sd_PD, NA
+  NA,       #107, original_plaque_sd_PD, NA
+  0.2,      #108, original_plaque_mean_PD, "95 ± 0.2"
+  32,       #109, original_plaque_mean_PD, "70 ±32"
+  NA,       #110, original_plaque_sd_PD, NA
+  NA,       #111, original_plaque_sd_PD, NA
+  NA,       #112, original_plaque_sd_PD, NA
+  NA,       #113, original_plaque_sd_PD, NA
+  NA,       #114, original_plaque_sd_PD, NA
+  NA,       #115, original_plaque_sd_PD, NA
+  NA,       #116, original_plaque_sd_PD, NA
+  51,       #117, original_plaque_sd_PD, 51
+  NA,       #118, original_plaque_sd_PD, NA
+  NA        #119, original_plaque_mean_PD, "1.71 (1.52–1.96) (PI, recorded on index teeth, median, interquartile range)"
+)
+
+
+plaque_mean_health = c(
+  NA,      # 1, original_plaque_mean_health, NA
+  NA,      # 2, original_plaque_mean_health, NA
+  26.91,   # 3, original_plaque_mean_health, 26.91±10.49
+  NA,      # 4, original_plaque_mean_health, ND
+  40,      # 5, original_plaque_mean_health, 40 ± 14
+  NA,      # 6, original_plaque_mean_health, ND
+  43.74,   # 7, original_plaque_mean_health, 43.74 ± 17.8
+  6.4,     # 8, original_plaque_mean_health, 6.4±3.2
+  NA,      # 9, original_plaque_mean_health, NA
+  NA,      # 10, original_plaque_mean_health, NA
+  NA,      # 11, original_plaque_mean_health, NA
+  NA,      # 12, original_plaque_mean_health, NA
+  17.4,    # 13, original_plaque_mean_health, 17.4 ± 12.0
+  NA,      # 14, original_plaque_mean_health, NA
+  34,      # 15, original_plaque_mean_health, 34 ± 8.5
+  NA,      # 16, original_plaque_mean_health, NA
+  NA,      # 17, original_plaque_mean_health, NA
+  NA,      # 18, original_plaque_mean_health, NA
+  NA,      # 19, original_plaque_mean_health, not reported
+  30.2,    # 20, original_plaque_mean_health, 30.2 ± 6.2 (PI)
+  20.40,   # 21, original_plaque_mean_health, 20.40 ± 11.02 (%) (visible plaque index)
+  21.4,    # 22, original_plaque_mean_health, 21.4 ± 2.3 presence of supragingival plaque (…)
+  13,      # 23, original_plaque_mean_health, 13 ± 18% (plaque), full-mouth
+  25.5,    # 24, original_plaque_mean_health, 25.5±10.1 (% sites …)
+  20.9,    # 25, original_plaque_mean_health, 20.9 ± 7.7 (% sites …)
+  0.9,     # 26, original_plaque_mean_health, 0.9 ± 0.6 (Plaque index)
+  22.45,   # 27, original_plaque_mean_health, 22.45 ± 13.02 (…)
+  11.5,    # 28, original_plaque_mean_health, 11.5 ± 11(presence …)
+  0.6,     # 29, original_plaque_mean_health, 0.6 ± 2.2 (%SB, full mouth, …)
+  34.5,    # 30, original_plaque_mean_health, 34.5 ± 9.9 (visible plaque …)
+  NA,      # 31, original_plaque_mean_health, ND
+  NA,      # 32, original_plaque_mean_health, NA
+  16.1,    # 33, original_plaque_mean_health, 16.1 ± 13.4 (%surfaces …)
+  62.1,    # 34, original_plaque_mean_health, 62.1
+  NA,      # 35, original_plaque_mean_health, NA
+  1.69,    # 36, original_plaque_mean_health, 1.69
+  NA,      # 37, original_plaque_mean_health, NA
+  NA,      # 38, original_plaque_mean_health, NA
+  NA,      # 39, original_plaque_mean_health, ND
+  1.45,    # 40, original_plaque_mean_health, 1.45 ± 0.51 (OHI-S), assessed …
+  NA,      # 41, original_plaque_mean_health, ND
+  NA,      # 42, original_plaque_mean_health, ND
+  8.26,    # 43, original_plaque_mean_health, 8,26 ± 7,15
+  NA,      # 44, original_plaque_mean_health, NA
+  NA,      # 45, original_plaque_mean_health, NA
+  2.2,     # 46, original_plaque_mean_health, 2.2 ± 0.9 sites with plaque (…)
+  NA,      # 47, original_plaque_mean_health, NA
+  NA,      # 48, original_plaque_mean_health, NA
+  NA,      # 49, original_plaque_mean_health, NA
+  NA,      # 50, original_plaque_mean_health, NA
+  NA,      # 51, original_plaque_mean_health, NA
+  NA,      # 52, original_plaque_mean_health, NA
+  NA,      # 53, original_plaque_mean_health, ND
+  NA,      # 54, original_plaque_mean_health, ND
+  22,      # 55, original_plaque_mean_health, 22 ± 18
+  NA,      # 56, original_plaque_mean_health, not reported
+  NA,      # 57, original_plaque_mean_health, NA
+  165.0,   # 58, original_plaque_mean_health, 165.0 ± 6.5 (disease free) …
+  NA,      # 59, original_plaque_mean_health, not reported
+  0.90,    # 60, original_plaque_mean_health, 0.90±0.38 (PI)
+  NA,      # 61, original_plaque_mean_health, ND
+  NA,      # 62, original_plaque_mean_health, ND
+  NA,      # 63, original_plaque_mean_health, ND
+  NA,      # 64, original_plaque_mean_health, NA
+  NA,      # 65, original_plaque_mean_health, NA
+  NA,      # 66, original_plaque_mean_health, NA
+  NA,      # 67, original_plaque_mean_health, NA
+  12.2,    # 68, original_plaque_mean_health, 12.2 ± 3.8
+  11.7,    # 69, original_plaque_mean_health, 11.7 ± 3.7
+  NA,      # 70, original_plaque_mean_health, NA
+  NA,      # 71, original_plaque_mean_health, NA
+  NA,      # 72, original_plaque_mean_health, NA
+  NA,      # 73, original_plaque_mean_health, NA
+  NA,      # 74, original_plaque_mean_health, ND
+  6.4,     # 75, original_plaque_mean_health, 6.4
+  NA,      # 76, original_plaque_mean_health, not reported
+  0.28,    # 77, original_plaque_mean_health, 0.28 ± 0.09 (PI)
+  22.43,   # 78, original_plaque_mean_health, 22.43 ± 14.33 BPL (%, …)
+  NA,      # 79, original_plaque_mean_health, ND
+  0.06,    # 80, original_plaque_mean_health, 0.06 ± 0.05
+  35.0,    # 81, original_plaque_mean_health, 35.0 % (25.6)
+  NA,      # 82, original_plaque_mean_health, NA
+  NA,      # 83, original_plaque_mean_health, NA
+  NA,      # 84, original_plaque_mean_health, ND
+  NA,      # 85, original_plaque_mean_health, ND
+  NA,      # 86, original_plaque_mean_health, not reported
+  NA,      # 87, original_plaque_mean_health, NA
+  1.12,    # 88, original_plaque_mean_health, 1.12 ± 0.32 (PI)
+  47.5,    # 89, original_plaque_mean_health, 47.5
+  NA,      # 90, original_plaque_mean_health, NA
+  NA,      # 91, original_plaque_mean_health, NA
+  0.86,    # 92, original_plaque_mean_health, 0.86
+  NA,      # 93, original_plaque_mean_health, not reported
+  NA,      # 94, original_plaque_mean_health, ND
+  NA,      # 95, original_plaque_mean_health, not reported
+  NA,      # 96, original_plaque_mean_health, NA
+  NA,      # 97, original_plaque_mean_health, NA
+  NA,      # 98, original_plaque_mean_health, NA
+  1.22,    # 99, original_plaque_mean_health, 1.22 ±0.74
+  0.24,    #100, original_plaque_mean_health, 0.24
+  NA,      #101, original_plaque_mean_health, NA
+  30,      #102, original_plaque_mean_health, 30 ± 22
+  0.24,    #103, original_plaque_mean_health, 0.24
+  NA,      #104, original_plaque_mean_health, NA
+  0.51,    #105, original_plaque_mean_health, 0.51 ± 0.07
+  NA,      #106, original_plaque_mean_health, NA
+  NA,      #107, original_plaque_mean_health, NA
+  11,      #108, original_plaque_mean_health, 11 ± 0.3 %
+  40,      #109, original_plaque_mean_health, 40 ±3
+  NA,      #110, original_plaque_mean_health, NA
+  NA,      #111, original_plaque_mean_health, NA
+  NA,      #112, original_plaque_mean_health, ND
+  NA,      #113, original_plaque_mean_health, ND
+  NA,      #114, original_plaque_mean_health, ND
+  NA,      #115, original_plaque_mean_health, ND
+  NA,      #116, original_plaque_mean_health, ND
+  NA,      #117, original_plaque_mean_health, not reported
+  NA,      #118, original_plaque_mean_health, ND
+  0.25     #119, original_plaque_mean_health, 0.25 (0.17–0.49) (PI, recorded on index teeth, median, interquartile range)
+)
+
+# Plaque (mean +/SD) (periodontal health) ----
+plaque_sd_health = c(
+  NA,      # 1, original_plaque_sd_health, NA
+  NA,      # 2, original_plaque_sd_health, NA
+  10.49,   # 3, original_plaque_mean_health, 26.91±10.49
+  NA,      # 4, original_plaque_sd_health, ND
+  14,      # 5, original_plaque_mean_health, 40 ± 14
+  NA,      # 6, original_plaque_sd_health, ND
+  17.8,    # 7, original_plaque_mean_health, 43.74 ± 17.8
+  3.2,     # 8, original_plaque_mean_health, 6.4±3.2
+  NA,      # 9, original_plaque_sd_health, NA
+  NA,      # 10, original_plaque_sd_health, NA
+  NA,      # 11, original_plaque_sd_health, NA
+  NA,      # 12, original_plaque_sd_health, NA
+  12.0,    # 13, original_plaque_mean_health, 17.4 ± 12.0
+  NA,      # 14, original_plaque_sd_health, NA
+  8.5,     # 15, original_plaque_mean_health, 34 ± 8.5
+  NA,      # 16, original_plaque_sd_health, NA
+  NA,      # 17, original_plaque_sd_health, NA
+  NA,      # 18, original_plaque_sd_health, NA
+  NA,      # 19, original_plaque_sd_health, not reported
+  6.2,     # 20, original_plaque_mean_health, 30.2 ± 6.2 (PI)
+  11.02,   # 21, original_plaque_mean_health, 20.40 ± 11.02 (%) (visible plaque index)
+  2.3,     # 22, original_plaque_mean_health, 21.4 ± 2.3 presence of supragingival plaque (…)
+  18,      # 23, original_plaque_mean_health, 13 ± 18% (plaque), full-mouth
+  10.1,    # 24, original_plaque_mean_health, 25.5±10.1 (% sites …)
+  7.7,     # 25, original_plaque_mean_health, 20.9 ± 7.7 (% sites …)
+  0.6,     # 26, original_plaque_mean_health, 0.9 ± 0.6 (Plaque index)
+  13.02,   # 27, original_plaque_mean_health, 22.45 ± 13.02 (…)
+  11,      # 28, original_plaque_mean_health, 11.5 ± 11(presence …)
+  2.2,     # 29, original_plaque_mean_health, 0.6 ± 2.2 (%SB, full mouth, …)
+  9.9,     # 30, original_plaque_mean_health, 34.5 ± 9.9 (visible plaque …)
+  NA,      # 31, original_plaque_sd_health, ND
+  NA,      # 32, original_plaque_sd_health, NA
+  13.4,    # 33, original_plaque_mean_health, 16.1 ± 13.4 (%surfaces …)
+  NA,      # 34, original_plaque_sd_health, 62.1
+  NA,      # 35, original_plaque_sd_health, NA
+  0.73,    # 36, original_plaque_sd_health, 0.73
+  NA,      # 37, original_plaque_sd_health, NA
+  NA,      # 38, original_plaque_sd_health, NA
+  NA,      # 39, original_plaque_sd_health, ND
+  0.51,    # 40, original_plaque_mean_health, 1.45 ± 0.51 (OHI-S), assessed …
+  NA,      # 41, original_plaque_sd_health, ND
+  NA,      # 42, original_plaque_sd_health, ND
+  7.15,    # 43, original_plaque_mean_health, 8,26 ± 7,15
+  NA,      # 44, original_plaque_sd_health, NA
+  NA,      # 45, original_plaque_sd_health, NA
+  0.9,     # 46, original_plaque_mean_health, 2.2 ± 0.9 sites with plaque (…)
+  NA,      # 47, original_plaque_sd_health, NA
+  NA,      # 48, original_plaque_sd_health, NA
+  NA,      # 49, original_plaque_sd_health, NA
+  NA,      # 50, original_plaque_sd_health, NA
+  NA,      # 51, original_plaque_sd_health, NA
+  NA,      # 52, original_plaque_sd_health, NA
+  NA,      # 53, original_plaque_sd_health, ND
+  NA,      # 54, original_plaque_sd_health, ND
+  18,      # 55, original_plaque_mean_health, 22 ± 18
+  NA,      # 56, original_plaque_sd_health, not reported
+  NA,      # 57, original_plaque_sd_health, NA
+  6.5,     # 58, original_plaque_mean_health, 165.0 ± 6.5 (disease free) …
+  NA,      # 59, original_plaque_sd_health, not reported
+  0.38,    # 60, original_plaque_mean_health, 0.90±0.38 (PI)
+  NA,      # 61, original_plaque_sd_health, ND
+  NA,      # 62, original_plaque_sd_health, ND
+  NA,      # 63, original_plaque_sd_health, ND
+  NA,      # 64, original_plaque_sd_health, NA
+  NA,      # 65, original_plaque_sd_health, NA
+  NA,      # 66, original_plaque_sd_health, NA
+  NA,      # 67, original_plaque_sd_health, NA
+  3.8,     # 68, original_plaque_mean_health, 12.2 ± 3.8
+  3.7,     # 69, original_plaque_mean_health, 11.7 ± 3.7
+  NA,      # 70, original_plaque_sd_health, NA
+  NA,      # 71, original_plaque_sd_health, NA
+  NA,      # 72, original_plaque_sd_health, NA
+  NA,      # 73, original_plaque_sd_health, NA
+  NA,      # 74, original_plaque_sd_health, ND
+  3.2,     # 75, original_plaque_sd_health, 3.2
+  NA,      # 76, original_plaque_sd_health, not reported
+  0.09,    # 77, original_plaque_mean_health, 0.28 ± 0.09 (PI)
+  14.33,   # 78, original_plaque_mean_health, 22.43 ± 14.33 BPL (%, …)
+  NA,      # 79, original_plaque_sd_health, ND
+  0.05,    # 80, original_plaque_mean_health, 0.06 ± 0.05
+  25.6,    # 81, original_plaque_mean_health, 35.0 % (25.6)
+  NA,      # 82, original_plaque_sd_health, NA
+  NA,      # 83, original_plaque_sd_health, NA
+  NA,      # 84, original_plaque_sd_health, ND
+  NA,      # 85, original_plaque_sd_health, ND
+  NA,      # 86, original_plaque_sd_health, not reported
+  NA,      # 87, original_plaque_sd_health, NA
+  0.32,    # 88, original_plaque_mean_health, 1.12 ± 0.32 (PI)
+  21.5,    # 89, original_plaque_sd_health, 21.5
+  NA,      # 90, original_plaque_sd_health, NA
+  NA,      # 91, original_plaque_sd_health, NA
+  0.47,    # 92, original_plaque_sd_health, 0.47
+  NA,      # 93, original_plaque_sd_health, not reported
+  NA,      # 94, original_plaque_sd_health, ND
+  NA,      # 95, original_plaque_sd_health, not reported
+  NA,      # 96, original_plaque_sd_health, NA
+  NA,      # 97, original_plaque_sd_health, NA
+  NA,      # 98, original_plaque_sd_health, NA
+  0.74,    # 99, original_plaque_mean_health, 1.22 ±0.74
+  NA,      #100, original_plaque_sd_health, 0.24
+  NA,      #101, original_plaque_sd_health, NA
+  22,      #102, original_plaque_mean_health, 30 ± 22
+  NA,      #103, original_plaque_sd_health, 0.24
+  NA,      #104, original_plaque_sd_health, NA
+  0.07,    #105, original_plaque_mean_health, 0.51 ± 0.07
+  NA,      #106, original_plaque_sd_health, NA
+  NA,      #107, original_plaque_sd_health, NA
+  0.3,     #108, original_plaque_mean_health, 11 ± 0.3 %
+  3,       #109, original_plaque_mean_health, 40 ±3
+  NA,      #110, original_plaque_sd_health, NA
+  NA,      #111, original_plaque_sd_health, NA
+  NA,      #112, original_plaque_sd_health, ND
+  NA,      #113, original_plaque_sd_health, ND
+  NA,      #114, original_plaque_sd_health, ND
+  NA,      #115, original_plaque_sd_health, ND
+  NA,      #116, original_plaque_sd_health, ND
+  NA,      #117, original_plaque_sd_health, not reported
+  NA,      #118, original_plaque_sd_health, ND
+  NA       #119, original_plaque_mean_health, 0.25 (0.17–0.49) (PI, ... median, interquartile range) (range, not SD)
+)
+
+# PD OG related columns from periodontal health group ----
+# [39] "PD OG (periodontal health)"                                        
+# [40] "PD (periodontal health)"                                           
+# [41] "PD SD (periodontal health)" 
+PD_OG_mean_health = c(
+  NA,       # 1, original_PD_OG_health, "NA"
+  0.1,      # 2, original_PD_OG_health, "0.1± 0.4"
+  2.28,     # 3, original_PD_OG_health, "2.28±0.59 (full mouth)"
+  1.8,      # 4, original_PD_OG_health, "1.8 ± 0.04 (full mouth)"
+  2.3,      # 5, original_PD_OG_health, "2.3 ± 0.5 (full mouth)"
+  2.4,      # 6, original_PD_OG_health, "2.4 mm, ranging from 1.0 to 3.0 mm (full mouth)"
+  2.16,     # 7, original_PD_OG_health, "2.16 ± 0.2 (full mouth)"
+  2.7,      # 8, original_PD_OG_health, "2.7±0.5 (full mouth)"
+  1.9,      # 9, original_PD_OG_health, "1.9 ± 0.04 (full mouth)"
+  2.1,      #10, original_PD_OG_health, "2,1 ± 0,5 mm (full mouth)"
+  2.6,      #11, original_PD_OG_health, "2.6 ± 0.09mm (full mouth)"
+  2.1,      #12, original_PD_OG_health, "2.1 ± 0.5 mm (full mouth)"
+  2.0,      #13, original_PD_OG_health, "2.0 ± 0.07 (full mouth)"
+  1.8,      #14, original_PD_OG_health, "1.8 ± 0.4 (full mouth)"
+  1.8,      #15, original_PD_OG_health, "1.8 ± 0.2 (full mouth)"
+  2.1,      #16, original_PD_OG_health, "2.1"
+  2.7,      #17, original_PD_OG_health, "2.7"
+  2.2,      #18, original_PD_OG_health, "2.2000000000000002"
+  2.6,      #19, original_PD_OG_health, "2.6"
+  2.2,      #20, original_PD_OG_health, "2.2000000000000002"
+  1.7,      #21, original_PD_OG_health, "1.7 ± 0.6 (2.0) (Mean ± SD (Median);..."
+  NA,       #22, original_PD_OG_health, "ND (<4 mm: 99.1% / 4–6 mm: 0.9% / >6 mm: 0%..."
+  1.9,      #23, original_PD_OG_health, "1.9 ± 0.2 mm full-mouth"
+  1.8,      #24, original_PD_OG_health, "1.8±0.2 (measured at six sites per tooth... "
+  1.8,      #25, original_PD_OG_health, "1.8 ± 0.4 (measured at six sites per tooth... "
+  NA,       #26, original_PD_OG_health, "NA (sites with PD ≥7 mm (%)), 0.22 ± 0.2 ((sites with PD 4 to 6 mm (%)), (the same as reported by Lages et al., 2012..."
+  1.92,     #27, original_PD_OG_health, "1.92 ± 0.23 (measured at 6 sites per tooth (MV, V, DV, ML, L, DL), excluding the 3rd molars)"
+  1.9,      #28, original_PD_OG_health, "1.9 ± 0.5 (measured at 6 sites per tooth)"
+  1.5,      #29, original_PD_OG_health, "1.5 ± 0.3 (full mouth)"
+  1.96,     #30, original_PD_OG_health, "1.96 ± 0.6 (measured at 6 sites per tooth... "
+  NA,       #31, original_PD_OG_health, "≤2 (PD in > 30% of sites)"
+  NA,       #32, original_PD_OG_health, "ND"
+  1.5,      #33, original_PD_OG_health, "1.5 ± 0.1"
+  0.7,      #34, original_PD_OG_health, "0.7 (sampled sites)"
+  1.75,     #35, original_PD_OG_health, "1.75 (0.75) ( sampled sites)"
+  3,        #36, original_PD_OG_health, "3"
+  1.9,      #37, original_PD_OG_health, "1.9"
+  1.6,      #38, original_PD_OG_health, "1.6 ± 0.4 (full mouth)"
+  NA,       #39, original_PD_OG_health, "2.76 ± 0.73, 2.47 ± 0.59, 2.43 ± 0.62 (individual values) (at six sites per tooth)"
+  NA,       #40, original_PD_OG_health, "ND\r\nrecommendations (1997)"
+  NA,       #41, original_PD_OG_health, "ND"
+  NA,       #42, original_PD_OG_health, "range: 1-2* (2,2,1.5,1,1) ..."
+  1.92,     #43, original_PD_OG_health, "1,92 ± 0,51 (full mputh)"
+  1.8,      #44, original_PD_OG_health, "1,8 ± 0,4 (full mouth)"
+  2.4,      #45, original_PD_OG_health, "2.4 ± 0.4 (full mouth)"
+  NA,       #46, original_PD_OG_health, "1.5 ± 0.3, sampled sites: 2.1 ± 0.4, measured at 6 sites... " (multi)
+  1.5,      #47, original_PD_OG_health, "1.5"
+  2.6,      #48, original_PD_OG_health, "2.6"
+  3.6,      #49, original_PD_OG_health, "3.6 ± 0.5 mm (full mouth)"
+  3.6,      #50, original_PD_OG_health, "3.6 ± 0.8 (full mouth)"
+  3.7,      #51, original_PD_OG_health, "3.7 ± 0.9 (full mouth)"
+  1.69,     #52, original_PD_OG_health, "1.69±0.28 (full mouth)"
+  NA,       #53, original_PD_OG_health, "ND (range: 2-3 mm)"
+  NA,       #54, original_PD_OG_health, "44257"
+  1.82,     #55, original_PD_OG_health, "1.82 ± 0.24 (full mouth)"
+  1.54,     #56, original_PD_OG_health, "1.54"
+  NA,       #57, original_PD_OG_health, "ND"
+  NA,       #58, original_PD_OG_health, "range: 0* (0,0,0,0,0,0,0,0,0,0) and 0* (0,0,0,0,0,0,0,0,0,0)..."
+  0,        #59, original_PD_OG_health, "0"
+  2.42,     #60, original_PD_OG_health, "2.42±0.32"
+  1.83,     #61, original_PD_OG_health, "1.83 ± 0.68 (measured at 4 sites per tooth ...)"
+  NA,       #62, original_PD_OG_health, "ND"
+  NA,       #63, original_PD_OG_health, "ND"
+  NA,       #64, original_PD_OG_health, "NA"
+  2.4,      #65, original_PD_OG_health, "2,4 ± 0,5 mm (full mouth)"
+  NA,       #66, original_PD_OG_health, "ND"
+  0.2,      #67, original_PD_OG_health, "0.2±0.01 mm (full mouth)"
+  2,        #68, original_PD_OG_health, "2 ± 0.03 (full mouth)"
+  2,        #69, original_PD_OG_health, "2 ± 0.03 (full mouth)"
+  1.8,      #70, original_PD_OG_health, "1,8 mm (full mouth)"
+  NA,       #71, original_PD_OG_health, "ND"
+  NA,       #72, original_PD_OG_health, "NA"
+  3.1,      #73, original_PD_OG_health, "3.1"
+  NA,       #74, original_PD_OG_health, "ND"
+  NA,       #75, original_PD_OG_health, "NAA"
+  2.02,     #76, original_PD_OG_health, "2.02"
+  1.03,     #77, original_PD_OG_health, "1.03 ± 0.19"
+  2.08,     #78, original_PD_OG_health, "2.08 ± 0.30 (measured at 6 sites per tooth, full mouth), 2.35 ± 0.33 (measured at 6 sites per tooth, sampled sites)" # take first in multi-value with comma, see rule note
+  NA,       #79, original_PD_OG_health, "ND"
+  1.94,     #80, original_PD_OG_health, "1.94 ± 0.30( full mouth)"
+  2.0,      #81, original_PD_OG_health, "2.0 ± 0.2 (full mouth)"
+  NA,       #82, original_PD_OG_health, "NA"
+  NA,       #83, original_PD_OG_health, "ND"
+  NA,       #84, original_PD_OG_health, "ND"
+  NA,       #85, original_PD_OG_health, "ND"
+  NA,       #86, original_PD_OG_health, "NA"
+  NA,       #87, original_PD_OG_health, "ND"
+  1.97,     #88, original_PD_OG_health, "1.97 ± 0.31 (measured at six sites...)"
+  NA,       #89, original_PD_OG_health, "NA"
+  2.17,     #90, original_PD_OG_health, "2.17 (0.33) (full mouth)"
+  NA,       #91, original_PD_OG_health, "ND"
+  2.7,      #92, original_PD_OG_health, "2.7"
+  3.8,      #93, original_PD_OG_health, "3.8"
+  NA,       #94, original_PD_OG_health, "NA"
+  2.15,     #95, original_PD_OG_health, "2.15"
+  NA,       #96, original_PD_OG_health, "not determined"
+  2.81,     #97, original_PD_OG_health, "2.81"
+  NA,       #98, original_PD_OG_health, "ND"
+  1.94,     #99, original_PD_OG_health, "1.94 ± 0.30 (full mouth)"
+  1.5,      #100, original_PD_OG_health, "1.5 (full mouth)"
+  NA,       #101, original_PD_OG_health, "ND"
+  2.0,      #102, original_PD_OG_health, "2.0 ± 0.2 (full mouth)"
+  1.49,     #103, original_PD_OG_health, "1.49 (full mouth)"
+  NA,       #104, original_PD_OG_health, "ND"
+  1.98,     #105, original_PD_OG_health, "1.98 ± 0.03 (full mouth)"
+  NA,       #106, original_PD_OG_health, "ND"
+  2.7,      #107, original_PD_OG_health, "2.7 ± 0.3 (sampled sites)"
+  2.3,      #108, original_PD_OG_health, "2.3 ± 0.6 (full mouth)"
+  2.3,      #109, original_PD_OG_health, "2.3±0.3 (full mouth)"
+  2.0,      #110, original_PD_OG_health, "2.0 (full mouth)"
+  2.7,      #111, original_PD_OG_health, "2.7 (full mouth)"
+  3.1,      #112, original_PD_OG_health, "3.1 ± 0.42 (subgingival sampling sites; ..."
+  3.2,      #113, original_PD_OG_health, "3.2 ± 1.7"
+  NA,       #114, original_PD_OG_health, "≤3 mm (sampled sites)"
+  NA,       #115, original_PD_OG_health, "ND"
+  NA,       #116, original_PD_OG_health, "ND"
+  2.26,     #117, original_PD_OG_health, "2.2599999999999998"
+  NA,       #118, original_PD_OG_health, "ND"
+  NA        #119, original_PD_OG_health, "ND (Community Periodontal Index (CPI) available only: 0.00 (0.00–0.17))"
+)
+
+PD_OG_sd_health = c(
+  NA,       # 1, original_PD_OG_sd_health, "NA"
+  0.4,      # 2, original_PD_OG_sd_health, "0.1± 0.4"
+  0.59,     # 3, original_PD_OG_health, "2.28±0.59 (full mouth)"
+  0.04,     # 4, original_PD_OG_health, "1.8 ± 0.04 (full mouth)"
+  0.5,      # 5, original_PD_OG_sd_health, 0.5
+  NA,       # 6, original_PD_OG_health, "2.4 mm, ranging from 1.0 to 3.0 mm (full mouth)"
+  0.2,      # 7, original_PD_OG_sd_health, 0.2
+  0.5,      # 8, original_PD_OG_sd_health, 0.5
+  0.04,     # 9, original_PD_OG_sd_health, 0.04
+  0.5,      #10, original_PD_OG_sd_health, 0.5
+  0.09,     #11, original_PD_OG_sd_health, 0.09
+  0.5,      #12, original_PD_OG_sd_health, 0.5
+  0.07,     #13, original_PD_OG_sd_health, 7.0000000000000007E-2
+  0.4,      #14, original_PD_OG_sd_health, 0.4
+  0.2,      #15, original_PD_OG_sd_health, 0.2
+  0.21,     #16, original_PD_OG_sd_health, 0.21
+  0.5,      #17, original_PD_OG_sd_health, 0.5
+  0.25,     #18, original_PD_OG_sd_health, 0.25
+  0.09,     #19, original_PD_OG_sd_health, 0.09
+  0.6,      #20, original_PD_OG_sd_health, 0.6
+  0.6,      #21, original_PD_OG_sd_health, 0.6
+  NA,       #22, original_PD_OG_health, "ND (<4 mm: 99.1% / 4–6 mm: 0.9% / >6 mm: 0%..."
+  0.2,      #23, original_PD_OG_sd_health, 0.2
+  0.2,      #24, original_PD_OG_sd_health, 0.2
+  0.4,      #25, original_PD_OG_sd_health, 0.4
+  NA,       #26, original_PD_OG_health, "NA (sites with PD ≥7 mm (%))..."
+  0.23,     #27, original_PD_OG_sd_health, 0.23
+  0.5,      #28, original_PD_OG_sd_health, 0.5
+  0.3,      #29, original_PD_OG_sd_health, 0.3
+  0.6,      #30, original_PD_OG_sd_health, 0.6
+  NA,       #31, original_PD_OG_health, "≤2 (PD in > 30% of sites)"
+  NA,       #32, original_PD_OG_health, "ND"
+  0.1,      #33, original_PD_OG_sd_health, 0.1
+  NA,       #34, original_PD_OG_health, "0.7 (sampled sites)"
+  NA,       #35, original_PD_OG_health, "1.75 (0.75) ( sampled sites)"
+  0.1,      #36, original_PD_OG_sd_health, 0.1
+  0.6,      #37, original_PD_OG_sd_health, 0.6
+  0.4,      #38, original_PD_OG_sd_health, 0.4
+  NA,       #39, original_PD_OG_health, "2.76 ± 0.73, 2.47 ± 0.59, 2.43 ± 0.62..."
+  NA,       #40, original_PD_OG_health, "ND\r\nrecommendations (1997)"
+  NA,       #41, original_PD_OG_health, "ND"
+  NA,       #42, original_PD_OG_health, "range: 1-2* (2,2,1.5,1,1)..."
+  0.51,     #43, original_PD_OG_sd_health, 0.51
+  0.4,      #44, original_PD_OG_sd_health, 0.4
+  0.4,      #45, original_PD_OG_sd_health, 0.4
+  NA,       #46, original_PD_OG_health, "1.5 ± 0.3, sampled sites: 2.1 ± 0.4..." (multi)
+  0.2,      #47, original_PD_OG_sd_health, 0.2
+  0.8,      #48, original_PD_OG_sd_health, 0.8
+  0.5,      #49, original_PD_OG_sd_health, 0.5
+  0.8,      #50, original_PD_OG_sd_health, 0.8
+  0.9,      #51, original_PD_OG_sd_health, 0.9
+  0.28,     #52, original_PD_OG_sd_health, 0.28000000000000003
+  NA,       #53, original_PD_OG_health, "ND (range: 2-3 mm)"
+  NA,       #54, original_PD_OG_health, "44257"
+  0.24,     #55, original_PD_OG_sd_health, 0.24
+  0.2,      #56, original_PD_OG_sd_health, 0.2
+  NA,       #57, original_PD_OG_health, "ND"
+  NA,       #58, original_PD_OG_health, "range: 0* (0,0,0,0,0,0,0,0,0,0)..."
+  0,        #59, original_PD_OG_sd_health, 0
+  0.32,     #60, original_PD_OG_sd_health, 0.32
+  0.68,     #61, original_PD_OG_sd_health, 0.68
+  NA,       #62, original_PD_OG_health, "ND"
+  NA,       #63, original_PD_OG_health, "ND"
+  NA,       #64, original_PD_OG_health, "NA"
+  0.5,      #65, original_PD_OG_sd_health, 0.5
+  NA,       #66, original_PD_OG_health, "ND"
+  0.01,     #67, original_PD_OG_sd_health, 0.01
+  0.03,     #68, original_PD_OG_sd_health, 0.03
+  0.03,     #69, original_PD_OG_sd_health, 0.03
+  NA,       #70, original_PD_OG_health, "1,8 mm (full mouth)"
+  NA,       #71, original_PD_OG_health, "ND"
+  NA,       #72, original_PD_OG_health, "NA"
+  0.43,     #73, original_PD_OG_sd_health, 0.43
+  NA,       #74, original_PD_OG_health, "ND"
+  NA,       #75, original_PD_OG_health, "NAA"
+  0.513,    #76, original_PD_OG_sd_health, 0.51300000000000001
+  0.19,     #77, original_PD_OG_sd_health, 0.19
+  0.3,      #78, original_PD_OG_health, "2.08 ± 0.30 (measured at 6 sites per tooth, full mouth), 2.35 ± 0.33 (measured at 6 sites per tooth, sampled sites)" # use first pair, see note
+  NA,       #79, original_PD_OG_health, "ND"
+  0.3,      #80, original_PD_OG_sd_health, 0.3
+  0.2,      #81, original_PD_OG_sd_health, 0.2
+  NA,       #82, original_PD_OG_health, "NA"
+  NA,       #83, original_PD_OG_health, "ND"
+  NA,       #84, original_PD_OG_health, "ND"
+  NA,       #85, original_PD_OG_health, "ND"
+  NA,       #86, original_PD_OG_health, "NA"
+  NA,       #87, original_PD_OG_health, "ND"
+  0.31,     #88, original_PD_OG_sd_health, 0.31
+  NA,       #89, original_PD_OG_health, "NA"
+  0.33,     #90, original_PD_OG_health, "2.17 (0.33) (full mouth)"
+  NA,       #91, original_PD_OG_health, "ND"
+  0.41,     #92, original_PD_OG_sd_health, 0.41
+  0.8,      #93, original_PD_OG_sd_health, 0.8
+  NA,       #94, original_PD_OG_health, "NA"
+  0.2,      #95, original_PD_OG_sd_health, 0.2
+  NA,       #96, original_PD_OG_health, "not determined"
+  0.5,      #97, original_PD_OG_sd_health, 0.5
+  NA,       #98, original_PD_OG_health, "ND"
+  NA,       #99, original_PD_OG_health, "1.94 ± 0.30 (full mouth)"
+  NA,       #100, original_PD_OG_health, "1.5 (full mouth)"
+  NA,       #101, original_PD_OG_health, "ND"
+  0.2,      #102, original_PD_OG_sd_health, 0.2
+  NA,       #103, original_PD_OG_health, "1.49 (full mouth)"
+  NA,       #104, original_PD_OG_health, "ND"
+  0.03,     #105, original_PD_OG_sd_health, 0.03
+  NA,       #106, original_PD_OG_health, "ND"
+  0.3,      #107, original_PD_OG_sd_health, 0.3
+  0.6,      #108, original_PD_OG_sd_health, 0.6
+  0.3,      #109, original_PD_OG_sd_health, 0.3
+  NA,       #110, original_PD_OG_health, "2.0 (full mouth)"
+  NA,       #111, original_PD_OG_health, "2.7 (full mouth)"
+  0.42,     #112, original_PD_OG_sd_health, 0.42
+  1.7,      #113, original_PD_OG_sd_health, 1.7
+  NA,       #114, original_PD_OG_health, "≤3 mm (sampled sites)"
+  NA,       #115, original_PD_OG_health, "ND"
+  NA,       #116, original_PD_OG_health, "ND"
+  0.32,     #117, original_PD_OG_sd_health, 0.32
+  NA,       #118, original_PD_OG_health, "ND"
+  NA        #119, original_PD_OG_health, "ND (Community Periodontal Index (CPI) available only: 0.00 (0.00–0.17))"
+)
