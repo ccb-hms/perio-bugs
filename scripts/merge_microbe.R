@@ -1,6 +1,5 @@
 library(readxl)
 library(dplyr)
-library(rols)
 
 # setup -----
 # Get all sheet names
@@ -84,13 +83,11 @@ process_sarahs_db2 <- function(db) {
 }
 
 # get most specific name from df of differentially abundant species
-most_specific_name_base <- function(df, exclude_species = FALSE) {
-  specific_cols <- c("Genus", "Family", "Order", "Class", "Phylum", "Kingdom", "Domain")
-  
+most_specific_name_base <- function(df) {
+  specific_cols <- c("Species", "Genus", "Family", "Order", "Class", "Phylum", "Kingdom", "Domain")
   apply(df, 1, function(row) {
     g <- row["Genus"]
-    s <- ifelse(exclude_species, NA, row["Species"])
-    
+    s <- row["Species"]
     if(!is.na(g) && g != "" && !is.na(s) && s != "") {
       paste(g, s)
     } else {
@@ -99,78 +96,6 @@ most_specific_name_base <- function(df, exclude_species = FALSE) {
       vals[1]
     }
   })
-}
-
-# determine tree distance between two taxon ids
-taxonomic_tree_distance <- function(taxid1, taxid2) {
-  # Retrieve lineages
-  cl1 <- taxizedb::classification(taxid1, db = "ncbi")[[1]]
-  cl2 <- taxizedb::classification(taxid2, db = "ncbi")[[1]]
-  
-  # annotated taxid not found
-  if (length(cl1) == 1 && is.na(cl1)) return(NA)
-  
-  # Remove nodes with 'no rank'
-  cl1 <- cl1[cl1$rank != "no rank", , drop = FALSE]
-  cl2 <- cl2[cl2$rank != "no rank", , drop = FALSE]
-  
-  # Find where the lineages diverge
-  min_length <- min(nrow(cl1), nrow(cl2))
-  split_index <- 0
-  for (i in seq_len(min_length)) {
-    if (cl1$name[i] != cl2$name[i]) {
-      split_index <- i - 1
-      break
-    }
-    if (i == min_length) split_index <- min_length
-  }
-  
-  steps1 <- nrow(cl1) - split_index
-  steps2 <- nrow(cl2) - split_index
-  distance <- steps1 + steps2
-  mrca <- if (split_index > 0) cl1$name[split_index] else NA
-  
-  return(distance)
-}
-
-# cleanup taxon names
-clean_names <- function(taxon_names) {
-  cleaned_names <- gsub('_ot', 'oral taxon', taxon_names)
-  cleaned_names <- gsub(' sp(\\.)? ', ' sp. ', cleaned_names)
-  cleaned_names <- gsub("\\s*\\[.*?\\]\\s*", " ", cleaned_names)
-  cleaned_names <- gsub("\\s{2,}", " ", cleaned_names)
-  cleaned_names <- trimws(cleaned_names)
-  
-  return(cleaned_names)
-}
-
-# query NCBI Taxon using OLS API
-query_ncbitaxon <- function(taxon_name) {
-  
-  # get top result for
-  res <- rols::OlsSearch(q = taxon_name, ontology = "ncbitaxon", rows = 1)
-  res <- rols::olsSearch(res)
-  res <- as(res, 'data.frame') |> 
-    select(label, obo_id) |> 
-    mutate(query = taxon_name,
-           obo_id = gsub('^NCBITaxon:', '', obo_id))
-  
-  return(res)
-}
-
-# get shortest taxonomic tree distance for ambiguous results
-get_shortest_tdist <- function(taxid, genus) {
-  
-  # taxids
-  taxids <- taxizedb::name2taxid(genus, out_type = 'summary')
-  if (!nrow(taxids)) return(NA)
-  
-  tdists <- sapply(
-    taxids$id,
-    function(taxid2) taxonomic_tree_distance(taxid, taxid2)
-  )
-  
-  return(min(tdists))
 }
 
 # convert list of lists into a single data.frame
@@ -188,6 +113,7 @@ rbind_taxdbs <- function(db) {
   
   do.call(rbind, c(db$db_up, db$db_dn))
 }
+
 
 new_database <- process_database(microbe$`New DATABASE`)
 old_database <- process_database(microbe$`Old DATABASE`)
@@ -226,66 +152,7 @@ original_names <- unlist(lapply(
   function(tbl) most_specific_name_base(tbl)
 ))
 
-most_specific_ranks <- unlist(lapply(
-  c(old_database$db_up, old_database$db_dn), 
-  function(tbl) most_specific_name_base(tbl, exclude_species = TRUE)
-))
-
-queries <- data.frame(
-  genus_species = clean_name(original_names),
-  genus = clean_name(most_specific_ranks)
-)
-
-rols_results <- list()
-
-
-for (i in seq_len(nrow(queries))) {
-  genus <- queries[i, 'genus']
-  genus_species <- queries[i, 'genus_species']
-  
-  cat('Working on:', genus_species, '\n')
-  res_gs <- query_ncbitaxon(genus_species)
-  
-  res_gs$genus_tree_dist <- get_shortest_tdist(res_gs$obo_id, genus)
-  rols_results[[genus_species]] <- res_gs
-}
-
-rols_results_old <- do.call(rbind, rols_results)
-
-
-# Sarah's Work (2) ----
-
-original_names <- unlist(lapply(
-  c(sarahs_db2$db_up, sarahs_db2$db_dn), 
-  function(tbl) most_specific_name_base(tbl)
-))
-
-most_specific_ranks <- unlist(lapply(
-  c(sarahs_db2$db_up, sarahs_db2$db_dn), 
-  function(tbl) most_specific_name_base(tbl, exclude_species = TRUE)
-))
-
-queries <- data.frame(
-  genus_species = clean_name(original_names),
-  genus = clean_name(most_specific_ranks)
-) |> 
-  filter(!is.na(genus_species))
-
-rols_results <- list()
-
-
-for (i in seq_len(nrow(queries))) {
-  genus <- queries[i, 'genus']
-  genus_species <- queries[i, 'genus_species']
-  
-  cat('Working on:', genus_species, '\n')
-  res_gs <- query_ncbitaxon(genus_species)
-  
-  res_gs$genus_tree_dist <- get_shortest_tdist(res_gs$obo_id, genus)
-  rols_results[[genus_species]] <- res_gs
-}
-
-rols_results_sarahs2 <- do.call(rbind, rols_results)
+original_names <- unique(original_names)
 
 # save list for chatGPT
 # writeLines(
@@ -328,9 +195,6 @@ table(in.homd)
 # this gets about 10 additional on first pass (chatGPT gets at least 9 anyway)
 cleaned_names <- gsub('_ot', 'oral taxon', original_names)
 cleaned_names <- gsub(' sp(\\.)? ', ' sp. ', cleaned_names)
-cleaned_names <- gsub("\\s*\\[.*?\\]\\s*", " ", cleaned_names)
-cleaned_names <- gsub("\\s{2,}", " ", cleaned_names)
-cleaned_names <- trimws(cleaned_names)
 
 res <- lapply(cleaned_names, taxizedb::name2taxid, out_type = 'summary')
 
@@ -340,7 +204,7 @@ cleaned_absnt <- sapply(res, function(df) nrow(df) == 0)
 table(cleaned_ambig)
 table(cleaned_absnt)
 
-cleaned_names[cleaned_absnt]
+original_names[cleaned_ambig]
 gpt_names[cleaned_ambig]
 
 # any additional in HOMD? --> No
@@ -476,8 +340,8 @@ clean_names <- function(x) {
   # Remove all [ ... ] and any spaces immediately after them
   x <- gsub("\\[[^]]*\\]\\s*", "", x)
   
-  # Remove space, open parenthesis, anything, close parenthesis at end of string
-  x <- gsub(" \\(.+\\)$", "", x)
+  # Remove space, open parenthesis, numbers, close parenthesis at end of string
+  x <- gsub(" \\([0-9]+\\)$", "", x)
   
   # Remove "V1-2" or "V1 2" (optionally surrounded by whitespace)
   x <- gsub("\\s*V1[ -]2\\s*", " ", x)
@@ -688,6 +552,36 @@ sarahs_db2_df <- sarahs_db2_df |>
   select(-id, taxid)
 
 # Sarah's Work (2): check concordance with annotated taxids ----
+taxonomic_tree_distance <- function(taxid1, taxid2) {
+  # Retrieve lineages
+  cl1 <- taxizedb::classification(taxid1, db = "ncbi")[[1]]
+  cl2 <- taxizedb::classification(taxid2, db = "ncbi")[[1]]
+  
+  # annotated taxid not found
+  if (length(cl1) == 1 && is.na(cl1)) return(NA)
+  
+  # Remove nodes with 'no rank'
+  cl1 <- cl1[cl1$rank != "no rank", , drop = FALSE]
+  cl2 <- cl2[cl2$rank != "no rank", , drop = FALSE]
+  
+  # Find where the lineages diverge
+  min_length <- min(nrow(cl1), nrow(cl2))
+  split_index <- 0
+  for (i in seq_len(min_length)) {
+    if (cl1$name[i] != cl2$name[i]) {
+      split_index <- i - 1
+      break
+    }
+    if (i == min_length) split_index <- min_length
+  }
+  
+  steps1 <- nrow(cl1) - split_index
+  steps2 <- nrow(cl2) - split_index
+  distance <- steps1 + steps2
+  mrca <- if (split_index > 0) cl1$name[split_index] else NA
+  
+  return(distance)
+}
 
 annotated_names <- annotated_names |> 
   select(most_specific_name, `Taxon ID`) |> 
