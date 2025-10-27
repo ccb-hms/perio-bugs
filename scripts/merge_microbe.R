@@ -476,8 +476,8 @@ clean_names <- function(x) {
   # Remove all [ ... ] and any spaces immediately after them
   x <- gsub("\\[[^]]*\\]\\s*", "", x)
   
-  # Remove space, open parenthesis, numbers, close parenthesis at end of string
-  x <- gsub(" \\([0-9]+\\)$", "", x)
+  # Remove space, open parenthesis, anything, close parenthesis at end of string
+  x <- gsub(" \\(.+\\)$", "", x)
   
   # Remove "V1-2" or "V1 2" (optionally surrounded by whitespace)
   x <- gsub("\\s*V1[ -]2\\s*", " ", x)
