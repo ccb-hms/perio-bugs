@@ -175,7 +175,7 @@ run_ncbitaxon_queries <- function(queries) {
     cat('Working on:', most_specific, '\n')
     res <- query_ncbitaxon(most_specific)
     res$next_most_specific <- next_most_specific
-
+    
     rols_results[[i]] <- res
   }
   do.call(rbind, rols_results)
@@ -184,6 +184,7 @@ run_ncbitaxon_queries <- function(queries) {
 
 # get shortest taxonomic tree distance for ambiguous results
 get_shortest_tdist <- function(taxid, genus) {
+  if (grepl('TM7', genus)) genus <- 'Candidatus Saccharimonadota'
   
   # taxids
   taxids <- taxizedb::name2taxid(genus, out_type = 'summary')
@@ -226,30 +227,7 @@ get_rank_vals <- function(results, rank_name = 'domain') {
   return(rank_vals)
 }
 
-# use taxizedb to get exact matches
-add_exact_taxids <- function(results) {
-  
-  taxids_exact <- lapply(
-    results$query, 
-    taxizedb::name2taxid, 
-    out_type = 'summary'
-  )
-  
-  taxids_exact <- do.call(rbind, taxids_exact) |> 
-    distinct()
-  
-  results_updated <- results |>
-    left_join(taxids_exact, by = c("query" = "name"), keep = TRUE) |> 
-    mutate(
-      taxid = coalesce(id, taxid),
-      taxname = coalesce(name, taxname)
-    ) |> 
-    select(-id, -name)
-  
-  return(results_updated)
-}
-
-add_tree_dists <- function(results) {
+add_tree_dist_genus <- function(results) {
   
   tree_dists <- c()
   for (i in seq_len(nrow(results))) {
@@ -259,7 +237,7 @@ add_tree_dists <- function(results) {
     tree_dists <- c(tree_dists, tree_dist)
   }
   
-  results$tree_dist <- tree_dists
+  results$tree_dist_genus <- tree_dists
   return(results)
 }
 
@@ -364,7 +342,12 @@ clean_names_sarah <- function(x) {
   # remove sp. NUM
   x <- gsub("sp\\. \\d+", "", x)
   
+  # some specific edge cases
   x <- gsub("Clostridiates", "Clostridiales", x)
+  x <- gsub("TMZ", "TM7", x)
+  x <- gsub("\\bG 2\\b", "", x)
+  x <- gsub("\\bF2\\b", "", x)
+  x <- gsub("\\bXI\\b", "", x)
   
   # Collapse any runs of multiple spaces to single spaces, then trim
   x <- gsub(" +", " ", x)
@@ -502,7 +485,7 @@ sarahs_db2 <- rbind_taxdbs(sarahs_db2) |>
   mutate(
     species_annot = Species,
     genus_annot = Genus,
-    ) |> 
+  ) |> 
   # expand rows with " and " in Species column
   tidyr::separate_rows(Species, sep = " and ") |> 
   # remove Genus copied to Species column
@@ -532,11 +515,14 @@ sarahs_db2_queries <- sarahs_db2 |>
   tidyr::separate_rows(most_specific, sep = ';')
 
 # query OLS
-sarahs_db2_results <- run_ncbitaxon_queries(
-  sarahs_db2_queries |> 
-    select(most_specific, next_most_specific) |> 
-    distinct()
-)
+sarahs_db2_distinct_queries <- sarahs_db2_queries |> 
+  select(most_specific, next_most_specific) |> 
+  distinct()
+
+sarahs_db2_results <- run_ncbitaxon_queries(sarahs_db2_distinct_queries)
+
+# sarahs_db2_results_backup <- sarahs_db2_results
+sarahs_db2_results <- sarahs_db2_results_backup
 
 # identify queries with wrong oral taxon mapping
 sarahs_db2_results <- sarahs_db2_results |> 
@@ -560,15 +546,11 @@ sarahs_db2_results[wrong_idx, names(rerun_df)] <- rerun_df
 
 # manually check results where Domain isn't Bacteria
 domain <- get_rank_vals(sarahs_db2_results)
-# View(sarahs_db2_results[domain != 'Bacteria', ])
-
-sarahs_db2_results <- filter(
-  sarahs_db2_results,
-  !query %in% c('Human oral sp.')
-)
+sarahs_db2_results[domain != 'Bacteria', ]
 
 
-# fix results where Domain is not correct
+# fix results where Domain is not Bacteria
+# as well as other identified errors
 sarahs_db2_results <- sarahs_db2_results |> 
   mutate(
     taxname_fixed = case_match(
@@ -577,9 +559,15 @@ sarahs_db2_results <- sarahs_db2_results |>
       'Streptococcus sanguis' ~ 'Streptococcus sanguinis',
       '- SR1 AF125207' ~ 'Candidatus Absconditibacteriota',
       'SR1 AF125207' ~ 'Candidatus Absconditibacteriota',
+      'sp. ot131' ~ 'Acidaminococcaceae',
+      'sp. ot274' ~ 'Bacteroidetes oral taxon 274',
+      'Unclassified FX006 -' ~ 'Comamonadaceae',
+      'Human oral sp.' ~ 'human oral bacterium C20',
+      'Uncultured human sp.' ~ 'uncultured human oral bacterium A27',
+      'TM7 sp. oral taxon 238' ~ 'unclassified Candidatus Saccharimonadota',
+      'TM7 401H12' ~ 'unclassified Candidatus Saccharimonadota',
     )
   )
-
 
 # extract them and run the queries
 rerun_df <- sarahs_db2_results |> 
@@ -593,38 +581,71 @@ fixed_idx <- which(!is.na(sarahs_db2_results$taxname_fixed))
 sarahs_db2_results[fixed_idx, names(rerun_df)] <- rerun_df
 
 
-# get tree distances
-sarahs_db2_results <- add_tree_dists(sarahs_db2_results)
+get_exact_taxid <- function(taxname) {
+  tbl <- taxizedb::name2taxid(taxname, out_type = 'summary')
+  if (nrow(tbl) != 1) return (NA)
+  tbl$id
+}
+add_exact_taxids <- function(results) {
+  # exact taxids for query
+  results$taxid_exact <- taxizedb::name2taxid(results$query)
+  
+  # exact taxids for genus
+  genus <- results$next_most_specific
+  genus[grepl('TM7', genus)] <- 'Candidatus Saccharimonadota'
+  
+  results$taxid_genus_exact <- sapply(genus, get_exact_taxid, USE.NAMES = FALSE)
+  return(results)
+}
 
-View(sarahs_db2_results)
+# add exact taxizedb results
+sarahs_db2_results <- add_exact_taxids(sarahs_db2_results)
 
-# TODO: cases where large tree dist
+# add distances between taxids and genus
+sarahs_db2_results <- add_tree_dist_genus(sarahs_db2_results)
+
+table(sarahs_db2_results$tree_dist_genus, useNA = 'always')
+
+# re-run without oral taxon when large genus tree dist
 rerun_df <- sarahs_db2_results |> 
-  filter(!is.na(taxname_ot)) |> 
-  filter(!taxname_ot_wrong) |> 
-  mutate(most_specific = str_trim(str_remove(query, "oral taxon \\d+"))) |> 
+  filter(is.na(taxid_exact)) |> 
+  filter(tree_dist_genus >= 3) |> 
+  mutate(most_specific = str_trim(str_remove(query, "oral taxon .+?$"))) |> 
+  mutate(most_specific = str_trim(str_remove(most_specific, "strain .+?$"))) |> 
   select(most_specific, next_most_specific) |> 
   run_ncbitaxon_queries()
 
+fixed_idx <- which(
+  is.na(sarahs_db2_results$taxid_exact) & 
+    sarahs_db2_results$tree_dist_genus >= 3)
+
+sarahs_db2_results[fixed_idx, names(rerun_df)] <- rerun_df
+
+# add exact taxizedb results
+sarahs_db2_results <- add_exact_taxids(sarahs_db2_results)
+
+# prefer exact taxid and add distances to genus
 sarahs_db2_results |> 
-  filter(!is.na(taxname_ot)) |> 
-  filter(!taxname_ot_wrong) |> 
-  select(query, next_most_specific, taxname, taxid, tree_dist) |> 
-  View()
+  mutate(taxid = coalesce(taxid_exact, taxid)) |>
+  add_tree_dist_genus()
 
-sarahs_db2_results <- sarahs_db2_results |> 
-  rename(most_specific = query) |> 
-  select(most_specific, taxid, taxname, tree_dist) |> 
-  distinct()
+table(sarahs_db2_results$tree_dist_genus, useNA = 'always')
 
-blah <- sarahs_db2_queries |> 
+# check concordance with collaborated annotated
+sarahs_db2_results$most_specific <- 
+  sarahs_db2_distinct_queries$most_specific
+
+sarahs_db2_queries <- sarahs_db2_queries |> 
   left_join(sarahs_db2_results) |> 
-  filter(!is.na(taxid_annot)) |>
   rowwise() |> 
-  mutate(annot_tree_dist = taxonomic_tree_distance(taxid, taxid_annot))
+  mutate(
+    annot_tree_dist = ifelse(
+      !is.na(taxid_annot),
+      taxonomic_tree_distance(taxid, taxid_annot),
+      NA
+    ))
 
-blah |> 
-  filter(taxid != taxid_annot) |> 
+sarahs_db2_queries |> 
   pull(annot_tree_dist) |> 
-  length()
+  table(useNA = 'always')
 
