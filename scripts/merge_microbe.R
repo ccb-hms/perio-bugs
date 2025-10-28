@@ -522,7 +522,7 @@ gem_res <- read.csv('output/gemini_names_sarah2.csv', stringsAsFactors = FALSE) 
   mutate(original_name = clean_names(original_name)) |> 
   filter(original_name %in% needs_fixing) |> 
   distinct()
-  
+
 
 gem_names <- gem_res$ncbi_name
 
