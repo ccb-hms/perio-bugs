@@ -327,6 +327,22 @@ cleaned_df <- tibble::tibble(
   "Group 0 suppuration SD" =  supp_sd_health,
   "Group 1 suppuration percent" =  supp_percent_perio,
   "Group 1 suppuration SD" =  supp_sd_perio,
+  
+  # only pocket depth for periodontitis group
+  "Group 1 pocket depth mean (mm)" =  pd_mean_perio,
+  "Group 1 pocket depth SD" =  pd_sd_perio,
+  "Group 0 pocket depth mean (mm)" =  pd_mean_health,
+  "Group 0 pocket depth SD" =  pd_sd_health,
+  
+  "Group 0 clinical attachment loss (mm)" =  cal_mean_health,
+  "Group 0 clinical attachment loss SD" =  cal_sd_health,
+  "Group 1 clinical attachment loss (mm)" =  cal_mean_perio,
+  "Group 1 clinical attachment loss SD" =  cal_sd_perio,
+  
+  "Group 0 plaque" =  plaque_mean_health,
+  "Group 0 plaque SD" =  plaque_sd_health,
+  "Group 1 plaque" =  plaque_mean_perio,
+  "Group 1 plaque SD" =  plaque_sd_perio,
 )
 
 # load in microbe data ----
