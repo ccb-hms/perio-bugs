@@ -3193,7 +3193,7 @@ supp_sd_perio = c(
 )
 
 # PD (periodontitis) and PD SD (periodontitis) ----
-mean_PD = c(
+pd_mean_perio = c(
   NA,      # 1, original_PD, "NA"
   38.5,    # 2, original_PD, "38.5 ± 17.4"
   4.36,    # 3, original_PD, "4.3600000000000003"
@@ -3315,7 +3315,7 @@ mean_PD = c(
   NA       # 119, original_PD, "ND (Community Periodontal Index (CPI) available only: 2.67 (2.50–3.00))"
 )
 
-sd_PD = c(
+pd_sd_perio = c(
   NA,      # 1, original_PD_SD, NA
   17.4,    # 2, original_PD, "38.5 ± 17.4"
   0.88,    # 3, original_PD_SD, "0.88"
@@ -3437,8 +3437,255 @@ sd_PD = c(
   NA       # 119, original_PD_SD, NA
 )
 
+# PD OG related columns from periodontal health group ----
+# [39] "PD OG (periodontal health)"                                        
+# [40] "PD (periodontal health)"                                           
+# [41] "PD SD (periodontal health)" 
+pd_mean_health = c(
+  NA,       # 1, original_PD_OG_health, "NA"
+  0.1,      # 2, original_PD_OG_health, "0.1± 0.4"
+  2.28,     # 3, original_PD_OG_health, "2.28±0.59 (full mouth)"
+  1.8,      # 4, original_PD_OG_health, "1.8 ± 0.04 (full mouth)"
+  2.3,      # 5, original_PD_OG_health, "2.3 ± 0.5 (full mouth)"
+  2.4,      # 6, original_PD_OG_health, "2.4 mm, ranging from 1.0 to 3.0 mm (full mouth)"
+  2.16,     # 7, original_PD_OG_health, "2.16 ± 0.2 (full mouth)"
+  2.7,      # 8, original_PD_OG_health, "2.7±0.5 (full mouth)"
+  1.9,      # 9, original_PD_OG_health, "1.9 ± 0.04 (full mouth)"
+  2.1,      #10, original_PD_OG_health, "2,1 ± 0,5 mm (full mouth)"
+  2.6,      #11, original_PD_OG_health, "2.6 ± 0.09mm (full mouth)"
+  2.1,      #12, original_PD_OG_health, "2.1 ± 0.5 mm (full mouth)"
+  2.0,      #13, original_PD_OG_health, "2.0 ± 0.07 (full mouth)"
+  1.8,      #14, original_PD_OG_health, "1.8 ± 0.4 (full mouth)"
+  1.8,      #15, original_PD_OG_health, "1.8 ± 0.2 (full mouth)"
+  2.1,      #16, original_PD_OG_health, "2.1"
+  2.7,      #17, original_PD_OG_health, "2.7"
+  2.2,      #18, original_PD_OG_health, "2.2000000000000002"
+  2.6,      #19, original_PD_OG_health, "2.6"
+  2.2,      #20, original_PD_OG_health, "2.2000000000000002"
+  1.7,      #21, original_PD_OG_health, "1.7 ± 0.6 (2.0) (Mean ± SD (Median);..."
+  NA,       #22, original_PD_OG_health, "ND (<4 mm: 99.1% / 4–6 mm: 0.9% / >6 mm: 0%..."
+  1.9,      #23, original_PD_OG_health, "1.9 ± 0.2 mm full-mouth"
+  1.8,      #24, original_PD_OG_health, "1.8±0.2 (measured at six sites per tooth... "
+  1.8,      #25, original_PD_OG_health, "1.8 ± 0.4 (measured at six sites per tooth... "
+  NA,       #26, original_PD_OG_health, "NA (sites with PD ≥7 mm (%)), 0.22 ± 0.2 ((sites with PD 4 to 6 mm (%)), (the same as reported by Lages et al., 2012..."
+  1.92,     #27, original_PD_OG_health, "1.92 ± 0.23 (measured at 6 sites per tooth (MV, V, DV, ML, L, DL), excluding the 3rd molars)"
+  1.9,      #28, original_PD_OG_health, "1.9 ± 0.5 (measured at 6 sites per tooth)"
+  1.5,      #29, original_PD_OG_health, "1.5 ± 0.3 (full mouth)"
+  1.96,     #30, original_PD_OG_health, "1.96 ± 0.6 (measured at 6 sites per tooth... "
+  NA,       #31, original_PD_OG_health, "≤2 (PD in > 30% of sites)"
+  NA,       #32, original_PD_OG_health, "ND"
+  1.5,      #33, original_PD_OG_health, "1.5 ± 0.1"
+  0.7,      #34, original_PD_OG_health, "0.7 (sampled sites)"
+  1.75,     #35, original_PD_OG_health, "1.75 (0.75) ( sampled sites)"
+  3,        #36, original_PD_OG_health, "3"
+  1.9,      #37, original_PD_OG_health, "1.9"
+  1.6,      #38, original_PD_OG_health, "1.6 ± 0.4 (full mouth)"
+  NA,       #39, original_PD_OG_health, "2.76 ± 0.73, 2.47 ± 0.59, 2.43 ± 0.62 (individual values) (at six sites per tooth)"
+  NA,       #40, original_PD_OG_health, "ND\r\nrecommendations (1997)"
+  NA,       #41, original_PD_OG_health, "ND"
+  NA,       #42, original_PD_OG_health, "range: 1-2* (2,2,1.5,1,1) ..."
+  1.92,     #43, original_PD_OG_health, "1,92 ± 0,51 (full mputh)"
+  1.8,      #44, original_PD_OG_health, "1,8 ± 0,4 (full mouth)"
+  2.4,      #45, original_PD_OG_health, "2.4 ± 0.4 (full mouth)"
+  NA,       #46, original_PD_OG_health, "1.5 ± 0.3, sampled sites: 2.1 ± 0.4, measured at 6 sites... " (multi)
+  1.5,      #47, original_PD_OG_health, "1.5"
+  2.6,      #48, original_PD_OG_health, "2.6"
+  3.6,      #49, original_PD_OG_health, "3.6 ± 0.5 mm (full mouth)"
+  3.6,      #50, original_PD_OG_health, "3.6 ± 0.8 (full mouth)"
+  3.7,      #51, original_PD_OG_health, "3.7 ± 0.9 (full mouth)"
+  1.69,     #52, original_PD_OG_health, "1.69±0.28 (full mouth)"
+  NA,       #53, original_PD_OG_health, "ND (range: 2-3 mm)"
+  NA,       #54, original_PD_OG_health, "44257"
+  1.82,     #55, original_PD_OG_health, "1.82 ± 0.24 (full mouth)"
+  1.54,     #56, original_PD_OG_health, "1.54"
+  NA,       #57, original_PD_OG_health, "ND"
+  NA,       #58, original_PD_OG_health, "range: 0* (0,0,0,0,0,0,0,0,0,0) and 0* (0,0,0,0,0,0,0,0,0,0)..."
+  0,        #59, original_PD_OG_health, "0"
+  2.42,     #60, original_PD_OG_health, "2.42±0.32"
+  1.83,     #61, original_PD_OG_health, "1.83 ± 0.68 (measured at 4 sites per tooth ...)"
+  NA,       #62, original_PD_OG_health, "ND"
+  NA,       #63, original_PD_OG_health, "ND"
+  NA,       #64, original_PD_OG_health, "NA"
+  2.4,      #65, original_PD_OG_health, "2,4 ± 0,5 mm (full mouth)"
+  NA,       #66, original_PD_OG_health, "ND"
+  0.2,      #67, original_PD_OG_health, "0.2±0.01 mm (full mouth)"
+  2,        #68, original_PD_OG_health, "2 ± 0.03 (full mouth)"
+  2,        #69, original_PD_OG_health, "2 ± 0.03 (full mouth)"
+  1.8,      #70, original_PD_OG_health, "1,8 mm (full mouth)"
+  NA,       #71, original_PD_OG_health, "ND"
+  NA,       #72, original_PD_OG_health, "NA"
+  3.1,      #73, original_PD_OG_health, "3.1"
+  NA,       #74, original_PD_OG_health, "ND"
+  NA,       #75, original_PD_OG_health, "NAA"
+  2.02,     #76, original_PD_OG_health, "2.02"
+  1.03,     #77, original_PD_OG_health, "1.03 ± 0.19"
+  2.08,     #78, original_PD_OG_health, "2.08 ± 0.30 (measured at 6 sites per tooth, full mouth), 2.35 ± 0.33 (measured at 6 sites per tooth, sampled sites)" # take first in multi-value with comma, see rule note
+  NA,       #79, original_PD_OG_health, "ND"
+  1.94,     #80, original_PD_OG_health, "1.94 ± 0.30( full mouth)"
+  2.0,      #81, original_PD_OG_health, "2.0 ± 0.2 (full mouth)"
+  NA,       #82, original_PD_OG_health, "NA"
+  NA,       #83, original_PD_OG_health, "ND"
+  NA,       #84, original_PD_OG_health, "ND"
+  NA,       #85, original_PD_OG_health, "ND"
+  NA,       #86, original_PD_OG_health, "NA"
+  NA,       #87, original_PD_OG_health, "ND"
+  1.97,     #88, original_PD_OG_health, "1.97 ± 0.31 (measured at six sites...)"
+  NA,       #89, original_PD_OG_health, "NA"
+  2.17,     #90, original_PD_OG_health, "2.17 (0.33) (full mouth)"
+  NA,       #91, original_PD_OG_health, "ND"
+  2.7,      #92, original_PD_OG_health, "2.7"
+  3.8,      #93, original_PD_OG_health, "3.8"
+  NA,       #94, original_PD_OG_health, "NA"
+  2.15,     #95, original_PD_OG_health, "2.15"
+  NA,       #96, original_PD_OG_health, "not determined"
+  2.81,     #97, original_PD_OG_health, "2.81"
+  NA,       #98, original_PD_OG_health, "ND"
+  1.94,     #99, original_PD_OG_health, "1.94 ± 0.30 (full mouth)"
+  1.5,      #100, original_PD_OG_health, "1.5 (full mouth)"
+  NA,       #101, original_PD_OG_health, "ND"
+  2.0,      #102, original_PD_OG_health, "2.0 ± 0.2 (full mouth)"
+  1.49,     #103, original_PD_OG_health, "1.49 (full mouth)"
+  NA,       #104, original_PD_OG_health, "ND"
+  1.98,     #105, original_PD_OG_health, "1.98 ± 0.03 (full mouth)"
+  NA,       #106, original_PD_OG_health, "ND"
+  2.7,      #107, original_PD_OG_health, "2.7 ± 0.3 (sampled sites)"
+  2.3,      #108, original_PD_OG_health, "2.3 ± 0.6 (full mouth)"
+  2.3,      #109, original_PD_OG_health, "2.3±0.3 (full mouth)"
+  2.0,      #110, original_PD_OG_health, "2.0 (full mouth)"
+  2.7,      #111, original_PD_OG_health, "2.7 (full mouth)"
+  3.1,      #112, original_PD_OG_health, "3.1 ± 0.42 (subgingival sampling sites; ..."
+  3.2,      #113, original_PD_OG_health, "3.2 ± 1.7"
+  NA,       #114, original_PD_OG_health, "≤3 mm (sampled sites)"
+  NA,       #115, original_PD_OG_health, "ND"
+  NA,       #116, original_PD_OG_health, "ND"
+  2.26,     #117, original_PD_OG_health, "2.2599999999999998"
+  NA,       #118, original_PD_OG_health, "ND"
+  NA        #119, original_PD_OG_health, "ND (Community Periodontal Index (CPI) available only: 0.00 (0.00–0.17))"
+)
+
+pd_sd_health = c(
+  NA,       # 1, original_PD_OG_sd_health, "NA"
+  0.4,      # 2, original_PD_OG_sd_health, "0.1± 0.4"
+  0.59,     # 3, original_PD_OG_health, "2.28±0.59 (full mouth)"
+  0.04,     # 4, original_PD_OG_health, "1.8 ± 0.04 (full mouth)"
+  0.5,      # 5, original_PD_OG_sd_health, 0.5
+  NA,       # 6, original_PD_OG_health, "2.4 mm, ranging from 1.0 to 3.0 mm (full mouth)"
+  0.2,      # 7, original_PD_OG_sd_health, 0.2
+  0.5,      # 8, original_PD_OG_sd_health, 0.5
+  0.04,     # 9, original_PD_OG_sd_health, 0.04
+  0.5,      #10, original_PD_OG_sd_health, 0.5
+  0.09,     #11, original_PD_OG_sd_health, 0.09
+  0.5,      #12, original_PD_OG_sd_health, 0.5
+  0.07,     #13, original_PD_OG_sd_health, 7.0000000000000007E-2
+  0.4,      #14, original_PD_OG_sd_health, 0.4
+  0.2,      #15, original_PD_OG_sd_health, 0.2
+  0.21,     #16, original_PD_OG_sd_health, 0.21
+  0.5,      #17, original_PD_OG_sd_health, 0.5
+  0.25,     #18, original_PD_OG_sd_health, 0.25
+  0.09,     #19, original_PD_OG_sd_health, 0.09
+  0.6,      #20, original_PD_OG_sd_health, 0.6
+  0.6,      #21, original_PD_OG_sd_health, 0.6
+  NA,       #22, original_PD_OG_health, "ND (<4 mm: 99.1% / 4–6 mm: 0.9% / >6 mm: 0%..."
+  0.2,      #23, original_PD_OG_sd_health, 0.2
+  0.2,      #24, original_PD_OG_sd_health, 0.2
+  0.4,      #25, original_PD_OG_sd_health, 0.4
+  NA,       #26, original_PD_OG_health, "NA (sites with PD ≥7 mm (%))..."
+  0.23,     #27, original_PD_OG_sd_health, 0.23
+  0.5,      #28, original_PD_OG_sd_health, 0.5
+  0.3,      #29, original_PD_OG_sd_health, 0.3
+  0.6,      #30, original_PD_OG_sd_health, 0.6
+  NA,       #31, original_PD_OG_health, "≤2 (PD in > 30% of sites)"
+  NA,       #32, original_PD_OG_health, "ND"
+  0.1,      #33, original_PD_OG_sd_health, 0.1
+  NA,       #34, original_PD_OG_health, "0.7 (sampled sites)"
+  NA,       #35, original_PD_OG_health, "1.75 (0.75) ( sampled sites)"
+  0.1,      #36, original_PD_OG_sd_health, 0.1
+  0.6,      #37, original_PD_OG_sd_health, 0.6
+  0.4,      #38, original_PD_OG_sd_health, 0.4
+  NA,       #39, original_PD_OG_health, "2.76 ± 0.73, 2.47 ± 0.59, 2.43 ± 0.62..."
+  NA,       #40, original_PD_OG_health, "ND\r\nrecommendations (1997)"
+  NA,       #41, original_PD_OG_health, "ND"
+  NA,       #42, original_PD_OG_health, "range: 1-2* (2,2,1.5,1,1)..."
+  0.51,     #43, original_PD_OG_sd_health, 0.51
+  0.4,      #44, original_PD_OG_sd_health, 0.4
+  0.4,      #45, original_PD_OG_sd_health, 0.4
+  NA,       #46, original_PD_OG_health, "1.5 ± 0.3, sampled sites: 2.1 ± 0.4..." (multi)
+  0.2,      #47, original_PD_OG_sd_health, 0.2
+  0.8,      #48, original_PD_OG_sd_health, 0.8
+  0.5,      #49, original_PD_OG_sd_health, 0.5
+  0.8,      #50, original_PD_OG_sd_health, 0.8
+  0.9,      #51, original_PD_OG_sd_health, 0.9
+  0.28,     #52, original_PD_OG_sd_health, 0.28000000000000003
+  NA,       #53, original_PD_OG_health, "ND (range: 2-3 mm)"
+  NA,       #54, original_PD_OG_health, "44257"
+  0.24,     #55, original_PD_OG_sd_health, 0.24
+  0.2,      #56, original_PD_OG_sd_health, 0.2
+  NA,       #57, original_PD_OG_health, "ND"
+  NA,       #58, original_PD_OG_health, "range: 0* (0,0,0,0,0,0,0,0,0,0)..."
+  0,        #59, original_PD_OG_sd_health, 0
+  0.32,     #60, original_PD_OG_sd_health, 0.32
+  0.68,     #61, original_PD_OG_sd_health, 0.68
+  NA,       #62, original_PD_OG_health, "ND"
+  NA,       #63, original_PD_OG_health, "ND"
+  NA,       #64, original_PD_OG_health, "NA"
+  0.5,      #65, original_PD_OG_sd_health, 0.5
+  NA,       #66, original_PD_OG_health, "ND"
+  0.01,     #67, original_PD_OG_sd_health, 0.01
+  0.03,     #68, original_PD_OG_sd_health, 0.03
+  0.03,     #69, original_PD_OG_sd_health, 0.03
+  NA,       #70, original_PD_OG_health, "1,8 mm (full mouth)"
+  NA,       #71, original_PD_OG_health, "ND"
+  NA,       #72, original_PD_OG_health, "NA"
+  0.43,     #73, original_PD_OG_sd_health, 0.43
+  NA,       #74, original_PD_OG_health, "ND"
+  NA,       #75, original_PD_OG_health, "NAA"
+  0.513,    #76, original_PD_OG_sd_health, 0.51300000000000001
+  0.19,     #77, original_PD_OG_sd_health, 0.19
+  0.3,      #78, original_PD_OG_health, "2.08 ± 0.30 (measured at 6 sites per tooth, full mouth), 2.35 ± 0.33 (measured at 6 sites per tooth, sampled sites)" # use first pair, see note
+  NA,       #79, original_PD_OG_health, "ND"
+  0.3,      #80, original_PD_OG_sd_health, 0.3
+  0.2,      #81, original_PD_OG_sd_health, 0.2
+  NA,       #82, original_PD_OG_health, "NA"
+  NA,       #83, original_PD_OG_health, "ND"
+  NA,       #84, original_PD_OG_health, "ND"
+  NA,       #85, original_PD_OG_health, "ND"
+  NA,       #86, original_PD_OG_health, "NA"
+  NA,       #87, original_PD_OG_health, "ND"
+  0.31,     #88, original_PD_OG_sd_health, 0.31
+  NA,       #89, original_PD_OG_health, "NA"
+  0.33,     #90, original_PD_OG_health, "2.17 (0.33) (full mouth)"
+  NA,       #91, original_PD_OG_health, "ND"
+  0.41,     #92, original_PD_OG_sd_health, 0.41
+  0.8,      #93, original_PD_OG_sd_health, 0.8
+  NA,       #94, original_PD_OG_health, "NA"
+  0.2,      #95, original_PD_OG_sd_health, 0.2
+  NA,       #96, original_PD_OG_health, "not determined"
+  0.5,      #97, original_PD_OG_sd_health, 0.5
+  NA,       #98, original_PD_OG_health, "ND"
+  NA,       #99, original_PD_OG_health, "1.94 ± 0.30 (full mouth)"
+  NA,       #100, original_PD_OG_health, "1.5 (full mouth)"
+  NA,       #101, original_PD_OG_health, "ND"
+  0.2,      #102, original_PD_OG_sd_health, 0.2
+  NA,       #103, original_PD_OG_health, "1.49 (full mouth)"
+  NA,       #104, original_PD_OG_health, "ND"
+  0.03,     #105, original_PD_OG_sd_health, 0.03
+  NA,       #106, original_PD_OG_health, "ND"
+  0.3,      #107, original_PD_OG_sd_health, 0.3
+  0.6,      #108, original_PD_OG_sd_health, 0.6
+  0.3,      #109, original_PD_OG_sd_health, 0.3
+  NA,       #110, original_PD_OG_health, "2.0 (full mouth)"
+  NA,       #111, original_PD_OG_health, "2.7 (full mouth)"
+  0.42,     #112, original_PD_OG_sd_health, 0.42
+  1.7,      #113, original_PD_OG_sd_health, 1.7
+  NA,       #114, original_PD_OG_health, "≤3 mm (sampled sites)"
+  NA,       #115, original_PD_OG_health, "ND"
+  NA,       #116, original_PD_OG_health, "ND"
+  0.32,     #117, original_PD_OG_sd_health, 0.32
+  NA,       #118, original_PD_OG_health, "ND"
+  NA        #119, original_PD_OG_health, "ND (Community Periodontal Index (CPI) available only: 0.00 (0.00–0.17))"
+)
 # Clinical attachment loss/level (mm; mean+-SD) (periodontitis) ----
-mean_CAL_PD = c(
+cal_mean_perio = c(
   NA,                   # 1, original_clinical_attachment_loss_mean_PD: "not reported"
   39.5,                 # 2, original_clinical_attachment_loss_mean_PD: "39.5± 16.3"
   4.41,                 # 3, original_clinical_attachment_loss_mean_PD: "4.41±1.27"
@@ -3560,7 +3807,7 @@ mean_CAL_PD = c(
   0.92                  # 119, original_clinical_attachment_loss_mean_PD: "0.92 (0.54–1.79) (median, interquartile range)"
 )
 
-sd_CAL_PD = c(
+cal_sd_perio = c(
   NA,                   # 1, original_clinical_attachment_loss_sd_PD: NA, but sd = 16.3 from mean column ("39.5± 16.3")
   16.3,                 # 2, original_clinical_attachment_loss_sd_PD: NA, but sd = 16.3 from mean column ("39.5± 16.3")
   1.27,                 # 3, original_clinical_attachment_loss_sd_PD: NA, from mean column ("4.41±1.27")
@@ -3683,7 +3930,7 @@ sd_CAL_PD = c(
 )
 
 # Clinical attachment loss/level (mm; mean+-SD) (healthy) ----
-mean_CAL_health = c(
+cal_mean_health = c(
   NA,        # 1, original_clinical_attachment_loss_mean_health, "NA"
   0.1,       # 2, original_clinical_attachment_loss_mean_health, "0.1± 0.6"
   2.39,      # 3, original_clinical_attachment_loss_mean_health, "2.39±0.35"
@@ -3805,7 +4052,7 @@ mean_CAL_health = c(
   NA         #119, original_clinical_attachment_loss_mean_health, "0.00 (0.00–0.17) (median, interquartile range)"
 )
 
-sd_CAL_health = c(
+cal_sd_health = c(
   NA,       # 1, original_clinical_attachment_loss_sd_health, NA
   0.6,      # 2, original_clinical_attachment_loss_mean_health, "0.1± 0.6"
   0.35,     # 3, original_clinical_attachment_loss_mean_health, "2.39±0.35"
@@ -3928,7 +4175,7 @@ sd_CAL_health = c(
 )
 
 # Plaque (mean +/SD) (periodontitis) ----
-plaque_mean_PD = c(
+plaque_mean_perio = c(
   NA,      # 1, original_plaque_mean_PD, "not reported"
   NA,      # 2, original_plaque_mean_PD, NA
   48.79,   # 3, original_plaque_mean_PD, "48.79±11.91"
@@ -4050,7 +4297,7 @@ plaque_mean_PD = c(
   1.71     #119, original_plaque_mean_PD, "1.71 (1.52–1.96) (PI, recorded on index teeth, median, interquartile range)"
 )
 
-plaque_sd_PD = c(
+plaque_sd_perio = c(
   NA,       # 1, original_plaque_sd_PD, NA
   NA,       # 2, original_plaque_sd_PD, NA
   11.91,    # 3, original_plaque_mean_PD, "48.79±11.91"
@@ -4418,250 +4665,3 @@ plaque_sd_health = c(
   NA       #119, original_plaque_mean_health, 0.25 (0.17–0.49) (PI, ... median, interquartile range) (range, not SD)
 )
 
-# PD OG related columns from periodontal health group ----
-# [39] "PD OG (periodontal health)"                                        
-# [40] "PD (periodontal health)"                                           
-# [41] "PD SD (periodontal health)" 
-PD_OG_mean_health = c(
-  NA,       # 1, original_PD_OG_health, "NA"
-  0.1,      # 2, original_PD_OG_health, "0.1± 0.4"
-  2.28,     # 3, original_PD_OG_health, "2.28±0.59 (full mouth)"
-  1.8,      # 4, original_PD_OG_health, "1.8 ± 0.04 (full mouth)"
-  2.3,      # 5, original_PD_OG_health, "2.3 ± 0.5 (full mouth)"
-  2.4,      # 6, original_PD_OG_health, "2.4 mm, ranging from 1.0 to 3.0 mm (full mouth)"
-  2.16,     # 7, original_PD_OG_health, "2.16 ± 0.2 (full mouth)"
-  2.7,      # 8, original_PD_OG_health, "2.7±0.5 (full mouth)"
-  1.9,      # 9, original_PD_OG_health, "1.9 ± 0.04 (full mouth)"
-  2.1,      #10, original_PD_OG_health, "2,1 ± 0,5 mm (full mouth)"
-  2.6,      #11, original_PD_OG_health, "2.6 ± 0.09mm (full mouth)"
-  2.1,      #12, original_PD_OG_health, "2.1 ± 0.5 mm (full mouth)"
-  2.0,      #13, original_PD_OG_health, "2.0 ± 0.07 (full mouth)"
-  1.8,      #14, original_PD_OG_health, "1.8 ± 0.4 (full mouth)"
-  1.8,      #15, original_PD_OG_health, "1.8 ± 0.2 (full mouth)"
-  2.1,      #16, original_PD_OG_health, "2.1"
-  2.7,      #17, original_PD_OG_health, "2.7"
-  2.2,      #18, original_PD_OG_health, "2.2000000000000002"
-  2.6,      #19, original_PD_OG_health, "2.6"
-  2.2,      #20, original_PD_OG_health, "2.2000000000000002"
-  1.7,      #21, original_PD_OG_health, "1.7 ± 0.6 (2.0) (Mean ± SD (Median);..."
-  NA,       #22, original_PD_OG_health, "ND (<4 mm: 99.1% / 4–6 mm: 0.9% / >6 mm: 0%..."
-  1.9,      #23, original_PD_OG_health, "1.9 ± 0.2 mm full-mouth"
-  1.8,      #24, original_PD_OG_health, "1.8±0.2 (measured at six sites per tooth... "
-  1.8,      #25, original_PD_OG_health, "1.8 ± 0.4 (measured at six sites per tooth... "
-  NA,       #26, original_PD_OG_health, "NA (sites with PD ≥7 mm (%)), 0.22 ± 0.2 ((sites with PD 4 to 6 mm (%)), (the same as reported by Lages et al., 2012..."
-  1.92,     #27, original_PD_OG_health, "1.92 ± 0.23 (measured at 6 sites per tooth (MV, V, DV, ML, L, DL), excluding the 3rd molars)"
-  1.9,      #28, original_PD_OG_health, "1.9 ± 0.5 (measured at 6 sites per tooth)"
-  1.5,      #29, original_PD_OG_health, "1.5 ± 0.3 (full mouth)"
-  1.96,     #30, original_PD_OG_health, "1.96 ± 0.6 (measured at 6 sites per tooth... "
-  NA,       #31, original_PD_OG_health, "≤2 (PD in > 30% of sites)"
-  NA,       #32, original_PD_OG_health, "ND"
-  1.5,      #33, original_PD_OG_health, "1.5 ± 0.1"
-  0.7,      #34, original_PD_OG_health, "0.7 (sampled sites)"
-  1.75,     #35, original_PD_OG_health, "1.75 (0.75) ( sampled sites)"
-  3,        #36, original_PD_OG_health, "3"
-  1.9,      #37, original_PD_OG_health, "1.9"
-  1.6,      #38, original_PD_OG_health, "1.6 ± 0.4 (full mouth)"
-  NA,       #39, original_PD_OG_health, "2.76 ± 0.73, 2.47 ± 0.59, 2.43 ± 0.62 (individual values) (at six sites per tooth)"
-  NA,       #40, original_PD_OG_health, "ND\r\nrecommendations (1997)"
-  NA,       #41, original_PD_OG_health, "ND"
-  NA,       #42, original_PD_OG_health, "range: 1-2* (2,2,1.5,1,1) ..."
-  1.92,     #43, original_PD_OG_health, "1,92 ± 0,51 (full mputh)"
-  1.8,      #44, original_PD_OG_health, "1,8 ± 0,4 (full mouth)"
-  2.4,      #45, original_PD_OG_health, "2.4 ± 0.4 (full mouth)"
-  NA,       #46, original_PD_OG_health, "1.5 ± 0.3, sampled sites: 2.1 ± 0.4, measured at 6 sites... " (multi)
-  1.5,      #47, original_PD_OG_health, "1.5"
-  2.6,      #48, original_PD_OG_health, "2.6"
-  3.6,      #49, original_PD_OG_health, "3.6 ± 0.5 mm (full mouth)"
-  3.6,      #50, original_PD_OG_health, "3.6 ± 0.8 (full mouth)"
-  3.7,      #51, original_PD_OG_health, "3.7 ± 0.9 (full mouth)"
-  1.69,     #52, original_PD_OG_health, "1.69±0.28 (full mouth)"
-  NA,       #53, original_PD_OG_health, "ND (range: 2-3 mm)"
-  NA,       #54, original_PD_OG_health, "44257"
-  1.82,     #55, original_PD_OG_health, "1.82 ± 0.24 (full mouth)"
-  1.54,     #56, original_PD_OG_health, "1.54"
-  NA,       #57, original_PD_OG_health, "ND"
-  NA,       #58, original_PD_OG_health, "range: 0* (0,0,0,0,0,0,0,0,0,0) and 0* (0,0,0,0,0,0,0,0,0,0)..."
-  0,        #59, original_PD_OG_health, "0"
-  2.42,     #60, original_PD_OG_health, "2.42±0.32"
-  1.83,     #61, original_PD_OG_health, "1.83 ± 0.68 (measured at 4 sites per tooth ...)"
-  NA,       #62, original_PD_OG_health, "ND"
-  NA,       #63, original_PD_OG_health, "ND"
-  NA,       #64, original_PD_OG_health, "NA"
-  2.4,      #65, original_PD_OG_health, "2,4 ± 0,5 mm (full mouth)"
-  NA,       #66, original_PD_OG_health, "ND"
-  0.2,      #67, original_PD_OG_health, "0.2±0.01 mm (full mouth)"
-  2,        #68, original_PD_OG_health, "2 ± 0.03 (full mouth)"
-  2,        #69, original_PD_OG_health, "2 ± 0.03 (full mouth)"
-  1.8,      #70, original_PD_OG_health, "1,8 mm (full mouth)"
-  NA,       #71, original_PD_OG_health, "ND"
-  NA,       #72, original_PD_OG_health, "NA"
-  3.1,      #73, original_PD_OG_health, "3.1"
-  NA,       #74, original_PD_OG_health, "ND"
-  NA,       #75, original_PD_OG_health, "NAA"
-  2.02,     #76, original_PD_OG_health, "2.02"
-  1.03,     #77, original_PD_OG_health, "1.03 ± 0.19"
-  2.08,     #78, original_PD_OG_health, "2.08 ± 0.30 (measured at 6 sites per tooth, full mouth), 2.35 ± 0.33 (measured at 6 sites per tooth, sampled sites)" # take first in multi-value with comma, see rule note
-  NA,       #79, original_PD_OG_health, "ND"
-  1.94,     #80, original_PD_OG_health, "1.94 ± 0.30( full mouth)"
-  2.0,      #81, original_PD_OG_health, "2.0 ± 0.2 (full mouth)"
-  NA,       #82, original_PD_OG_health, "NA"
-  NA,       #83, original_PD_OG_health, "ND"
-  NA,       #84, original_PD_OG_health, "ND"
-  NA,       #85, original_PD_OG_health, "ND"
-  NA,       #86, original_PD_OG_health, "NA"
-  NA,       #87, original_PD_OG_health, "ND"
-  1.97,     #88, original_PD_OG_health, "1.97 ± 0.31 (measured at six sites...)"
-  NA,       #89, original_PD_OG_health, "NA"
-  2.17,     #90, original_PD_OG_health, "2.17 (0.33) (full mouth)"
-  NA,       #91, original_PD_OG_health, "ND"
-  2.7,      #92, original_PD_OG_health, "2.7"
-  3.8,      #93, original_PD_OG_health, "3.8"
-  NA,       #94, original_PD_OG_health, "NA"
-  2.15,     #95, original_PD_OG_health, "2.15"
-  NA,       #96, original_PD_OG_health, "not determined"
-  2.81,     #97, original_PD_OG_health, "2.81"
-  NA,       #98, original_PD_OG_health, "ND"
-  1.94,     #99, original_PD_OG_health, "1.94 ± 0.30 (full mouth)"
-  1.5,      #100, original_PD_OG_health, "1.5 (full mouth)"
-  NA,       #101, original_PD_OG_health, "ND"
-  2.0,      #102, original_PD_OG_health, "2.0 ± 0.2 (full mouth)"
-  1.49,     #103, original_PD_OG_health, "1.49 (full mouth)"
-  NA,       #104, original_PD_OG_health, "ND"
-  1.98,     #105, original_PD_OG_health, "1.98 ± 0.03 (full mouth)"
-  NA,       #106, original_PD_OG_health, "ND"
-  2.7,      #107, original_PD_OG_health, "2.7 ± 0.3 (sampled sites)"
-  2.3,      #108, original_PD_OG_health, "2.3 ± 0.6 (full mouth)"
-  2.3,      #109, original_PD_OG_health, "2.3±0.3 (full mouth)"
-  2.0,      #110, original_PD_OG_health, "2.0 (full mouth)"
-  2.7,      #111, original_PD_OG_health, "2.7 (full mouth)"
-  3.1,      #112, original_PD_OG_health, "3.1 ± 0.42 (subgingival sampling sites; ..."
-  3.2,      #113, original_PD_OG_health, "3.2 ± 1.7"
-  NA,       #114, original_PD_OG_health, "≤3 mm (sampled sites)"
-  NA,       #115, original_PD_OG_health, "ND"
-  NA,       #116, original_PD_OG_health, "ND"
-  2.26,     #117, original_PD_OG_health, "2.2599999999999998"
-  NA,       #118, original_PD_OG_health, "ND"
-  NA        #119, original_PD_OG_health, "ND (Community Periodontal Index (CPI) available only: 0.00 (0.00–0.17))"
-)
-
-PD_OG_sd_health = c(
-  NA,       # 1, original_PD_OG_sd_health, "NA"
-  0.4,      # 2, original_PD_OG_sd_health, "0.1± 0.4"
-  0.59,     # 3, original_PD_OG_health, "2.28±0.59 (full mouth)"
-  0.04,     # 4, original_PD_OG_health, "1.8 ± 0.04 (full mouth)"
-  0.5,      # 5, original_PD_OG_sd_health, 0.5
-  NA,       # 6, original_PD_OG_health, "2.4 mm, ranging from 1.0 to 3.0 mm (full mouth)"
-  0.2,      # 7, original_PD_OG_sd_health, 0.2
-  0.5,      # 8, original_PD_OG_sd_health, 0.5
-  0.04,     # 9, original_PD_OG_sd_health, 0.04
-  0.5,      #10, original_PD_OG_sd_health, 0.5
-  0.09,     #11, original_PD_OG_sd_health, 0.09
-  0.5,      #12, original_PD_OG_sd_health, 0.5
-  0.07,     #13, original_PD_OG_sd_health, 7.0000000000000007E-2
-  0.4,      #14, original_PD_OG_sd_health, 0.4
-  0.2,      #15, original_PD_OG_sd_health, 0.2
-  0.21,     #16, original_PD_OG_sd_health, 0.21
-  0.5,      #17, original_PD_OG_sd_health, 0.5
-  0.25,     #18, original_PD_OG_sd_health, 0.25
-  0.09,     #19, original_PD_OG_sd_health, 0.09
-  0.6,      #20, original_PD_OG_sd_health, 0.6
-  0.6,      #21, original_PD_OG_sd_health, 0.6
-  NA,       #22, original_PD_OG_health, "ND (<4 mm: 99.1% / 4–6 mm: 0.9% / >6 mm: 0%..."
-  0.2,      #23, original_PD_OG_sd_health, 0.2
-  0.2,      #24, original_PD_OG_sd_health, 0.2
-  0.4,      #25, original_PD_OG_sd_health, 0.4
-  NA,       #26, original_PD_OG_health, "NA (sites with PD ≥7 mm (%))..."
-  0.23,     #27, original_PD_OG_sd_health, 0.23
-  0.5,      #28, original_PD_OG_sd_health, 0.5
-  0.3,      #29, original_PD_OG_sd_health, 0.3
-  0.6,      #30, original_PD_OG_sd_health, 0.6
-  NA,       #31, original_PD_OG_health, "≤2 (PD in > 30% of sites)"
-  NA,       #32, original_PD_OG_health, "ND"
-  0.1,      #33, original_PD_OG_sd_health, 0.1
-  NA,       #34, original_PD_OG_health, "0.7 (sampled sites)"
-  NA,       #35, original_PD_OG_health, "1.75 (0.75) ( sampled sites)"
-  0.1,      #36, original_PD_OG_sd_health, 0.1
-  0.6,      #37, original_PD_OG_sd_health, 0.6
-  0.4,      #38, original_PD_OG_sd_health, 0.4
-  NA,       #39, original_PD_OG_health, "2.76 ± 0.73, 2.47 ± 0.59, 2.43 ± 0.62..."
-  NA,       #40, original_PD_OG_health, "ND\r\nrecommendations (1997)"
-  NA,       #41, original_PD_OG_health, "ND"
-  NA,       #42, original_PD_OG_health, "range: 1-2* (2,2,1.5,1,1)..."
-  0.51,     #43, original_PD_OG_sd_health, 0.51
-  0.4,      #44, original_PD_OG_sd_health, 0.4
-  0.4,      #45, original_PD_OG_sd_health, 0.4
-  NA,       #46, original_PD_OG_health, "1.5 ± 0.3, sampled sites: 2.1 ± 0.4..." (multi)
-  0.2,      #47, original_PD_OG_sd_health, 0.2
-  0.8,      #48, original_PD_OG_sd_health, 0.8
-  0.5,      #49, original_PD_OG_sd_health, 0.5
-  0.8,      #50, original_PD_OG_sd_health, 0.8
-  0.9,      #51, original_PD_OG_sd_health, 0.9
-  0.28,     #52, original_PD_OG_sd_health, 0.28000000000000003
-  NA,       #53, original_PD_OG_health, "ND (range: 2-3 mm)"
-  NA,       #54, original_PD_OG_health, "44257"
-  0.24,     #55, original_PD_OG_sd_health, 0.24
-  0.2,      #56, original_PD_OG_sd_health, 0.2
-  NA,       #57, original_PD_OG_health, "ND"
-  NA,       #58, original_PD_OG_health, "range: 0* (0,0,0,0,0,0,0,0,0,0)..."
-  0,        #59, original_PD_OG_sd_health, 0
-  0.32,     #60, original_PD_OG_sd_health, 0.32
-  0.68,     #61, original_PD_OG_sd_health, 0.68
-  NA,       #62, original_PD_OG_health, "ND"
-  NA,       #63, original_PD_OG_health, "ND"
-  NA,       #64, original_PD_OG_health, "NA"
-  0.5,      #65, original_PD_OG_sd_health, 0.5
-  NA,       #66, original_PD_OG_health, "ND"
-  0.01,     #67, original_PD_OG_sd_health, 0.01
-  0.03,     #68, original_PD_OG_sd_health, 0.03
-  0.03,     #69, original_PD_OG_sd_health, 0.03
-  NA,       #70, original_PD_OG_health, "1,8 mm (full mouth)"
-  NA,       #71, original_PD_OG_health, "ND"
-  NA,       #72, original_PD_OG_health, "NA"
-  0.43,     #73, original_PD_OG_sd_health, 0.43
-  NA,       #74, original_PD_OG_health, "ND"
-  NA,       #75, original_PD_OG_health, "NAA"
-  0.513,    #76, original_PD_OG_sd_health, 0.51300000000000001
-  0.19,     #77, original_PD_OG_sd_health, 0.19
-  0.3,      #78, original_PD_OG_health, "2.08 ± 0.30 (measured at 6 sites per tooth, full mouth), 2.35 ± 0.33 (measured at 6 sites per tooth, sampled sites)" # use first pair, see note
-  NA,       #79, original_PD_OG_health, "ND"
-  0.3,      #80, original_PD_OG_sd_health, 0.3
-  0.2,      #81, original_PD_OG_sd_health, 0.2
-  NA,       #82, original_PD_OG_health, "NA"
-  NA,       #83, original_PD_OG_health, "ND"
-  NA,       #84, original_PD_OG_health, "ND"
-  NA,       #85, original_PD_OG_health, "ND"
-  NA,       #86, original_PD_OG_health, "NA"
-  NA,       #87, original_PD_OG_health, "ND"
-  0.31,     #88, original_PD_OG_sd_health, 0.31
-  NA,       #89, original_PD_OG_health, "NA"
-  0.33,     #90, original_PD_OG_health, "2.17 (0.33) (full mouth)"
-  NA,       #91, original_PD_OG_health, "ND"
-  0.41,     #92, original_PD_OG_sd_health, 0.41
-  0.8,      #93, original_PD_OG_sd_health, 0.8
-  NA,       #94, original_PD_OG_health, "NA"
-  0.2,      #95, original_PD_OG_sd_health, 0.2
-  NA,       #96, original_PD_OG_health, "not determined"
-  0.5,      #97, original_PD_OG_sd_health, 0.5
-  NA,       #98, original_PD_OG_health, "ND"
-  NA,       #99, original_PD_OG_health, "1.94 ± 0.30 (full mouth)"
-  NA,       #100, original_PD_OG_health, "1.5 (full mouth)"
-  NA,       #101, original_PD_OG_health, "ND"
-  0.2,      #102, original_PD_OG_sd_health, 0.2
-  NA,       #103, original_PD_OG_health, "1.49 (full mouth)"
-  NA,       #104, original_PD_OG_health, "ND"
-  0.03,     #105, original_PD_OG_sd_health, 0.03
-  NA,       #106, original_PD_OG_health, "ND"
-  0.3,      #107, original_PD_OG_sd_health, 0.3
-  0.6,      #108, original_PD_OG_sd_health, 0.6
-  0.3,      #109, original_PD_OG_sd_health, 0.3
-  NA,       #110, original_PD_OG_health, "2.0 (full mouth)"
-  NA,       #111, original_PD_OG_health, "2.7 (full mouth)"
-  0.42,     #112, original_PD_OG_sd_health, 0.42
-  1.7,      #113, original_PD_OG_sd_health, 1.7
-  NA,       #114, original_PD_OG_health, "≤3 mm (sampled sites)"
-  NA,       #115, original_PD_OG_health, "ND"
-  NA,       #116, original_PD_OG_health, "ND"
-  0.32,     #117, original_PD_OG_sd_health, 0.32
-  NA,       #118, original_PD_OG_health, "ND"
-  NA        #119, original_PD_OG_health, "ND (Community Periodontal Index (CPI) available only: 0.00 (0.00–0.17))"
-)
