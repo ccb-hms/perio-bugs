@@ -364,4 +364,3 @@ diff_species <- readRDS('output/diff_species.rds')
 # Richness
 # Source
 # Description
-# Abundance in Group 1
