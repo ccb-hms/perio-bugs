@@ -1,5 +1,5 @@
 # get free API key here: https://aistudio.google.com/
-Sys.setenv(GOOGLE_API_KEY = 'YOUR_API_KEY')
+Sys.setenv(GOOGLE_API_KEY = 'YOUR_API_KEY_HERE')
 
 run_prompt <- function(chat, prompt, type_clean_df) {
   
@@ -20,6 +20,92 @@ run_prompt <- function(chat, prompt, type_clean_df) {
   return(clean_results_df)
 }
 
+run_num_percent_prompt <- function(chat, messy_data) {
+  
+  # few shot prompts ----
+  cols <- c('messy_num', 'messy_percent', 'clean_num', 'clean_percent')
+  
+  # column order is as above
+  # one example per line with messy then clean for ease of creating examples
+  data_example = list(
+    c('46 (31,5%)', NA, '46', '31.5'),
+    c('n=13', NA, '13', NA),
+    c('0.37', NA, NA, '37'),
+    c('17', '32.1%*', '17', '32.1'),
+    c('7', '50', '7', '50'),
+    c('1 (10.00%)', NA, '1', '10'),
+    c('N=10', NA, '10', NA),
+    c('n 72', NA, 72, NA),
+    c('8', '53.3', '8', '53.3'),
+    c('0% (exclusion criteria)', NA, '0', '0'),
+    c('8', '0.53300000000000003', '8', '53.3'),
+    c('26', '0.52', '26', '52')
+  )
+  
+  data_example <- do.call(rbind, data_example) |> 
+    as.tibble() |> 
+    setNames(cols) |> 
+    rownames_to_column('row')
+  
+  messy_data_example <- data_example |> 
+    select(row, messy_num, messy_percent)
+  
+  clean_data_example <- data_example |> 
+    select(row, clean_num, clean_percent)
+  
+  # desired output structure ----
+  type_clean_cols <- type_object(
+    row = type_string(
+      description = "The original row number in the messy data."
+    ),
+    clean_num = type_string(
+      description = "The number of individuals in the group",
+      required = FALSE
+    ),
+    clean_percent = type_string(
+      description = "The percentage of individuals in the group.",
+      required = FALSE
+    )
+  )
+  
+  type_clean_df <- type_array(type_clean_cols)
+  
+  # the actual prompt ----
+  
+  prompt <- glue("
+  Extract the number and percentage of individuals from this JSON:
+  
+  {jsonlite::toJSON(messy_data, na='string')}
+  
+  Note that:
+  - 'messy_percent' often has missing values that can be obtained from 'messy_num'.
+  - if you see a fraction (e.g. 0.37) treat that as a percentage (37)
+  - if there are 0% or 0 individuals, both percent and num are 0
+  - row should be preserved exactly, going from 1 to {nrow(messy_data)}
+  
+  Below are a few examples of how values should be fixed. 
+  Here are some of the original messy values:
+  
+  {jsonlite::toJSON(messy_data_example, na='string')}
+  
+  and the corresponding cleaned values:
+  
+  {jsonlite::toJSON(clean_data_example, na='string')}
+  
+  ")
+  
+  res <- run_prompt(chat, prompt, type_clean_df)
+  
+  stopifnot(all.equal(res$row, messy_data$row))
+  
+  res_final <- bind_cols(
+    select(messy_data, -row),
+    select(res, -row)
+  )
+  
+  return(res_final)
+}
+
 
 # define the messy data 
 messy_data <- tibble(
@@ -29,90 +115,9 @@ messy_data <- tibble(
 
 # messy_data <- messy_data[1:20, ]
 
-# define the desired output structure
-type_clean_cols <- type_object(
-  clean_num = type_string(
-    description = "The number of individuals in the group",
-    required = FALSE
-  ),
-  clean_percent = type_string(
-    description = "The percentage of individuals in the group.",
-    required = FALSE
-  ),
-  row = type_string(
-    description = "The original row number in the messy data."
-  )
-)
-
-type_clean_df <- type_array(type_clean_cols)
-
-# few shot prompts ----
-messy_data_example <- tibble(
-  messy_num = c(
-    '46 (31,5%)','n=13', '0.37', '17', '7', '1 (10.00%)', 'N=10', 'n 72', 
-    '8','0% (exclusion criteria)','8','26'),
-  messy_percent = c(
-    NA, NA, NA, '32.1%*', '50',NA, NA, NA, '53.3',NA,'0.53300000000000003','0.52')
-) |> rownames_to_column('row')
-
-clean_data_example <- tibble(
-  clean_num = c(
-    '46', '13', NA, '17', '7', '1', '10', '72', '8','0','8','26'),
-  clean_percent = c(
-    '31.5', NA, '37', '32.1', '50', '10', NA, NA, '53.3','0','53.3','52')
-) |> rownames_to_column('row')
-
-
-# run the prompt ----
 # create the chat object
-chat <- chat_google_gemini(model = "gemini-2.0-flash")
 # chat <- chat_ollama(model = "gpt-oss:20b")
+chat <- chat_google_gemini(model = "gemini-2.0-flash")
 
-# define the desired output structure
-type_clean_cols <- type_object(
-  clean_num = type_string(
-    description = "The number of individuals in the group",
-    required = FALSE
-  ),
-  clean_percent = type_string(
-    description = "The percentage of individuals in the group.",
-    required = FALSE
-  ),
-  row = type_string(
-    description = "The original row number in the messy data."
-  )
-)
 
-type_clean_df <- type_array(type_clean_cols)
-
-# string for prompt:
-prompt <- glue("
-Extract the number and percentage of individuals from this JSON:
-
-{jsonlite::toJSON(messy_data, na='string')}
-
-Note that:
-- 'messy_percent' often has missing values that can be obtained from 'messy_num'.
-- if you see a fraction (e.g. 0.37) treat that as a percentage (37)
-- if there are 0% or 0 individuals, both percent and num are 0
-- row should be preserved exactly, going from 1 to {nrow(messy_data)}
-
-Below are a few examples of how values should be fixed. 
-Here are some of the original messy values:
-
-{jsonlite::toJSON(messy_data_example, na='string')}
-
-and the corresponding cleaned values:
-
-{jsonlite::toJSON(clean_data_example, na='string')}
-
-")
-
-res <- run_prompt(chat, prompt, type_clean_df)
-
-stopifnot(all.equal(res$row, messy_data$row))
-
-res_final <- bind_cols(
-  select(messy_data, -row),
-  select(res, -row)
-  )
+res <- run_num_percent_prompt(chat, messy_data)
