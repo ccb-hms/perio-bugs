@@ -134,3 +134,9 @@ chat <- chat_google_gemini(model = "gemini-2.0-flash")
 
 # prompt the bot
 males_perio <- run_num_percent_prompt(chat, males_perio_messy)
+
+males_perio_clean <- select(males_perio, clean_num, clean_percent)
+males_perio_clean <- as.data.frame(
+  apply(males_perio_clean, 2, function(col) sapply(col, function(x) eval(parse(text = x))))
+  )
+
