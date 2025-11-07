@@ -27,7 +27,7 @@ run_num_percent_prompt <- function(chat, messy_data) {
   
   # column order is as above
   # one example per line with messy then clean for ease of creating examples
-  data_example = list(
+  data_example <- list(
     c('46 (31,5%)', NA, '46', '31.5'),
     c('n=13', NA, '13', NA),
     c('0.37', NA, NA, '37'),
@@ -108,34 +108,29 @@ run_num_percent_prompt <- function(chat, messy_data) {
   return(res_final)
 }
 
-
 # define the messy data 
-messy_data <- tibble(
+males_health_messy <- tibble(
   messy_num = df$`Males (n,%) (periodontal health)`,
   messy_percent = df$`Males % (periodontal health)`
 ) |> rownames_to_column('row')
 
-# messy_data <- messy_data[1:20, ]
+# males_health_messy <- males_health_messy[1:20, ]
 
 # create the chat object
 # chat <- chat_ollama(model = "gpt-oss:20b")
 chat <- chat_google_gemini(model = "gemini-2.0-flash")
 
-
-res <- run_num_percent_prompt(chat, messy_data)
-
+# prompt the bot
+males_health <- run_num_percent_prompt(chat, males_health_messy)
 
 # define the messy data 
-messy_data <- tibble(
+males_perio_messy <- tibble(
   messy_num = df$`Males (n,%) (periodontitis)`,
   messy_percent = df$`Males % (periodontitis)`
 ) |> rownames_to_column('row')
 
-# messy_data <- messy_data[1:20, ]
-
 # create the chat object
-# chat <- chat_ollama(model = "gpt-oss:20b")
 chat <- chat_google_gemini(model = "gemini-2.0-flash")
 
-
-res2 <- run_num_percent_prompt(chat, messy_data)
+# prompt the bot
+males_perio <- run_num_percent_prompt(chat, males_perio_messy)
