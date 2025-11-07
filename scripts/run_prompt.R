@@ -39,7 +39,9 @@ run_num_percent_prompt <- function(chat, messy_data) {
     c('8', '53.3', '8', '53.3'),
     c('0% (exclusion criteria)', NA, '0', '0'),
     c('8', '0.53300000000000003', '8', '53.3'),
-    c('26', '0.52', '26', '52')
+    c('26', '0.52', '26', '52'),
+    c('GAgP: 14 (46.67%), GChP: 13 (43.33%)', NA, '14+13', '(14+13) / ((14/0.4667)+(13/0.4333)) * 100'),
+    c('Ap 30, 38.5% / Cp 24, 38.5%', NA, '30+24', '(30+24) / ((30/0.385)+(24/0.385)) * 100')
   )
   
   data_example <- do.call(rbind, data_example) |> 
@@ -121,3 +123,19 @@ chat <- chat_google_gemini(model = "gemini-2.0-flash")
 
 
 res <- run_num_percent_prompt(chat, messy_data)
+
+
+# define the messy data 
+messy_data <- tibble(
+  messy_num = df$`Males (n,%) (periodontitis)`,
+  messy_percent = df$`Males % (periodontitis)`
+) |> rownames_to_column('row')
+
+# messy_data <- messy_data[1:20, ]
+
+# create the chat object
+# chat <- chat_ollama(model = "gpt-oss:20b")
+chat <- chat_google_gemini(model = "gemini-2.0-flash")
+
+
+res2 <- run_num_percent_prompt(chat, messy_data)
