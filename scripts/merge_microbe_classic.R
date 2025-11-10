@@ -231,11 +231,11 @@ get_rank_vals <- function(results, rank_name = 'domain') {
   return(rank_vals)
 }
 
-add_tree_dist_genus <- function(results) {
+add_tree_dist_genus <- function(results, taxid_name = 'taxid') {
   
   tree_dists <- c()
   for (i in seq_len(nrow(results))) {
-    taxid <- results$taxid[i]
+    taxid <- results[[taxid_name]][i]
     next_most_specific <- results$next_most_specific[i]
     tree_dist <- get_shortest_tdist(taxid, next_most_specific)
     tree_dists <- c(tree_dists, tree_dist)
@@ -544,6 +544,7 @@ sarahs_db2 <- rbind_taxdbs(sarahs_db2) |>
   select(Family:Species, Number, direction) |> 
   # remove rows without taxon info
   filter(!if_all(Family:Species, is.na)) |>
+  # keep for joining with annotated taxids later
   mutate(
     species_annot = Species,
     genus_annot = Genus,
@@ -555,7 +556,7 @@ sarahs_db2 <- rbind_taxdbs(sarahs_db2) |>
     Species, 
     paste0("^", stringr::str_escape(Genus), " "))
   ) |> 
-  left_join(annotated_names)
+  distinct()
 
 # get "Genus species" and "Genus"
 sarahs_db2 <- sarahs_db2 |>
@@ -565,7 +566,7 @@ sarahs_db2 <- sarahs_db2 |>
 
 # clean up names for OLS queries
 sarahs_db2_queries <- sarahs_db2 |> 
-  select(most_specific, next_most_specific, taxid_annot) |> 
+  select(most_specific, next_most_specific, genus_annot, species_annot) |> 
   mutate(
     most_specific = clean_names_sarah(most_specific),
     next_most_specific = clean_names_sarah(next_most_specific)
@@ -697,6 +698,7 @@ sarahs_db2_results <- add_exact_taxids(sarahs_db2_results)
 # prefer exact taxid and add distances to genus
 sarahs_db2_results <- sarahs_db2_results |> 
   mutate(taxid = coalesce(taxid_exact, taxid)) |>
+  select(query, next_most_specific, taxname, taxid) |> 
   add_tree_dist_genus()
 
 table(sarahs_db2_results$tree_dist_genus, useNA = 'always')
@@ -706,16 +708,28 @@ sarahs_db2_results |>
   filter(is.na(tree_dist_genus)) |> 
   View()
 
-# check concordance with collaborated annotated
-
-# add back original "most_specific"
+# join distinct query results back to non-distinct
 nrow(sarahs_db2_results) == nrow(sarahs_db2_distinct_queries)
 
 sarahs_db2_results$most_specific <- 
   sarahs_db2_distinct_queries$most_specific
 
 sarahs_db2_queries <- sarahs_db2_queries |> 
-  left_join(sarahs_db2_results) |> 
+  left_join(sarahs_db2_results)
+
+# check concordance with collaborator annotated ----
+
+# join results back to annotated names
+annotated_names <- annotated_names |> 
+  left_join(
+    sarahs_db2_queries |> 
+      select(taxid, genus_annot, species_annot) |> 
+      distinct(),
+    relationship = 'many-to-many'
+  )
+
+# calculate tree distance
+annotated_names <- annotated_names |> 
   rowwise() |> 
   mutate(
     annot_tree_dist = ifelse(
@@ -724,10 +738,24 @@ sarahs_db2_queries <- sarahs_db2_queries |>
       NA
     ))
 
-sarahs_db2_queries |> 
-  pull(annot_tree_dist) |> 
-  table(useNA = 'always')
+# tabulate tree distance values
+annotated_names |> 
+  distinct() |> 
+  filter(!is.na(annot_tree_dist)) |> 
+  pull(annot_tree_dist) |>
+  table()
 
-# inspect high annotated distances
+# length = 584
+#
+#   0   1   2   3   4   5   6   7  12  14 
+# 328  34 128  35  17  23  12   3   2   2
 
-
+# 14 more results (probably line splits)
+# 0: 99 more
+# 1: 23 less
+# 2: 68 less
+# 3: same
+# 4: 6 less
+# 5: 5 more
+# 6: 8 more
+# 7: same

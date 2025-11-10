@@ -360,58 +360,60 @@ clean_names <- function(x) {
   return(x)
 }
 
-# merge all tables into one
-sarahs_db2_df <- rbind_taxdbs(sarahs_db2)
+sarahs_db2 <- process_sarahs_db2(microbe$`Sarah's Work (2`)
 
 # extract annotated taxon id <--> Genus species for checking later
-annotated_names <- tibble(
-  Genus = sarahs_db2_df$`Genus w/ numerical values`,
-  Species = sarahs_db2_df$`Species w/ numerical values - condensed`,
-  'Taxon ID' = sarahs_db2_df$`Taxon ID`) |> 
-  filter(!is.na(`Taxon ID`))
-
-annotated_names <- annotated_names |> 
-  mutate(most_specific_name = most_specific_name_base(annotated_names)) |> 
-  mutate(most_specific_name = clean_names(most_specific_name)) |> 
+annotated_names <- rbind_taxdbs(sarahs_db2) |> 
+  select(`Genus w/ numerical values`, 
+         `Species w/ numerical values - condensed`, 
+         `Taxon ID`)  |> 
+  purrr::set_names(c("genus_annot", "species_annot", "taxid_annot")) |> 
+  filter(!is.na(taxid_annot)) |> 
   distinct()
-
-# 588 unique cleaned annotated Genus species
-length(unique(annotated_names$most_specific_name))
 
 # remove working columns
 # NOTE: "... - condensed" removes blank rows
 # NOTE: "... w/ numerical values" are rows where there is a 0-9 in corresponding taxon name
 # NOTE: "Taxon ID" values not aligned with "Family", "Genus", "Species" (possibly aligned with "... - condensed")
-sarahs_db2_df <- 
-  select(sarahs_db2_df, Family, Genus, Species, direction, Number) |> 
-  mutate(most_specific_name = most_specific_name_base(sarahs_db2_df)) |>
-  filter(!is.na(most_specific_name)) |>
-  mutate(most_specific_name = clean_names(most_specific_name)) |> 
+sarahs_db2 <- rbind_taxdbs(sarahs_db2) |> 
+  select(Family:Species, Number, direction) |>
+  # remove rows without taxon info
+  filter(!if_all(Family:Species, is.na)) |>
+  # keep for joining with annotated taxids later
+  mutate(
+    species_annot = Species,
+    genus_annot = Genus,
+  )
+
+# get "Genus species"
+sarahs_db2 <- sarahs_db2 |>
+  mutate(most_specific = most_specific_name_base(sarahs_db2)) |> 
+  mutate(most_specific = clean_names(most_specific)) |> 
   distinct()
 
 # 838 unique cleaned Genus species
-length(unique(sarahs_db2_df$most_specific_name))
+length(unique(sarahs_db2$most_specific))
 
 # Sarah's Work (2): first attempt with HOMD database ----
 # add exact HOMD Genus species matches
 homd_names <- data.frame(
-  most_specific_name = most_specific_name_base(homd),
+  most_specific = most_specific_name_base(homd),
   taxid = homd$NCBI_taxon_id
 ) |> 
-  distinct(most_specific_name, .keep_all = TRUE)
+  distinct(most_specific, .keep_all = TRUE)
 
-sarahs_db2_df <- left_join(
-  sarahs_db2_df, homd_names, keep = TRUE, suffix = c('_sarahs', '_homd'))
+sarahs_db2 <- left_join(
+  sarahs_db2, homd_names, keep = TRUE, suffix = c('_sarahs', '_homd'))
 
-table(is.na(sarahs_db2_df$taxid))
+table(is.na(sarahs_db2$taxid))
 
 # check if HOMD is useful
-homd_success_names <- sarahs_db2_df |> 
+homd_success_names <- sarahs_db2 |> 
   filter(!is.na(taxid)) |> 
-  pull(most_specific_name_sarahs) |> 
+  pull(most_specific_sarahs) |> 
   unique()
 
-homd_success_taxids <- sarahs_db2_df |> 
+homd_success_taxids <- sarahs_db2 |> 
   filter(!is.na(taxid)) |> 
   pull(taxid) |> 
   unique() |> 
@@ -428,9 +430,9 @@ all.equal(homd_success_calc_taxids, homd_success_taxids[!homd_absnt])
 
 # Sarah's Work (2): second attempt with cleaned names ----
 
-needs_fixing <- sarahs_db2_df |> 
+needs_fixing <- sarahs_db2 |> 
   filter(is.na(taxid)) |> 
-  pull(most_specific_name_sarahs) |> 
+  pull(most_specific_sarahs) |> 
   unique()
 
 # try to get taxids
@@ -449,8 +451,8 @@ res <- do.call(rbind, res)
 res$id <- as.numeric(res$id)
 
 # fill in hits
-sarahs_db2_df <- sarahs_db2_df |> 
-  left_join(res, join_by(most_specific_name_sarahs == name)) |> 
+sarahs_db2 <- sarahs_db2 |> 
+  left_join(res, join_by(most_specific_sarahs == name)) |> 
   mutate(taxid = coalesce(taxid, id)) |> 
   select(-id)
 
@@ -501,15 +503,15 @@ res <- do.call(rbind, res) |>
 
 # fill in hits
 # many-to-many expected due to split above
-sarahs_db2_df <- sarahs_db2_df |> 
-  left_join(res, join_by(most_specific_name_sarahs == original_name), relationship = 'many-to-many') |> 
+sarahs_db2 <- sarahs_db2 |> 
+  left_join(res, join_by(most_specific_sarahs == original_name), relationship = 'many-to-many') |> 
   mutate(taxid = coalesce(taxid, id)) |> 
   select(-id)
 
 # how many left?
-needs_fixing <- sarahs_db2_df |> 
+needs_fixing <- sarahs_db2 |> 
   filter(is.na(taxid)) |> 
-  pull(most_specific_name_sarahs) |> 
+  pull(most_specific_sarahs) |> 
   unique()
 
 length(needs_fixing)
@@ -546,10 +548,10 @@ res <- do.call(rbind, res) |>
   select(-name)
 
 # fill in hits
-sarahs_db2_df <- sarahs_db2_df |> 
-  left_join(res, join_by(most_specific_name_sarahs == original_name)) |> 
-  mutate('Taxon ID' = coalesce(taxid, id)) |> 
-  select(-id, taxid)
+sarahs_db2 <- sarahs_db2 |> 
+  left_join(res, join_by(most_specific_sarahs == original_name)) |> 
+  mutate(taxid_calc = coalesce(taxid, id)) |> 
+  select(-id, -taxid)
 
 # Sarah's Work (2): check concordance with annotated taxids ----
 taxonomic_tree_distance <- function(taxid1, taxid2) {
@@ -557,8 +559,9 @@ taxonomic_tree_distance <- function(taxid1, taxid2) {
   cl1 <- taxizedb::classification(taxid1, db = "ncbi")[[1]]
   cl2 <- taxizedb::classification(taxid2, db = "ncbi")[[1]]
   
-  # annotated taxid not found
+  # taxid not found
   if (length(cl1) == 1 && is.na(cl1)) return(NA)
+  if (length(cl2) == 1 && is.na(cl2)) return(NA)
   
   # Remove nodes with 'no rank'
   cl1 <- cl1[cl1$rank != "no rank", , drop = FALSE]
@@ -583,38 +586,50 @@ taxonomic_tree_distance <- function(taxid1, taxid2) {
   return(distance)
 }
 
+# join results back to annotated names
 annotated_names <- annotated_names |> 
-  select(most_specific_name, `Taxon ID`) |> 
   left_join(
-    sarahs_db2_df |> select(most_specific_name_sarahs, `Taxon ID`), 
-    join_by(most_specific_name == most_specific_name_sarahs),
-  ) |> 
-  distinct() |> 
-  rename(
-    taxid_annot = `Taxon ID.x`,
-    taxid_calc = `Taxon ID.y`
-  )
+    sarahs_db2 |> 
+      select(taxid_calc, genus_annot, species_annot) |> 
+      distinct(),
+    relationship = 'many-to-many'
+    )
 
-table(annotated_names$taxid_annot == annotated_names$taxid_calc)
-
-annotated_names  <- annotated_names |> 
-  filter(taxid_annot != taxid_calc) |> 
-  # e.g. '199 / 203' becomes NA
-  filter(!is.na(taxid_annot)) |> 
+# calculate tree distance
+annotated_names <- annotated_names |> 
   rowwise() |> 
-  mutate(tree_distance = taxonomic_tree_distance(taxid_annot, taxid_calc))
+  mutate(
+    annot_tree_dist = ifelse(
+      !is.na(taxid_annot),
+      taxonomic_tree_distance(taxid_calc, taxid_annot),
+      NA
+    ))
 
-table(annotated_names$tree_distance)
+
+# backup for comparing to classic
+annotated_names_backup <- annotated_names
+
+# tabulate tree distance values
+annotated_names_backup |> 
+  distinct() |> 
+  filter(!is.na(annot_tree_dist)) |> 
+  pull(annot_tree_dist) |> 
+  table()
+
+# length = 570
+#
+#   0   1   2   3   4   5   6   7   8  12  13  14 
+# 229  57 196  35  23  18   4   3   1   2   1   1
 
 # Old DATABASE and Sarah's Work (2): merge all and save ---
 
 # have taxids for all
-sum(is.na(sarahs_db2_df$`Taxon ID`))
+sum(is.na(sarahs_db2$`Taxon ID`))
 sum(is.na(old_database_df$`Taxon ID`))
 
 diff_species <- rbind(
   old_database_df |> select('Number', 'Taxon ID', 'direction'),
-  sarahs_db2_df |> select('Number', 'Taxon ID', 'direction')
+  sarahs_db2 |> select('Number', 'Taxon ID', 'direction')
 ) |> distinct()
 
 saveRDS(diff_species, 'output/diff_species.rds')
