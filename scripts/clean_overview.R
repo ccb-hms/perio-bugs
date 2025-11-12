@@ -2,6 +2,7 @@ library(bugsigdbr)
 library(readr)
 library(rentrez)
 library(dplyr)
+library(tibble)
 
 overview_file <- 'output/overview_merged.rds'
 
@@ -226,11 +227,16 @@ if (!file.exists('output/possible_pmids.csv')) {
 
 
 # chatGPT based cleanup of messy columns ----
-source('output/gpt_fixes.R')
+
+# get free API key here: https://aistudio.google.com/
+Sys.setenv(GOOGLE_API_KEY = 'YOUR_API_KEY_HERE')
+
+source('scripts/run_prompt.R')
 
 # age
 View(data.frame(original = df$`Age (years; mean +-SD)`, 
                 age_mean, age_sd))
+
 
 View(data.frame(original_mean = df$`Age mean (periodontal health)`, 
                 original_sd = df$`Age SD (periodontal health)`,
@@ -240,28 +246,45 @@ View(data.frame(original_mean = df$`Age mean (periodontitis)`,
                 original_sd = df$`Age SD (periodontitis)`,
                 age_mean_perio, age_sd_perio))
 
-# number and percent male
-View(data.frame(original = df$`Males (n,%)`, 
-                males_num, males_percent))
+# number and percent male ----
 
-View(tibble(df[, c('Males (n,%) (periodontal health)', 'Males % (periodontal health)')],
-                males_num_health, males_percent_health))
+# healthy group
+males_health_messy <- tibble(
+  messy_num = df$`Males (n,%) (periodontal health)`,
+  messy_percent = df$`Males % (periodontal health)`
+)
 
-View(data.frame(original_num_percent = df$`Males (n,%) (periodontitis)`, 
-                original_percent = df$`Males % (periodontitis)`,
-                males_num_perio, males_percent_perio))
+males_health <- run_num_percent_prompt(chat, males_health_messy, model = "gpt-oss:20b")
 
-# number and percent smokers
+# perio group
+males_perio_messy <- tibble(
+  messy_num = df$`Males (n,%) (periodontitis)`,
+  messy_percent = df$`Males % (periodontitis)`
+)
+
+males_perio <- run_num_percent_prompt(chat, males_perio_messy, model = "gpt-oss:20b")
+
+
+# number and percent smokers ----
 View(data.frame(original = df$`Smokers (n,%)`,
      smokers_num, smokers_percent))
 
-View(data.frame(original_num_percent = df$`Smokers (n,%) (periodontal health)`,
-                original_percent = df$`Smokers (%) (periodontal health)`,
-                smokers_num_health, smokers_percent_health))
 
-View(data.frame(original_num_percent = df$`Smokers (n,%) (periodontitis)`,
-                original_percent = df$`Smokers (%) (periodontitis)`,
-                smokers_num_perio, smokers_percent_perio))
+# healthy group
+smokers_health_messy <- tibble(
+  messy_num = df$`Smokers (n,%) (periodontal health)`,
+  messy_percent = df$`Smokers (%) (periodontal health)`
+)
+
+smokers_health <- run_num_percent_prompt(chat, smokers_health_messy, model = "gpt-oss:20b")
+
+# perio group
+smokers_perio_messy <- tibble(
+  messy_num = df$`Smokers (n,%) (periodontitis)`,
+  messy_percent = df$`Smokers (%) (periodontitis)`
+)
+
+smokers_perio <- run_num_percent_prompt(chat, smokers_perio_messy, model = "gpt-oss:20b")
 
 
 # bleeding on probing

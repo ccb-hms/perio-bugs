@@ -1,6 +1,3 @@
-# get free API key here: https://aistudio.google.com/
-Sys.setenv(GOOGLE_API_KEY = 'YOUR_API_KEY_HERE')
-
 run_prompt <- function(chat, prompt, type_clean_df) {
   
   instruct_json <- "
@@ -20,7 +17,20 @@ run_prompt <- function(chat, prompt, type_clean_df) {
   return(clean_results_df)
 }
 
-run_num_percent_prompt <- function(chat, messy_data) {
+run_num_percent_prompt <- function(chat, messy_data, model = c("gemini-2.0-flash", "gpt-oss:20b")) {
+  
+  model <- match.arg(model)
+  
+  messy_data <- rownames_to_column(messy_data, 'row')
+  
+  # create the chat object
+  model_functions <- list(
+    "gemini-2.0-flash" = ellmer::chat_google_gemini,
+    "gpt-oss:20b"      = ellmer::chat_ollama
+  )
+  
+  # Call the relevant function with the desired model argument
+  chat <- model_functions[[model]](model = model)
   
   # few shot prompts ----
   cols <- c('messy_num', 'messy_percent', 'clean_num', 'clean_percent')
@@ -56,25 +66,25 @@ run_num_percent_prompt <- function(chat, messy_data) {
     select(row, clean_num, clean_percent)
   
   # desired output structure ----
-  type_clean_cols <- type_object(
-    row = type_string(
+  type_clean_cols <- ellmer::type_object(
+    row = ellmer::type_string(
       description = "The original row number in the messy data."
     ),
-    clean_num = type_string(
+    clean_num = ellmer::type_string(
       description = "The number of individuals in the group",
       required = FALSE
     ),
-    clean_percent = type_string(
+    clean_percent = ellmer::type_string(
       description = "The percentage of individuals in the group.",
       required = FALSE
     )
   )
   
-  type_clean_df <- type_array(type_clean_cols)
+  type_clean_df <- ellmer::type_array(type_clean_cols)
   
   # the actual prompt ----
   
-  prompt <- glue("
+  prompt <- glue::glue("
   Extract the number and percentage of individuals from this JSON:
   
   {jsonlite::toJSON(messy_data, na='string')}
@@ -100,43 +110,18 @@ run_num_percent_prompt <- function(chat, messy_data) {
   
   stopifnot(all.equal(res$row, messy_data$row))
   
-  res_final <- bind_cols(
-    select(messy_data, -row),
-    select(res, -row)
+  # evalute strings
+  res <- as.data.frame(
+    apply(res, 2, function(col) sapply(col, function(x) eval(parse(text = x))))
   )
+  
+  res_final <- dplyr::bind_cols(
+    dplyr::select(messy_data, -row),
+    dplyr::select(res, -row)
+  )
+  
   
   return(res_final)
 }
 
-# define the messy data 
-males_health_messy <- tibble(
-  messy_num = df$`Males (n,%) (periodontal health)`,
-  messy_percent = df$`Males % (periodontal health)`
-) |> rownames_to_column('row')
-
-# males_health_messy <- males_health_messy[1:20, ]
-
-# create the chat object
-# chat <- chat_ollama(model = "gpt-oss:20b")
-chat <- chat_google_gemini(model = "gemini-2.0-flash")
-
-# prompt the bot
-males_health <- run_num_percent_prompt(chat, males_health_messy)
-
-# define the messy data 
-males_perio_messy <- tibble(
-  messy_num = df$`Males (n,%) (periodontitis)`,
-  messy_percent = df$`Males % (periodontitis)`
-) |> rownames_to_column('row')
-
-# create the chat object
-chat <- chat_google_gemini(model = "gemini-2.0-flash")
-
-# prompt the bot
-males_perio <- run_num_percent_prompt(chat, males_perio_messy)
-
-males_perio_clean <- select(males_perio, clean_num, clean_percent)
-males_perio_clean <- as.data.frame(
-  apply(males_perio_clean, 2, function(col) sapply(col, function(x) eval(parse(text = x))))
-  )
 
