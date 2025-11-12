@@ -17,7 +17,7 @@ run_prompt <- function(chat, prompt, type_clean_df) {
   return(clean_results_df)
 }
 
-run_num_percent_prompt <- function(chat, messy_data, model = c("gemini-2.0-flash", "gpt-oss:20b")) {
+run_num_percent_prompt <- function(messy_data, model = c("gemini-2.0-flash", "gpt-oss:20b")) {
   
   model <- match.arg(model)
   
@@ -90,7 +90,7 @@ run_num_percent_prompt <- function(chat, messy_data, model = c("gemini-2.0-flash
   {jsonlite::toJSON(messy_data, na='string')}
   
   Note that:
-  - 'messy_percent' often has missing values that can be obtained from 'messy_num'.
+  - '{cols[2]}' often has missing values that can be obtained from '{cols[1]}'
   - if you see a fraction (e.g. 0.37) treat that as a percentage (37)
   - if there are 0% or 0 individuals, both percent and num are 0
   - row should be preserved exactly, going from 1 to {nrow(messy_data)}
@@ -120,6 +120,119 @@ run_num_percent_prompt <- function(chat, messy_data, model = c("gemini-2.0-flash
     dplyr::select(res, -row)
   )
   
+  
+  return(res_final)
+}
+
+run_percent_sd_prompt <- function(messy_data, focus, model = c("gemini-2.0-flash", "gpt-oss:20b")) {
+  
+  model <- match.arg(model)
+  
+  messy_data <- rownames_to_column(messy_data, 'row')
+  
+  # create the chat object
+  model_functions <- list(
+    "gemini-2.0-flash" = ellmer::chat_google_gemini,
+    "gpt-oss:20b"      = ellmer::chat_ollama
+  )
+  
+  # Call the relevant function with the desired model argument
+  chat <- model_functions[[model]](model = model)
+  
+  # few shot prompts ----
+  cols <- c('messy_percent', 'messy_sd', 'clean_percent', 'clean_sd')
+  
+  # column order is as above
+  # one example per line with messy then clean for ease of creating examples
+  data_example <- list(
+    c(NA, NA, NA, NA),
+    c('6', '5.0', '6', '5.0'),
+    c('10.31±9.25', NA, '10.31', '9.25'),
+    c('4.0 ±  0.5 %', NA, '4.0', '0.5'),
+    c('8 ± 9', NA, '8', '9'),
+    c('ND', NA, NA, NA),
+    c('1,9 ± 4,1 %', NA, '1.9', '4.1'),
+    c('0.0', NA, '0', '0'),
+    c('0.3±0.5', NA, '0.3', '0.5'),
+    c('5.8 ± 0.5 (6 sites per tooth of all teeth, excl 3rd molars) - BOP(% of sites)', NA, '5.8', '0.5'),
+    c('1±1% BOP, full-mouth, 6 ± 3% gingival bleeding (GB) full-mouth', NA, '1', '1'),
+    c('11.40 ± 1.22 (gingival plaque index)', NA, NA, NA),
+    c('2.1 ± 1.1 and 3.2 ± 1.8 (% sites with gingival bleeding (0/1) and BOP (0/1), measured at six sites per tooth (MB, B, DB, DL, L and ML) in all teeth, excl 3rd molars)', NA, '3.2', '1.8'),
+    c('range: 11.90-48.20* (% of total, full mouth BOP)', NA, NA, NA),
+    c('<30% [FMBS', NA, NA, NA),
+    c('35.5 ± 4.8 [localised aggressive periodontitis], 68.7 ± 15.8 [generalised aggressive periodontitis], 63.6 ± 20.2 [chronic periodontitis]', NA, NA, NA),
+    c('ChP: 0.4 ± 0.9, AgP: 1.1 ± 1.9 (%SUP, full mouth)', NA, NA, NA)
+  )
+  
+  data_example <- do.call(rbind, data_example) |> 
+    as.tibble() |> 
+    setNames(cols) |> 
+    rownames_to_column('row')
+  
+  messy_data_example <- data_example |> 
+    select(row, messy_percent, messy_sd)
+  
+  clean_data_example <- data_example |> 
+    select(row, clean_percent, clean_sd)
+  
+  # desired output structure ----
+  type_clean_cols <- ellmer::type_object(
+    row = ellmer::type_string(
+      description = "The original row number in the messy data."
+    ),
+    clean_percent = ellmer::type_string(
+      description = "The percentage in the group.",
+      required = FALSE
+    ),
+    clean_sd = ellmer::type_string(
+      description = "The sd in the group.",
+      required = FALSE
+    )
+  )
+  
+  type_clean_df <- ellmer::type_array(type_clean_cols)
+  
+  # the actual prompt ----
+  
+  prompt <- glue::glue("
+  Extract the {focus} percent and sd from this JSON:
+  
+  {jsonlite::toJSON(messy_data, na='string')}
+  
+  Note that:
+  - if multiple measures are recorded, only extract {focus}
+  - if measure recorded is something other than {focus}, set cleaned values to NA
+  - '{cols[2]}' often has missing values that can be obtained from '{cols[1]}'
+  - if you see a fraction (e.g. 0.37) treat that as a percentage (37)
+  - if you see a range (e.g. 11.90-48.20 or <30%), set cleaned values to NA
+  - if there is 0 for percent, both percent and sd are 0
+  - if measures for multiple subgroups and not overall, set cleaned values to NA
+  - row should be preserved exactly, going from 1 to {nrow(messy_data)}
+  
+  Below are a few examples of how values should be fixed. 
+  Here are some of the original messy values:
+  
+  {jsonlite::toJSON(messy_data_example, na='string')}
+  
+  and the corresponding cleaned values:
+  
+  {jsonlite::toJSON(clean_data_example, na='string')}
+  
+  ")
+  
+  res <- run_prompt(chat, prompt, type_clean_df)
+  
+  stopifnot(all.equal(res$row, messy_data$row))
+  
+  # evalute strings
+  res <- as.data.frame(
+    apply(res, 2, function(col) sapply(col, function(x) eval(parse(text = x))))
+  )
+  
+  res_final <- dplyr::bind_cols(
+    dplyr::select(messy_data, -row),
+    dplyr::select(res, -row)
+  )
   
   return(res_final)
 }

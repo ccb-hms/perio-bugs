@@ -248,13 +248,20 @@ View(data.frame(original_mean = df$`Age mean (periodontitis)`,
 
 # number and percent male ----
 
+# overall (both groups)
+males_overall_messy <- tibble(
+  messy_num = df$`Males (n,%)`
+)
+
+males_overall <- run_num_percent_prompt(males_overall_messy)
+
 # healthy group
 males_health_messy <- tibble(
   messy_num = df$`Males (n,%) (periodontal health)`,
   messy_percent = df$`Males % (periodontal health)`
 )
 
-males_health <- run_num_percent_prompt(chat, males_health_messy, model = "gpt-oss:20b")
+males_health <- run_num_percent_prompt(males_health_messy)
 
 # perio group
 males_perio_messy <- tibble(
@@ -262,13 +269,17 @@ males_perio_messy <- tibble(
   messy_percent = df$`Males % (periodontitis)`
 )
 
-males_perio <- run_num_percent_prompt(chat, males_perio_messy, model = "gpt-oss:20b")
+males_perio <- run_num_percent_prompt(males_perio_messy)
 
 
 # number and percent smokers ----
-View(data.frame(original = df$`Smokers (n,%)`,
-     smokers_num, smokers_percent))
 
+# overall (both groups)
+smokers_overall_messy <- tibble(
+  messy_num = df$`Smokers (n,%)`
+)
+
+smokers_overall <- run_num_percent_prompt(smokers_overall_messy)
 
 # healthy group
 smokers_health_messy <- tibble(
@@ -276,7 +287,7 @@ smokers_health_messy <- tibble(
   messy_percent = df$`Smokers (%) (periodontal health)`
 )
 
-smokers_health <- run_num_percent_prompt(chat, smokers_health_messy, model = "gpt-oss:20b")
+smokers_health <- run_num_percent_prompt(smokers_health_messy)
 
 # perio group
 smokers_perio_messy <- tibble(
@@ -284,31 +295,47 @@ smokers_perio_messy <- tibble(
   messy_percent = df$`Smokers (%) (periodontitis)`
 )
 
-smokers_perio <- run_num_percent_prompt(chat, smokers_perio_messy, model = "gpt-oss:20b")
+smokers_perio <- run_num_percent_prompt(smokers_perio_messy)
 
 
-# bleeding on probing
-View(data.frame(original_bop = df$`Bleeding on probing (periodontal health)`,
-                original_bop_sd = df$`Bleeding on probing (SD) (periodontal health)`,
-                bop_percent_health, bop_sd_health))
+# bleeding on probing ----
 
-View(data.frame(original_bop = df$`Bleeding on probing (periodontitis)`,
-                original_bop_sd = df$`Bleeding on probing (SD) (periodontitis)`,
-                bop_percent_perio, bop_sd_perio))
+# healthy group
+bop_health_messy <- tibble(
+  messy_percent = df$`Bleeding on probing (periodontal health)`,
+  messy_sd = df$`Bleeding on probing (SD) (periodontal health)`
+)
 
-# supporation
-View(data.frame(original_sup = df$`Suppuration (periodontal health)`,
-                original_sup_sd = df$`Suppuration (SD) (periodontal health)`,
-                supp_percent_health, supp_sd_health))
+bop_health <- run_percent_sd_prompt(bop_health_messy, focus = 'bleeding on probing (BOP)')
 
-View(data.frame(original_sup = df$`Suppuration (periodontitis)`,
-                original_sup_sd = df$`Suppuration (SD) (periodontitis)`,
-                supp_percent_perio, supp_sd_perio))
 
-# number of samples
-View(data.frame(original_num_total = df$`Number of subgingival samples (TOTAL)`,
-                original_num_health = df$`Number of subgingival samples - periodontal health group`,
-                original_num_perio = df$`Number of subgingival samples - periodontitis group`))
+# perio group
+bop_perio_messy <- tibble(
+  messy_percent = df$`Bleeding on probing (periodontitis)`,
+  messy_sd = df$`Bleeding on probing (SD) (periodontitis)`
+)
+
+bop_perio <- run_percent_sd_prompt(bop_perio_messy, focus = 'bleeding on probing (BOP)')
+
+
+# supporation  -----
+# healthy group
+supp_health_messy <- tibble(
+  messy_percent = df$`Suppuration (periodontal health)`,
+  messy_sd = df$`Suppuration (SD) (periodontal health)`
+)
+
+supp_health <- run_percent_sd_prompt(supp_health_messy, focus = 'suppuration (SUP)')
+
+
+# perio group
+supp_perio_messy <- tibble(
+  messy_percent = df$`Suppuration (periodontitis)`,
+  messy_sd = df$`Suppuration (SD) (periodontitis)`
+)
+
+supp_perio <- run_percent_sd_prompt(supp_perio_messy, focus = 'suppuration (SUP)')
+
 
 
 # join cleaned up columns ----
