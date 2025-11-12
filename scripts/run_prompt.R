@@ -1,3 +1,4 @@
+# helper utility for other run_..._prompt functions
 run_prompt <- function(chat, prompt, type_clean_df) {
   
   instruct_json <- "
@@ -17,6 +18,120 @@ run_prompt <- function(chat, prompt, type_clean_df) {
   return(clean_results_df)
 }
 
+run_diagnostic_method_prompt <- function(method, 
+                                         unique_seq_types,
+                                         unique_16s_regions,
+                                         unique_seq_plats,
+                                         model = c("gemini-2.0-flash", "gpt-oss:20b")) {
+  
+  model <- match.arg(model)
+  
+  messy_data <- tibble(method) |> 
+    rownames_to_column('row')
+  
+  # create the chat object
+  model_functions <- list(
+    "gemini-2.0-flash" = ellmer::chat_google_gemini,
+    "gpt-oss:20b"      = ellmer::chat_ollama
+  )
+  
+  # Call the relevant function with the desired model argument
+  chat <- model_functions[[model]](model = model)
+  
+  # few shot prompts ----
+  cols <- c('method', 'seq_type', '16s_regions', 'seq_plat')
+  
+  # column order is as above
+  # one example per line with messy then clean for ease of creating examples
+  data_example <- list(
+    c('Anaerobic incubation on selective plates and morphologic and biochemical properties', NA, NA, NA),
+    c('qPCR', 'PCR', NA, 'RT-qPCR'),
+    c('Checkerboard DNA–DNA hybridization', NA, NA, 'DNA-DNA Hybridization'),
+    c('PCR', 'PCR', NA, 'Non-quantitative PCR'),
+    c('Targetted PCR amplification using species-specific primers.', 'PCR', NA, 'Non-quantitative PCR'),
+    c('Culture', NA, NA, NA),
+    c('16S rDNA high-throughput sequencing', '16S', NA, NA),
+    c('16S rRNA gene sequencing (V4 region)', '16S', '4', NA),
+    c('454 FLX Titanium pyrosequencing (V1-V3)', '16S', '123', 'Roche454'),
+    c('MALDI-TOF-MS', NA, NA, 'Mass spectrometry'),
+    c('Metatranscriptomic Illumina sequencing', 'WMS', NA, 'Illumina'),
+    c('Illumina sequencing (V1-V2 and V5-V6 regions) of the 16S rRNA gene', '16S', '1256', 'Illumina')
+  )
+  
+  data_example <- do.call(rbind, data_example) |> 
+    as.tibble() |> 
+    setNames(cols) |> 
+    rownames_to_column('row')
+  
+  messy_data_example <- data_example |> 
+    select(row, method)
+  
+  clean_data_example <- data_example |> 
+    select(row, seq_type, `16s_regions`, seq_plat)
+  
+  # so that we can get NA from enum
+  unique_seq_types[is.na(unique_seq_types)] <- 'NA'
+  unique_seq_plats[is.na(unique_seq_plats)] <- 'NA'
+  
+  # desired output structure ----
+  type_clean_cols <- ellmer::type_object(
+    row = ellmer::type_string(
+      description = "The original row number in the messy data."
+    ),
+    seq_type = ellmer::type_enum(
+      values = unique_seq_types,
+      description = "The sequencing type."
+    ),
+    `16s_regions` = ellmer::type_string(
+      description = "The 16S variable regions when seq_type is 16S."
+    ),
+    seq_plat = ellmer::type_enum(
+      values = unique_seq_plats,
+      description = "The sequencing platform."
+    )
+  )
+  
+  type_clean_df <- ellmer::type_array(type_clean_cols)
+  
+  # the actual prompt ----
+  
+  prompt <- glue::glue("
+  Extract 'seq_type', '16s_regions', and 'seq_plat' from column 'method' in this JSON:
+  
+  {jsonlite::toJSON(messy_data, na='string')}
+  
+  Note that:
+  - set output to 'NA' when the value cannot be determined or is not applicable
+  - For '16s_regions' the possible values are 1 to 9 and should be pasted together 
+    in increasing order (e.g. 'V4-V5' should be '45') 
+
+  Below are a few examples of how values should be fixed. 
+  Here are some of the original messy values:
+  
+  {jsonlite::toJSON(messy_data_example, na='string')}
+  
+  and the corresponding cleaned values:
+  
+  {jsonlite::toJSON(clean_data_example, na='string')}
+  
+  ")
+  
+  res <- run_prompt(chat, prompt, type_clean_df)
+  
+  stopifnot(all.equal(res$row, messy_data$row))
+  
+  res_final <- dplyr::bind_cols(
+    dplyr::select(messy_data, -row),
+    dplyr::select(res, -row)
+  )
+  
+  
+  return(res_final)
+}
+
+# used for:
+# - Males (n, %) 
+# - Smokers (n, %) 
 run_num_percent_prompt <- function(messy_data, model = c("gemini-2.0-flash", "gpt-oss:20b")) {
   
   model <- match.arg(model)
@@ -124,6 +239,9 @@ run_num_percent_prompt <- function(messy_data, model = c("gemini-2.0-flash", "gp
   return(res_final)
 }
 
+# used for:
+# - Bleeding on probing
+# - Suppuration
 run_percent_sd_prompt <- function(messy_data, focus, model = c("gemini-2.0-flash", "gpt-oss:20b")) {
   
   model <- match.arg(model)
