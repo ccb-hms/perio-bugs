@@ -121,8 +121,8 @@ group1_size_messy <- tibble(
 # prompt if don't have
 if (!check_prev_prompt(group0_size_messy, 'group0_size', prompt_fixes)) {
   
-  prompt_fixes$group0_size <- run_sum_group_size_prompt(group0_size_messy)
-  prompt_fixes$group1_size <- run_sum_group_size_prompt(group1_size_messy)
+  prompt_fixes$group0_size <- run_generic_prompt(group0_size_messy, 'sum_group_size')
+  prompt_fixes$group1_size <- run_generic_prompt(group1_size_messy, 'sum_group_size')
   saveRDS(prompt_fixes, prompt_fixes_file)
 }
 
@@ -130,16 +130,17 @@ if (!check_prev_prompt(group0_size_messy, 'group0_size', prompt_fixes)) {
 # TODO: collect?
 
 # Sequencing type, region, and platform ----
-ref_seq_types <- controlled_vocab$sequencing_type
-ref_16s_regions <- controlled_vocab$variable_region_16S
-ref_seq_plats <- controlled_vocab$sequencing_platform
 
-method <- df$`Diagnostic Method`
+dirty_seq <- tibble(
+  method = df$`Diagnostic Method`
+)
 
-if (!check_prev_prompt(data.table(method), 'seq_res', prompt_fixes)) {
+if (!check_prev_prompt(dirty_seq, 'seq_res', prompt_fixes)) {
   
-  prompt_fixes$seq_res <- run_diagnostic_method_prompt(
-    method, ref_seq_types, ref_16s_regions, ref_seq_plats)
+  prompt_fixes$seq_res <- run_generic_prompt(
+    dirty_seq,
+    prompt_name = 'diagnostic_method'
+  )
   
   saveRDS(prompt_fixes, prompt_fixes_file)
 }

@@ -26,7 +26,145 @@ run_prompt <- function(chat, prompt, type_clean_df) {
   return(clean_results_df)
 }
 
-run_sum_group_size_prompt <- function(messy_data, model = c("gemini-2.0-flash", "gpt-oss:20b")) {
+# need to define enums for some clean cols
+source('scripts/controlled_vocab.R')
+
+# all column types for prompts
+get_type_clean_cols <- function(clean_cols) {
+  clean_cols <- c('row', clean_cols)
+  
+  type_clean_cols <- ellmer::type_object(
+    row = ellmer::type_string(
+      description = "The original row number in the messy data."
+    ),
+    clean_num = ellmer::type_string(
+      description = "The number of individuals in the group.",
+      required = FALSE
+    ),
+    clean_percent = ellmer::type_string(
+      description = "The percentage of individuals in the group.",
+      required = FALSE
+    ),
+    clean_sd = ellmer::type_string(
+      description = "The standard deviation in the group.",
+      required = FALSE
+    ),
+    seq_type = ellmer::type_enum(
+      values = c(controlled_vocab$sequencing_type, 'NA'),
+      description = "The sequencing type."
+    ),
+    `16s_regions` = ellmer::type_string(
+      description = "The 16S variable regions when seq_type is 16S."
+    ),
+    seq_plat = ellmer::type_enum(
+      values = c(controlled_vocab$sequencing_platform, 'NA'),
+      description = "The sequencing platform."
+    )
+  )
+  
+  defined_cols <- names(type_clean_cols@properties)
+  
+  stopifnot(all(clean_cols %in% defined_cols))
+  
+  # remove cols that not requested
+  remove_cols <- setdiff(defined_cols, clean_cols)
+  for (col in remove_cols) 
+    type_clean_cols@properties[[col]] <- NULL
+  
+  return(type_clean_cols)
+}
+
+
+get_prompt_specifics <- function(prompt_name) {
+  
+  
+  # diagnostic method
+  diagnostic_method = list(
+    dirty_cols ='method',
+    clean_cols = c('seq_type', '16s_regions', 'seq_plat'),
+    eval_res = FALSE,
+    data_example = list(
+      c('Anaerobic incubation on selective plates and morphologic and biochemical properties', NA, NA, NA),
+      c('qPCR', 'PCR', NA, 'RT-qPCR'),
+      c('Checkerboard DNA–DNA hybridization', NA, NA, 'DNA-DNA Hybridization'),
+      c('PCR', 'PCR', NA, 'Non-quantitative PCR'),
+      c('Targetted PCR amplification using species-specific primers.', 'PCR', NA, 'Non-quantitative PCR'),
+      c('Culture', NA, NA, NA),
+      c('16S rDNA high-throughput sequencing', '16S', NA, NA),
+      c('16S rRNA gene sequencing (V4 region)', '16S', '4', NA),
+      c('454 FLX Titanium pyrosequencing (V1-V3)', '16S', '123', 'Roche454'),
+      c('MALDI-TOF-MS', NA, NA, 'Mass spectrometry'),
+      c('HOMIM', NA, NA, NA),
+      c('Metatranscriptomic Illumina sequencing', 'WMS', NA, 'Illumina'),
+      c('Illumina sequencing (V1-V2 and V5-V6 regions) of the 16S rRNA gene', '16S', '1256', 'Illumina')
+    ),
+    prompt_template = "
+      Extract 'seq_type', '16s_regions', and 'seq_plat' from 'method' in this JSON:
+      
+      {jsonlite::toJSON(messy_data, na='string')}
+      
+      Note that:
+      - 'row' should be preserved exactly, going from 1 to {nrow(messy_data)}
+      - For '16s_regions' the possible values are 1 to 9 and should be pasted together 
+        in increasing order (e.g. 'V4-V5' should be '45') 
+    
+      Below are a few examples of how values should be fixed. 
+      Here are some of the original messy values:
+      
+      {jsonlite::toJSON(messy_data_example, na='string')}
+      
+      and the corresponding cleaned values:
+      
+      {jsonlite::toJSON(clean_data_example, na='string')}
+      "
+  )
+  
+  # sum group size
+  sum_group_size = list(
+    dirty_cols = 'messy_num',
+    clean_cols = 'clean_num',
+    eval_res = TRUE,
+    data_example = list(
+      c("CP: 30, AgP: 26", "30+26"),
+      c("ModP: 12, SevP: 13", "12+13"),
+      c("87", "87"),
+      c("15 [localised aggressive periodontitis], 25 [generalised aggressive periodontitis], 30 [chronic periodontitis]", "15+25+30"),
+      c("60.67", "60+67"),
+      c("ND", "NA"),
+      c("NA", "NA")
+    ),
+    prompt_template = "
+    Extract the total number of individuals from this JSON:
+    
+    {jsonlite::toJSON(messy_data, na='string')}
+    
+    Note that:
+    - sum subgroups if specified (e.g. 'CP: 30, AgP: 26' should be '30+26')
+    - do not attempt to evaluate sums (e.g. leave above as '30+26', NOT '56')
+    - set 'ND' or 'NA' or similar to 'NA'
+    
+    Below are a few examples of how values should be fixed. 
+    Here are some of the original messy values:
+    
+    {jsonlite::toJSON(messy_data_example, na='string')}
+    
+    and the corresponding cleaned values:
+    
+    {jsonlite::toJSON(clean_data_example, na='string')}
+    "
+  )
+  
+  prompt_specifics <- list(
+    sum_group_size = sum_group_size,
+    diagnostic_method = diagnostic_method
+  )
+  
+  return(prompt_specifics[[prompt_name]])
+}
+
+
+
+run_generic_prompt <- function(messy_data, prompt_name, model = c("gemini-2.0-flash", "gpt-oss:20b")) {
   model <- match.arg(model)
   
   messy_data <- rownames_to_column(messy_data, 'row')
@@ -40,22 +178,16 @@ run_sum_group_size_prompt <- function(messy_data, model = c("gemini-2.0-flash", 
   # Call the relevant function with the desired model argument
   chat <- model_functions[[model]](model = model)
   
-  # few shot prompts ----
-  dirty_cols <- 'messy_num'
-  clean_cols <- 'clean_num'
+  # get prompt specific stuff and destructure
+  spec <- get_prompt_specifics(prompt_name)
   
-  # column order is as above
-  # one example per line with messy then clean for ease of creating examples
-  data_example <- list(
-    c("CP: 30, AgP: 26", "30+26"),
-    c("ModP: 12, SevP: 13", "12+13"),
-    c("87", "87"),
-    c("15 [localised aggressive periodontitis], 25 [generalised aggressive periodontitis], 30 [chronic periodontitis]", "15+25+30"),
-    c("60.67", "60+67"),
-    c("ND", "NA"),
-    c("NA", "NA")
-  )
+  eval_res <- spec$eval_res
+  clean_cols <- spec$clean_cols
+  dirty_cols <- spec$dirty_cols
+  data_example <- spec$data_example
+  prompt_template <- spec$prompt_template
   
+  # setup messy and clean data examples
   data_example <- do.call(rbind, data_example) |> 
     as.tibble() |> 
     setNames(c(dirty_cols, clean_cols)) |> 
@@ -67,169 +199,30 @@ run_sum_group_size_prompt <- function(messy_data, model = c("gemini-2.0-flash", 
   clean_data_example <- data_example |> 
     select(row, all_of(clean_cols))
   
-  # desired output structure ----
-  type_clean_cols <- ellmer::type_object(
-    row = ellmer::type_string(
-      description = "The original row number in the messy data."
-    ),
-    clean_num = ellmer::type_string(
-      description = "The total number of individuals in the group",
-      required = FALSE
-    )
-  )
-  
+  # desired output structure
+  type_clean_cols <- get_type_clean_cols(clean_cols)
   type_clean_df <- ellmer::type_array(type_clean_cols)
   
-  # the actual prompt ----
-  
-  prompt <- glue::glue("
-  Extract the total number of individuals from this JSON:
-  
-  {jsonlite::toJSON(messy_data, na='string')}
-  
-  Note that:
-  - sum subgroups if specified (e.g. 'CP: 30, AgP: 26' should be '30+26')
-  - do not attempt to evaluate sums (e.g. leave above as '30+26', NOT '56')
-  - set 'ND' or 'NA' or similar to 'NA'
-  
-  Below are a few examples of how values should be fixed. 
-  Here are some of the original messy values:
-  
-  {jsonlite::toJSON(messy_data_example, na='string')}
-  
-  and the corresponding cleaned values:
-  
-  {jsonlite::toJSON(clean_data_example, na='string')}
-  
-  ")
+  # the actual prompt
+  prompt <- glue::glue(prompt_template)
   
   res <- run_prompt(chat, prompt, type_clean_df)
   
   stopifnot(all.equal(res$row, messy_data$row))
   
   # check that can evaluate strings
-  try(apply(res, 2, evaluate_col))
-  
-  res_final <- dplyr::bind_cols(
-    dplyr::select(messy_data, -row),
-    dplyr::select(res_eval, -row)
-  )
-  
-  return(res_final)
-}
-
-run_diagnostic_method_prompt <- function(method, 
-                                         ref_seq_types,
-                                         ref_16s_regions,
-                                         ref_seq_plats,
-                                         model = c("gemini-2.0-flash", "gpt-oss:20b")) {
-  
-  model <- match.arg(model)
-  
-  messy_data <- tibble(method) |> 
-    rownames_to_column('row')
-  
-  # create the chat object
-  model_functions <- list(
-    "gemini-2.0-flash" = ellmer::chat_google_gemini,
-    "gpt-oss:20b"      = ellmer::chat_ollama
-  )
-  
-  # Call the relevant function with the desired model argument
-  chat <- model_functions[[model]](model = model)
-  
-  # few shot prompts ----
-  dirty_cols <- c('method')
-  clean_cols <- c('seq_type', '16s_regions', 'seq_plat')
-  
-  # column order is as above
-  # one example per line with messy then clean for ease of creating examples
-  data_example <- list(
-    c('Anaerobic incubation on selective plates and morphologic and biochemical properties', NA, NA, NA),
-    c('qPCR', 'PCR', NA, 'RT-qPCR'),
-    c('Checkerboard DNA–DNA hybridization', NA, NA, 'DNA-DNA Hybridization'),
-    c('PCR', 'PCR', NA, 'Non-quantitative PCR'),
-    c('Targetted PCR amplification using species-specific primers.', 'PCR', NA, 'Non-quantitative PCR'),
-    c('Culture', NA, NA, NA),
-    c('16S rDNA high-throughput sequencing', '16S', NA, NA),
-    c('16S rRNA gene sequencing (V4 region)', '16S', '4', NA),
-    c('454 FLX Titanium pyrosequencing (V1-V3)', '16S', '123', 'Roche454'),
-    c('MALDI-TOF-MS', NA, NA, 'Mass spectrometry'),
-    c('HOMIM', NA, NA, NA),
-    c('Metatranscriptomic Illumina sequencing', 'WMS', NA, 'Illumina'),
-    c('Illumina sequencing (V1-V2 and V5-V6 regions) of the 16S rRNA gene', '16S', '1256', 'Illumina')
-  )
-  
-  data_example <- do.call(rbind, data_example) |> 
-    as.tibble() |> 
-    setNames(c(dirty_cols, clean_cols)) |> 
-    rownames_to_column('row')
-  
-  messy_data_example <- data_example |> 
-    select(row, all_of(dirty_cols))
-  
-  clean_data_example <- data_example |> 
-    select(row, all_of(clean_cols))
-  
-  # so that we can get NA from enum
-  ref_seq_types <- c(ref_seq_types, 'NA')
-  ref_seq_plats <- c(ref_seq_plats, 'NA')
-  
-  # desired output structure ----
-  type_clean_cols <- ellmer::type_object(
-    row = ellmer::type_string(
-      description = "The original row number in the messy data."
-    ),
-    seq_type = ellmer::type_enum(
-      values = ref_seq_types,
-      description = "The sequencing type."
-    ),
-    `16s_regions` = ellmer::type_string(
-      description = "The 16S variable regions when seq_type is 16S."
-    ),
-    seq_plat = ellmer::type_enum(
-      values = ref_seq_plats,
-      description = "The sequencing platform."
-    )
-  )
-  
-  type_clean_df <- ellmer::type_array(type_clean_cols)
-  
-  # the actual prompt ----
-  
-  prompt <- glue::glue("
-  Extract 'seq_type', '16s_regions', and 'seq_plat' from column 'method' in this JSON:
-  
-  {jsonlite::toJSON(messy_data, na='string')}
-  
-  Note that:
-  - set output to 'NA' when the value cannot be determined or is not applicable
-  - For '16s_regions' the possible values are 1 to 9 and should be pasted together 
-    in increasing order (e.g. 'V4-V5' should be '45') 
-
-  Below are a few examples of how values should be fixed. 
-  Here are some of the original messy values:
-  
-  {jsonlite::toJSON(messy_data_example, na='string')}
-  
-  and the corresponding cleaned values:
-  
-  {jsonlite::toJSON(clean_data_example, na='string')}
-  
-  ")
-  
-  res <- run_prompt(chat, prompt, type_clean_df)
-  
-  stopifnot(all.equal(res$row, messy_data$row))
+  if (eval_res) try(apply(res, 2, evaluate_col))
   
   res_final <- dplyr::bind_cols(
     dplyr::select(messy_data, -row),
     dplyr::select(res, -row)
   )
   
-  
   return(res_final)
 }
+
+
+
 
 # used for:
 # - Males (n, %) 
@@ -325,10 +318,13 @@ run_num_percent_prompt <- function(messy_data, model = c("gemini-2.0-flash", "gp
   Note that:
   - 'messy_percent' often has missing values that can be obtained from 'messy_num'
   - if 'clean_num' or 'clean_percent' will be set to '0', set both to '0'
-  - if exclusion criteria is indicated, set both 'clean_num' and 'clean_percent' to '0'
+  - if exclusion criteria ('Excluded', 'exclusion criteria' or similar text) is given,
+    set both 'clean_num' and 'clean_percent' to '0'
   - row should be preserved exactly, going from 1 to {nrow(messy_data)}
   - 'ND' or 'NA' should be set to 'NA'
-  - never include an '=' sign in 'clean_num' or 'clean_percent'
+  - never include an '=' or '±' sign in 'clean_num' or 'clean_percent'
+  - fractions (e.g. 0.37) should be treated as percentages to go in 'clean_percent' (e.g. 37)
+  - 'clean_num' should always be an integer whole number
   
   How to rationalize certain types of examples:
   
@@ -371,6 +367,11 @@ run_num_percent_prompt <- function(messy_data, model = c("gemini-2.0-flash", "gp
   clean_num: 'NA'
   clean_percent: '37'
   
+  6) Only group size given:
+  messy_num: ' n=13'
+  clean_num: '13'
+  clean_percent: 'NA'
+
   Any formulas should follow the exact same patterns as above.
   
   Below are a few examples of how values should be fixed. 
