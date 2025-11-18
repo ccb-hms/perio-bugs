@@ -17,18 +17,21 @@ extract_unique <- function(vals) {
   unique(unlist(strsplit(vals, split = ",(?! )", perl = TRUE)))
 }
 
+# controlled vocabs from bugsigdb
+source('scripts/controlled_vocab.R')
+
 # extract and cleanup all fields from Feres data that need for bugsigdb
 
 # Study design ----
-unique_designs <- extract_unique(bugsigdb$`Study design`)
-unique_designs
+reference_designs <- controlled_vocab$study_design
+reference_designs
 
 # general cleanup
 designs <- df$`Study design`
 unique(designs)
 
 # values that might need fixing
-unique(designs[!designs %in% unique_designs])
+unique(designs[!designs %in% reference_designs])
 
 designs <- tolower(designs)
 designs <- trimws(gsub("\\s+", " ", designs))
@@ -43,17 +46,20 @@ designs[grepl('cross', designs) &
 designs[grepl('^cohort', designs)] <- "prospective cohort"
 designs[grepl('^non-randomized studies of interventions', designs)] <- "prospective cohort"
 
+# ensure everything fits
+stopifnot(all(designs %in% reference_designs))
+
 # Location of subjects ----
 
 # controlled terms for location
-reference_locs <- extract_unique(bugsigdb$`Location of subjects`)
-reference_locs
+reference_locs <- controlled_vocab$location
 
 # actual location values 
 locs <- df$Country
 
 # values that might need fixing
-unique(locs[!locs %in% reference_locs])
+unique_locs <- extract_unique(locs)
+unique_locs[!unique_locs %in% reference_locs]
 
 # replace with reference values
 locs <- gsub(' and ', ',', locs)
@@ -65,11 +71,16 @@ locs[locs %in% c('Netherland', 'The Netherlands')] <- 'Netherlands'
 locs[locs == 'UK'] <- 'United Kingdom'
 locs[locs == 'Korea'] <- 'South Korea'
 locs[locs == 'Russia'] <- 'Russian Federation'
+locs[locs == 'Czech Republic'] <- 'Czechia'
 
+# really?
+locs[locs == 'Hong Kong'] <- 'China'
+
+
+stopifnot(all(extract_unique(locs) %in% reference_locs))
 
 # Body site ----
 # assume all the same
-# TODO: ask Feres group explicitly
 body_site <- rep("Subgingival dental plaque", length(locs))
 
 # Group names ----
