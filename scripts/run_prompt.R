@@ -107,15 +107,8 @@ run_sum_group_size_prompt <- function(messy_data, model = c("gemini-2.0-flash", 
   
   stopifnot(all.equal(res$row, messy_data$row))
   
-  # evaluate strings
-  res_eval <- as.data.frame(
-    apply(res, 2, 
-          function(col) sapply(
-            col, function(x) eval(parse(text = x)),
-            simplify = TRUE
-          )
-    )
-  )
+  # check that can evaluate strings
+  try(apply(res, 2, evaluate_col))
   
   res_final <- dplyr::bind_cols(
     dplyr::select(messy_data, -row),
@@ -257,37 +250,53 @@ run_num_percent_prompt <- function(messy_data, model = c("gemini-2.0-flash", "gp
   chat <- model_functions[[model]](model = model)
   
   # few shot prompts ----
-  cols <- c('messy_num', 'messy_percent', 'clean_num', 'clean_percent')
+  messy_cols <- c('messy_num', 'messy_percent')
+  clean_cols <- c('clean_num', 'clean_percent')
   
   # column order is as above
   # one example per line with messy then clean for ease of creating examples
   data_example <- list(
     c('46 (31,5%)', NA, '46', '31.5'),
     c('n=13', NA, '13', NA),
+    c('37.65±10.88', NA, NA, '37.65'),
     c('0.37', NA, NA, '37'),
+    c('0.15', NA, NA, '15'),
+    c('0.6', NA, NA, '60'),
+    c('12,5  25', NA, '12+5', '25'),
+    c('ND', NA, NA, NA),
     c('17', '32.1%*', '17', '32.1'),
+    c('0 , 38 %, 80%', NA, NA, NA),
     c('7', '50', '7', '50'),
     c('1 (10.00%)', NA, '1', '10'),
     c('N=10', NA, '10', NA),
     c('n 72', NA, 72, NA),
     c('8', '53.3', '8', '53.3'),
     c('0% (exclusion criteria)', NA, '0', '0'),
+    c('exclusion criteria', NA, '0', '0'),
+    c('Excluded', NA, '0', '0'),
+    c('0', NA, '0', '0'),
+    c('45.9% of all males were in Controls group', NA, NA, NA),
+    c('32.4% of all cigarette smokers were in Controls group, 22.2% of all water pipe smokers were in Controls group, 50.0% of all qat chewers were in Controls group', NA, NA, NA),
     c('8', '0.53300000000000003', '8', '53.3'),
     c('26', '0.52', '26', '52'),
+    c('4 (21.05%), (GAgP: 2 (22%)*, LAgP: 2 (23%)*)', NA, '4', '21.05'),
+    c('NS-Perio: 8 (28.57%) / S-Perio: 16 (57.14%)', NA, '8+16', '(8+16) / ((8/0.2857)+(16/0.5714)) * 100'),
+    c('moderate: 19 (37%) / severe: 14 (48%)', NA, '19+14', '(19+14) / ((19/0.37)+(14/0.48)) * 100'),
+    c('24 (38.7%)36 (43.9%', NA, '24+36', '(24+36) / ((24/0.387)+(36/0.439)) * 100'),
     c('GAgP: 14 (46.67%), GChP: 13 (43.33%)', NA, '14+13', '(14+13) / ((14/0.4667)+(13/0.4333)) * 100'),
     c('Ap 30, 38.5% / Cp 24, 38.5%', NA, '30+24', '(30+24) / ((30/0.385)+(24/0.385)) * 100')
   )
   
   data_example <- do.call(rbind, data_example) |> 
     as.tibble() |> 
-    setNames(cols) |> 
+    setNames(c(clean_cols, messy_cols)) |> 
     rownames_to_column('row')
   
   messy_data_example <- data_example |> 
-    select(row, messy_num, messy_percent)
+    select(row, all_of(messy_cols))
   
   clean_data_example <- data_example |> 
-    select(row, clean_num, clean_percent)
+    select(row, all_of(clean_cols))
   
   # desired output structure ----
   type_clean_cols <- ellmer::type_object(
@@ -314,10 +323,55 @@ run_num_percent_prompt <- function(messy_data, model = c("gemini-2.0-flash", "gp
   {jsonlite::toJSON(messy_data, na='string')}
   
   Note that:
-  - '{cols[2]}' often has missing values that can be obtained from '{cols[1]}'
-  - if you see a fraction (e.g. 0.37) treat that as a percentage (37)
-  - if there are 0% or 0 individuals, both percent and num are 0
+  - 'messy_percent' often has missing values that can be obtained from 'messy_num'
+  - if 'clean_num' or 'clean_percent' will be set to '0', set both to '0'
+  - if exclusion criteria is indicated, set both 'clean_num' and 'clean_percent' to '0'
   - row should be preserved exactly, going from 1 to {nrow(messy_data)}
+  - 'ND' or 'NA' should be set to 'NA'
+  - never include an '=' sign in 'clean_num' or 'clean_percent'
+  
+  How to rationalize certain types of examples:
+  
+  1) Subgroups num and percent is given (and no overall num and percent):
+  messy_num: 'Ap 30, 38.5% / Cp 24, 42.5%'
+  messy_percent: 'NA'
+  
+  add the subgroup nums to get the total num:
+  clean_num: '30+24'
+  
+  and divide the total num by the calculated group sizes as follows:
+  clean_percent: '(30+24) / ((30/0.385) + (24/.425)) * 100'
+  
+  2) An overall num and percent is given in addition to subgroup nums and percents:
+  messy_num: '4 (21.05%), (GAgP: 2 (22%)*, LAgP: 2 (23%)*)'
+  messy_percent: 'NA'
+  
+  So just return the overall num and percent:
+  clean_num: '4'
+  clean_percent: '21.05'
+  
+  3)  An overall num and percent is given in addition to subgroup nums and percents:
+  messy_num: '58 (34.1%) [AgP and CP]*, 23 (30.7%) [AgP], 35 (36.8%) [CP]'
+  messy_percent: 'NA'
+  
+  So just return the overall num and percent:
+  clean_num: '58'
+  clean_percent: '34.1'
+  
+  4) Just the subgroup nums are present (no overall or subgroup percent):
+  messy_num: 'N=15 CP N=7 H'
+  messy_percent: 'NA'
+  
+  So just return the calculation for the overall num:
+  clean_num: '15+7'
+  clean_percent: 'NA'
+  
+  5) Fractions should be treated as a percent:
+  messy_num: '0.37'
+  clean_num: 'NA'
+  clean_percent: '37'
+  
+  Any formulas should follow the exact same patterns as above.
   
   Below are a few examples of how values should be fixed. 
   Here are some of the original messy values:
@@ -332,12 +386,11 @@ run_num_percent_prompt <- function(messy_data, model = c("gemini-2.0-flash", "gp
   
   res <- run_prompt(chat, prompt, type_clean_df)
   
+  # check that can evaluate strings
+  try(apply(res, 2, evaluate_col))
+  
   stopifnot(all.equal(res$row, messy_data$row))
   
-  # evalute strings
-  res <- as.data.frame(
-    apply(res, 2, function(col) sapply(col, function(x) eval(parse(text = x))))
-  )
   
   res_final <- dplyr::bind_cols(
     dplyr::select(messy_data, -row),
@@ -345,6 +398,10 @@ run_num_percent_prompt <- function(messy_data, model = c("gemini-2.0-flash", "gp
   )
   
   return(res_final)
+}
+
+evaluate_col <- function(col) {
+  sapply(col, function(x) eval(parse(text = x)), simplify = TRUE)
 }
 
 # used for:
@@ -448,12 +505,10 @@ run_percent_sd_prompt <- function(messy_data, focus, model = c("gemini-2.0-flash
   
   res <- run_prompt(chat, prompt, type_clean_df)
   
-  stopifnot(all.equal(res$row, messy_data$row))
+  # check that can evaluate strings
+  try(apply(res, 2, evaluate_col))
   
-  # evalute strings
-  res <- as.data.frame(
-    apply(res, 2, function(col) sapply(col, function(x) eval(parse(text = x))))
-  )
+  stopifnot(all.equal(res$row, messy_data$row))
   
   res_final <- dplyr::bind_cols(
     dplyr::select(messy_data, -row),

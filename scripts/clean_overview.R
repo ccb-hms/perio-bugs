@@ -4,6 +4,9 @@ library(rentrez)
 library(dplyr)
 library(tibble)
 
+# get free API key here: https://aistudio.google.com/
+# Sys.setenv(GOOGLE_API_KEY = 'YOUR_API_KEY_HERE')
+
 overview_file <- 'output/overview_merged.rds'
 
 # load in LLM prompted fixes
@@ -211,25 +214,18 @@ if (!file.exists('output/possible_pmids.csv')) {
 }
 
 
-# chatGPT based cleanup of messy columns ----
-
-# get free API key here: https://aistudio.google.com/
-# Sys.setenv(GOOGLE_API_KEY = 'YOUR_API_KEY_HERE')
-
-source('scripts/run_prompt.R')
-
-# age
-View(data.frame(original = df$`Age (years; mean +-SD)`, 
-                age_mean, age_sd))
-
-
-View(data.frame(original_mean = df$`Age mean (periodontal health)`, 
-                original_sd = df$`Age SD (periodontal health)`,
-                age_mean_health, age_sd_health))
-
-View(data.frame(original_mean = df$`Age mean (periodontitis)`, 
-                original_sd = df$`Age SD (periodontitis)`,
-                age_mean_perio, age_sd_perio))
+# TODO: convert age to prompt ----
+# View(data.frame(original = df$`Age (years; mean +-SD)`, 
+#                 age_mean, age_sd))
+# 
+# 
+# View(data.frame(original_mean = df$`Age mean (periodontal health)`, 
+#                 original_sd = df$`Age SD (periodontal health)`,
+#                 age_mean_health, age_sd_health))
+# 
+# View(data.frame(original_mean = df$`Age mean (periodontitis)`, 
+#                 original_sd = df$`Age SD (periodontitis)`,
+#                 age_mean_perio, age_sd_perio))
 
 # number and percent male ----
 
@@ -238,7 +234,12 @@ males_overall_messy <- tibble(
   messy_num = df$`Males (n,%)`
 )
 
-males_overall <- run_num_percent_prompt(males_overall_messy)
+if (!check_prev_prompt(males_overall_messy, 'males_overall', prompt_fixes)) {
+  
+  prompt_fixes$males_overall <- run_num_percent_prompt(males_overall_messy)
+  saveRDS(prompt_fixes, prompt_fixes_file)
+}
+
 
 # healthy group
 males_health_messy <- tibble(
@@ -246,7 +247,11 @@ males_health_messy <- tibble(
   messy_percent = df$`Males % (periodontal health)`
 )
 
-males_health <- run_num_percent_prompt(males_health_messy)
+if (!check_prev_prompt(males_health_messy, 'males_health', prompt_fixes)) {
+  
+  prompt_fixes$males_health <- run_num_percent_prompt(males_health_messy)
+  saveRDS(prompt_fixes, prompt_fixes_file)
+}
 
 # perio group
 males_perio_messy <- tibble(
@@ -254,7 +259,11 @@ males_perio_messy <- tibble(
   messy_percent = df$`Males % (periodontitis)`
 )
 
-males_perio <- run_num_percent_prompt(males_perio_messy)
+if (!check_prev_prompt(males_perio_messy, 'males_perio', prompt_fixes)) {
+  
+  prompt_fixes$males_perio <- run_num_percent_prompt(males_perio_messy)
+  saveRDS(prompt_fixes, prompt_fixes_file)
+}
 
 
 # number and percent smokers ----
@@ -264,7 +273,11 @@ smokers_overall_messy <- tibble(
   messy_num = df$`Smokers (n,%)`
 )
 
-smokers_overall <- run_num_percent_prompt(smokers_overall_messy)
+if (!check_prev_prompt(smokers_overall_messy, 'smokers_overall', prompt_fixes)) {
+  
+  prompt_fixes$smokers_overall <- run_num_percent_prompt(smokers_overall_messy)
+  saveRDS(prompt_fixes, prompt_fixes_file)
+}
 
 # healthy group
 smokers_health_messy <- tibble(
@@ -272,7 +285,11 @@ smokers_health_messy <- tibble(
   messy_percent = df$`Smokers (%) (periodontal health)`
 )
 
-smokers_health <- run_num_percent_prompt(smokers_health_messy)
+if (!check_prev_prompt(smokers_health_messy, 'smokers_health', prompt_fixes)) {
+  
+  prompt_fixes$smokers_health <- run_num_percent_prompt(smokers_health_messy)
+  saveRDS(prompt_fixes, prompt_fixes_file)
+}
 
 # perio group
 smokers_perio_messy <- tibble(
@@ -280,7 +297,12 @@ smokers_perio_messy <- tibble(
   messy_percent = df$`Smokers (%) (periodontitis)`
 )
 
-smokers_perio <- run_num_percent_prompt(smokers_perio_messy)
+if (!check_prev_prompt(smokers_perio_messy, 'smokers_perio', prompt_fixes)) {
+  
+  prompt_fixes$smokers_perio <- run_num_percent_prompt(smokers_perio_messy)
+  saveRDS(prompt_fixes, prompt_fixes_file)
+}
+
 
 
 # bleeding on probing ----
@@ -291,7 +313,15 @@ bop_health_messy <- tibble(
   messy_sd = df$`Bleeding on probing (SD) (periodontal health)`
 )
 
-bop_health <- run_percent_sd_prompt(bop_health_messy, focus = 'bleeding on probing (BOP)')
+if (!check_prev_prompt(bop_health_messy, 'bop_health', prompt_fixes)) {
+  
+  prompt_fixes$bop_health <- run_percent_sd_prompt(
+    bop_health_messy, 
+    focus = 'bleeding on probing (BOP)'
+  )
+  
+  saveRDS(prompt_fixes, prompt_fixes_file)
+}
 
 
 # perio group
@@ -300,7 +330,15 @@ bop_perio_messy <- tibble(
   messy_sd = df$`Bleeding on probing (SD) (periodontitis)`
 )
 
-bop_perio <- run_percent_sd_prompt(bop_perio_messy, focus = 'bleeding on probing (BOP)')
+if (!check_prev_prompt(bop_perio_messy, 'bop_perio', prompt_fixes)) {
+  
+  prompt_fixes$bop_perio <- run_percent_sd_prompt(
+    bop_perio_messy, 
+    focus = 'bleeding on probing (BOP)'
+  )
+  
+  saveRDS(prompt_fixes, prompt_fixes_file)
+}
 
 
 # supporation  -----
@@ -310,8 +348,14 @@ supp_health_messy <- tibble(
   messy_sd = df$`Suppuration (SD) (periodontal health)`
 )
 
-supp_health <- run_percent_sd_prompt(supp_health_messy, focus = 'suppuration (SUP)')
-
+if (!check_prev_prompt(supp_health_messy, 'supp_health', prompt_fixes)) {
+  
+  prompt_fixes$supp_health <- run_percent_sd_prompt(
+    supp_health_messy, 
+    focus = 'suppuration (SUP)')
+  
+  saveRDS(prompt_fixes, prompt_fixes_file)
+}
 
 # perio group
 supp_perio_messy <- tibble(
@@ -319,8 +363,14 @@ supp_perio_messy <- tibble(
   messy_sd = df$`Suppuration (SD) (periodontitis)`
 )
 
-supp_perio <- run_percent_sd_prompt(supp_perio_messy, focus = 'suppuration (SUP)')
-
+if (!check_prev_prompt(supp_perio_messy, 'supp_perio', prompt_fixes)) {
+  
+  prompt_fixes$supp_perio <- run_percent_sd_prompt(
+    supp_perio_messy, 
+    focus = 'suppuration (SUP)')
+  
+  saveRDS(prompt_fixes, prompt_fixes_file)
+}
 
 
 # join cleaned up columns ----
