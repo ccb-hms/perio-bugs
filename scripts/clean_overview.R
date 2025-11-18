@@ -40,7 +40,8 @@ designs[grepl('case', designs) &
 designs[grepl('cross', designs) & 
           grepl('sectional', designs)] <- "cross-sectional observational, not case-control"
 
-# TODO: clarify "cohort" and "non-randomized studies of interventions*"
+designs[grepl('^cohort', designs)] <- "prospective cohort"
+designs[grepl('^non-randomized studies of interventions', designs)] <- "prospective cohort"
 
 # Location of subjects ----
 
@@ -190,7 +191,7 @@ if (!file.exists('output/possible_pmids.csv')) {
 # chatGPT based cleanup of messy columns ----
 
 # get free API key here: https://aistudio.google.com/
-Sys.setenv(GOOGLE_API_KEY = 'YOUR_API_KEY_HERE')
+# Sys.setenv(GOOGLE_API_KEY = 'YOUR_API_KEY_HERE')
 
 source('scripts/run_prompt.R')
 
