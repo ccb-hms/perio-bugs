@@ -6,6 +6,16 @@ library(tibble)
 
 overview_file <- 'output/overview_merged.rds'
 
+# load in LLM prompted fixes
+prompt_fixes_file <- 'output/prompt_fixes.rds'
+
+if (file.exists(prompt_fixes_file)) {
+  prompt_fixes <- readRDS(prompt_fixes_file)
+} else {
+  prompt_fixes <- list()
+}
+
+
 # Get all sheet names
 df <- readRDS(overview_file)
 
@@ -97,37 +107,39 @@ group1_def <- df$`Criteria used to define periodontitis`
 # Group sample size ----
 
 # Group 0 (periodontal health) and 1 (periodontitis)
-group0_size <- df$`Sample size (periodontal health)`
-group1_size <- df$`Sample size (periodontitis)`
-
-# sum multi-entry values 
-group1_size_summed <- c(
-  68, 105, 10, 127, 31, 30, 30, 17, 18, 169, 116, 109, 49, 194, 25, 50, 17, 70, 
-  116, 76, 75, 15, 9, 30, 60, 22, 38, 169, 59, 15, 13, 26, 22, 87, 87, 16, 10, 
-  60, 6, 25, 25, 6, 30, 325, 32, 56, 26, 141, 144, 30, 44, 33, 9, 9, 20, 52, NA,
-  10, 30, 60, 22, 6, NA, 15, 28, 20, 32, 39, 44, 4, 9, 80, 116, 30, 62, 42, 10,
-  60, 19, 82, 131, 62, 59, 25, 10, 259, 49, 15, 28, 12, 29, 5, 66, 11, 17, 63, 
-  29, NA, 17, 50, 11, 17, 21, 20, 42, 15, 51, 38, 138, 21, 11, 48, 25, 25, 7, 2,
-  635, 4, 40
+group0_size_messy <- tibble(
+  messy_num = df$`Sample size (periodontal health)`
 )
+
+group1_size_messy <- tibble(
+  messy_num = df$`Sample size (periodontitis)`
+)
+
+# prompt if don't have
+if (!check_prev_prompt(group0_size_messy, 'group0_size', prompt_fixes)) {
+  
+  prompt_fixes$group0_size <- run_sum_group_size_prompt(group0_size_messy)
+  prompt_fixes$group1_size <- run_sum_group_size_prompt(group1_size_messy)
+  saveRDS(prompt_fixes, prompt_fixes_file)
+}
 
 # Antibiotic exclusion ----
 # TODO: collect?
 
 # Sequencing type, region, and platform ----
-unique_seq_types <- extract_unique(bugsigdb$`Sequencing type`)
-unique_seq_types
-
-unique_16s_regions <- unique(bugsigdb$`16S variable region`)
-unique_16s_regions
-
-unique_seq_plats <- unique(unlist(strsplit(bugsigdb$`Sequencing platform`, split = ",(?! )", perl = TRUE)))
-unique_seq_plats
+ref_seq_types <- controlled_vocab$sequencing_type
+ref_16s_regions <- controlled_vocab$variable_region_16S
+ref_seq_plats <- controlled_vocab$sequencing_platform
 
 method <- df$`Diagnostic Method`
 
-seq_res <- run_diagnostic_method_prompt(
-  method, unique_seq_types, unique_16s_regions, unique_seq_plats)
+if (!check_prev_prompt(data.table(method), 'seq_res', prompt_fixes)) {
+  
+  prompt_fixes$seq_res <- run_diagnostic_method_prompt(
+    method, ref_seq_types, ref_16s_regions, ref_seq_plats)
+  
+  saveRDS(prompt_fixes, prompt_fixes_file)
+}
 
 # get possible PMIDs ----
 

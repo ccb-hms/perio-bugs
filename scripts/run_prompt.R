@@ -1,3 +1,11 @@
+# for checking if the previous prompt results are saved and valid
+check_prev_prompt <- function(messy_data, check_name, prompt_fixes) {
+  prompt_res <- prompt_fixes[[check_name]]
+  if (is.null(prompt_res)) return(FALSE)
+  if (nrow(messy_data) != nrow(prompt_res)) return(FALSE)
+  return(TRUE)
+}
+
 # helper utility for other run_..._prompt functions
 run_prompt <- function(chat, prompt, type_clean_df) {
   
@@ -18,10 +26,109 @@ run_prompt <- function(chat, prompt, type_clean_df) {
   return(clean_results_df)
 }
 
+run_sum_group_size_prompt <- function(messy_data, model = c("gemini-2.0-flash", "gpt-oss:20b")) {
+  model <- match.arg(model)
+  
+  messy_data <- rownames_to_column(messy_data, 'row')
+  
+  # create the chat object
+  model_functions <- list(
+    "gemini-2.0-flash" = ellmer::chat_google_gemini,
+    "gpt-oss:20b"      = ellmer::chat_ollama
+  )
+  
+  # Call the relevant function with the desired model argument
+  chat <- model_functions[[model]](model = model)
+  
+  # few shot prompts ----
+  dirty_cols <- 'messy_num'
+  clean_cols <- 'clean_num'
+  
+  # column order is as above
+  # one example per line with messy then clean for ease of creating examples
+  data_example <- list(
+    c("CP: 30, AgP: 26", "30+26"),
+    c("ModP: 12, SevP: 13", "12+13"),
+    c("87", "87"),
+    c("15 [localised aggressive periodontitis], 25 [generalised aggressive periodontitis], 30 [chronic periodontitis]", "15+25+30"),
+    c("60.67", "60+67"),
+    c("ND", "NA"),
+    c("NA", "NA")
+  )
+  
+  data_example <- do.call(rbind, data_example) |> 
+    as.tibble() |> 
+    setNames(c(dirty_cols, clean_cols)) |> 
+    rownames_to_column('row')
+  
+  messy_data_example <- data_example |> 
+    select(row, all_of(dirty_cols))
+  
+  clean_data_example <- data_example |> 
+    select(row, all_of(clean_cols))
+  
+  # desired output structure ----
+  type_clean_cols <- ellmer::type_object(
+    row = ellmer::type_string(
+      description = "The original row number in the messy data."
+    ),
+    clean_num = ellmer::type_string(
+      description = "The total number of individuals in the group",
+      required = FALSE
+    )
+  )
+  
+  type_clean_df <- ellmer::type_array(type_clean_cols)
+  
+  # the actual prompt ----
+  
+  prompt <- glue::glue("
+  Extract the total number of individuals from this JSON:
+  
+  {jsonlite::toJSON(messy_data, na='string')}
+  
+  Note that:
+  - sum subgroups if specified (e.g. 'CP: 30, AgP: 26' should be '30+26')
+  - do not attempt to evaluate sums (e.g. leave above as '30+26', NOT '56')
+  - set 'ND' or 'NA' or similar to 'NA'
+  
+  Below are a few examples of how values should be fixed. 
+  Here are some of the original messy values:
+  
+  {jsonlite::toJSON(messy_data_example, na='string')}
+  
+  and the corresponding cleaned values:
+  
+  {jsonlite::toJSON(clean_data_example, na='string')}
+  
+  ")
+  
+  res <- run_prompt(chat, prompt, type_clean_df)
+  
+  stopifnot(all.equal(res$row, messy_data$row))
+  
+  # evaluate strings
+  res_eval <- as.data.frame(
+    apply(res, 2, 
+          function(col) sapply(
+            col, function(x) eval(parse(text = x)),
+            simplify = TRUE
+          )
+    )
+  )
+  
+  res_final <- dplyr::bind_cols(
+    dplyr::select(messy_data, -row),
+    dplyr::select(res_eval, -row)
+  )
+  
+  return(res_final)
+}
+
 run_diagnostic_method_prompt <- function(method, 
-                                         unique_seq_types,
-                                         unique_16s_regions,
-                                         unique_seq_plats,
+                                         ref_seq_types,
+                                         ref_16s_regions,
+                                         ref_seq_plats,
                                          model = c("gemini-2.0-flash", "gpt-oss:20b")) {
   
   model <- match.arg(model)
@@ -39,7 +146,8 @@ run_diagnostic_method_prompt <- function(method,
   chat <- model_functions[[model]](model = model)
   
   # few shot prompts ----
-  cols <- c('method', 'seq_type', '16s_regions', 'seq_plat')
+  dirty_cols <- c('method')
+  clean_cols <- c('seq_type', '16s_regions', 'seq_plat')
   
   # column order is as above
   # one example per line with messy then clean for ease of creating examples
@@ -54,24 +162,25 @@ run_diagnostic_method_prompt <- function(method,
     c('16S rRNA gene sequencing (V4 region)', '16S', '4', NA),
     c('454 FLX Titanium pyrosequencing (V1-V3)', '16S', '123', 'Roche454'),
     c('MALDI-TOF-MS', NA, NA, 'Mass spectrometry'),
+    c('HOMIM', NA, NA, NA),
     c('Metatranscriptomic Illumina sequencing', 'WMS', NA, 'Illumina'),
     c('Illumina sequencing (V1-V2 and V5-V6 regions) of the 16S rRNA gene', '16S', '1256', 'Illumina')
   )
   
   data_example <- do.call(rbind, data_example) |> 
     as.tibble() |> 
-    setNames(cols) |> 
+    setNames(c(dirty_cols, clean_cols)) |> 
     rownames_to_column('row')
   
   messy_data_example <- data_example |> 
-    select(row, method)
+    select(row, all_of(dirty_cols))
   
   clean_data_example <- data_example |> 
-    select(row, seq_type, `16s_regions`, seq_plat)
+    select(row, all_of(clean_cols))
   
   # so that we can get NA from enum
-  unique_seq_types[is.na(unique_seq_types)] <- 'NA'
-  unique_seq_plats[is.na(unique_seq_plats)] <- 'NA'
+  ref_seq_types <- c(ref_seq_types, 'NA')
+  ref_seq_plats <- c(ref_seq_plats, 'NA')
   
   # desired output structure ----
   type_clean_cols <- ellmer::type_object(
@@ -79,14 +188,14 @@ run_diagnostic_method_prompt <- function(method,
       description = "The original row number in the messy data."
     ),
     seq_type = ellmer::type_enum(
-      values = unique_seq_types,
+      values = ref_seq_types,
       description = "The sequencing type."
     ),
     `16s_regions` = ellmer::type_string(
       description = "The 16S variable regions when seq_type is 16S."
     ),
     seq_plat = ellmer::type_enum(
-      values = unique_seq_plats,
+      values = ref_seq_plats,
       description = "The sequencing platform."
     )
   )
@@ -234,7 +343,6 @@ run_num_percent_prompt <- function(messy_data, model = c("gemini-2.0-flash", "gp
     dplyr::select(messy_data, -row),
     dplyr::select(res, -row)
   )
-  
   
   return(res_final)
 }
