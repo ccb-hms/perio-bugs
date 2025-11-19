@@ -439,6 +439,60 @@ get_prompt_specifics <- function(prompt_name) {
     "
   )
   
+  # supp health ----
+  supp_health = list(
+    dirty_cols =c('messy_percent', 'messy_sd'),
+    clean_cols = c('clean_percent', 'clean_sd'),
+    eval_res = TRUE,
+    data_example = list(
+      c(NA, NA, NA, NA),
+      c('0', NA, '0', NA),
+      c('ND', NA, NA, NA),
+      c('0.0', NA, '0.0', NA),
+      c('not reported', NA, NA, NA),
+      c('0  (6 sites per tooth of all teeth, excl 3rd molars)', NA, '0', NA),
+      c('0.0±0.0 (% sites with suppuration (0/1), measured at six sites per tooth  (MB, B, DB, DL, L and ML) in all teeth, excl 3rd molars)', NA, '0.0', '0.0'),
+      c('0 (suppuration (SUP), %sites, measured at 6 sites per tooth)', NA, '0', NA),
+      c('0 ± 0', NA, '0', '0'),
+      c('0 (%)', NA, '0', NA)
+    ),
+    prompt_notes = "
+    Note that:
+    - row should be preserved exactly, going from 1 to {nrow(messy_data)}
+    - values like 'ND' or 'NA' or 'not reported' should be set to 'NA'
+    - if any cases are provided exactly as examples of messy data, they should be cleaned exactly as shown
+    "
+  )
+  
+  # supp perio ----
+  supp_perio = list(
+    dirty_cols =c('messy_percent', 'messy_sd'),
+    clean_cols = c('clean_percent', 'clean_sd'),
+    eval_res = TRUE,
+    data_example = list(
+      c('not reported', NA, NA, NA),
+      c(NA, NA, NA, NA),
+      c('ND', NA, NA, NA),
+      c('3.57±3.78', NA, '3.57', '3.78'),
+      c('3.09 ± 3.7', NA, '3.09', '3.7'),
+      c('10 ± 19', NA, '10', '19'),
+      c('0.05', '0.11', '0.05', '0.11'),
+      c('1', '2.5', '1', '2.5'),
+      c('10', '19.00', '10', '19.00'),
+      c('1.1±0.8 (% sites with suppuration (0/1), measured at six sites per tooth (measured at six sites per tooth (MB, B, DB, DL, L and ML) in all teeth, excl 3rd molars)', NA, '1.1', '0.8'),
+      c('GAgP: 4.32 ± 3.49, GChP: 3.09 ± 3.7 (% sites with suppuration (0/1), measured at six sites per tooth (measured at six sites per tooth (MB, B, DB, DL, L and ML) in all teeth, excl 3rd molars)', NA, NA, NA),
+      c('ChP: 0.4 ± 0.9, AgP: 1.1 ± 1.9 (%SUP, full mouth)', NA, NA, NA)
+    ),
+    prompt_notes = "
+    Note that:
+    - row should be preserved exactly, going from 1 to {nrow(messy_data)}
+    - values like 'ND' or 'NA' or 'not reported' should be set to 'NA'
+    - if any cases are provided exactly as examples of messy data, they should be cleaned exactly as shown
+    - if multiple subgroups are given (e.g. 'ChP: 0.4 ± 0.9, AgP: 1.1 ± 1.9 (%SUP, full mouth)'),
+      set both 'clean_percent' and 'clean_sd' to NA
+    "
+  )
+  
   # put all together ----
   prompt_specifics <- list(
     sum_group_size = sum_group_size,
@@ -450,7 +504,9 @@ get_prompt_specifics <- function(prompt_name) {
     smokers_health = smokers_health,
     smokers_perio = smokers_perio,
     bop_health = bop_health,
-    bop_perio = bop_perio
+    bop_perio = bop_perio,
+    supp_health = supp_health,
+    supp_perio = supp_perio
   )
   
   return(prompt_specifics[[prompt_name]])

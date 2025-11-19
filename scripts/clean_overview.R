@@ -354,10 +354,7 @@ supp_perio_messy <- tibble(
 
 if (!check_prev_prompt(supp_perio_messy, 'supp_perio', prompt_fixes)) {
   
-  prompt_fixes$supp_perio <- run_percent_sd_prompt(
-    supp_perio_messy, 
-    focus = 'suppuration (SUP)')
-  
+  prompt_fixes$supp_perio <- run_generic_prompt(supp_perio_messy, 'supp_perio')
   saveRDS(prompt_fixes, prompt_fixes_file)
 }
 
