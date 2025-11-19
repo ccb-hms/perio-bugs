@@ -654,6 +654,79 @@ get_prompt_specifics <- function(prompt_name) {
   
   
   
+  # cal health ----
+  cal_health = list(
+    dirty_cols = c('messy_num', 'messy_sd'),
+    clean_cols = c('clean_num', 'clean_sd'),
+    eval_res = TRUE,
+    data_example = list(
+      c(NA, NA, NA, NA),
+      c('0.1± 0.6', NA, '0.1', '0.6'),
+      c('2.39±0.35', NA, '2.39', '0.35'),
+      c('1.7 ±  0.06 mm', NA, '1.7', '0.06'),
+      c('ND', NA, NA, NA),
+      c('2,2 ± 0,6 mm', NA, '2.2', '0.6'),
+      c('1.05', NA, '1.05', NA),
+      c('2.8', NA, '2.8', NA),
+      c('1.6±0.7mm full-mouth', NA, '1.6', '0.7'),
+      c('ND (<4 mm: 99% / 4–6 mm: 1% / >6 mm: 0% (% of sites); 6 sites per tooth of all teeth, excl 3rd molars)', NA, NA, NA),
+      c('≤1 (CAL in >30% of sites)', NA, NA, NA),
+      c('0.2 (0.5)', NA, '0.2', '0.5'),
+      c('1,575 mm', NA, '1.575', NA),
+      c('health: 1.8 ± 0.5 / gingivitis: 2.0 ± 0.4', NA, NA, NA),
+      c('0.00 (0.00–0.17) (median, interquartile range)', NA, '0', NA)
+    ),
+    prompt_notes = "
+    Note that:
+    - row should be preserved exactly, going from 1 to {nrow(messy_data)}
+    - values like 'ND' or 'NA' or 'not reported' should be set to 'NA'
+    - if only a range is given (e.g. '≤1 (CAL in >30% of sites)'), set both 'clean_num'
+      and 'clean_sd' to 'NA'
+    - if multiple subgroups are given (e.g. 'health: 1.8 ± 0.5 / gingivitis: 2.0 ± 0.4'),
+      set both 'clean_num' and 'clean_sd' to 'NA'
+    - if any cases are provided exactly as examples of messy data, they should be cleaned exactly as shown
+    
+    "
+  )
+  
+  
+  
+  # cal perio ----
+  cal_perio = list(
+    dirty_cols = c('messy_num', 'messy_sd'),
+    clean_cols = c('clean_num', 'clean_sd'),
+    eval_res = TRUE,
+    data_example = list(
+      c('not reported', NA, NA, NA),
+      c('39.5± 16.3', NA, '39.5', '16.3'),
+      c('4.41±1.27', NA, '4.41', '1.27'),
+      c('3.5 ±   0.08 ;  4.3 ±  0.12', NA, NA, NA),
+      c('4.7 ± 1.1', NA, '4.7', '1.1'),
+      c('ND', NA, NA, NA),
+      c('3,9 ± 1,5 mm', NA, '3.9', '1.5'),
+      c('5.0599999999999996', '0.910', '5.06', '0.910'),
+      c('5.4', '0.160', '5.4', '0.160'),
+      c('3.0 ± 0.4 [localised aggressive periodontitis], 4.7 ± 1.2 [generalised aggressive periodontitis], 4.3 ± 1.0 [chronic periodontitis]', NA, NA, NA),
+      c('4.9±0.7mm full-mouth', NA, '4.9', '0.7'),
+      c('ChP: 3.3 ± 1.2, AgP: 5.2 ± 1.0 (full mouth)', NA, NA, NA),
+      c('≥3 (CAL (mm) in >30% of sites)', NA, NA, NA),
+      c('5.3 (2.4, 2-13)', NA, '5.3', '2.4'),
+      c('0.92 (0.54–1.79) (median, interquartile range)', NA, '0.92', NA)
+    ),
+    prompt_notes = "
+    Note that:
+    - row should be preserved exactly, going from 1 to {nrow(messy_data)}
+    - values like 'ND' or 'NA' or 'not reported' should be set to 'NA'
+    - if only a range is given (e.g. '≥3 (CAL (mm) in >30% of sites)'), set both 'clean_num'
+      and 'clean_sd' to 'NA'
+    - if multiple subgroups are given (e.g. 'ChP: 3.3 ± 1.2, AgP: 5.2 ± 1.0 (full mouth)'),
+      set both 'clean_num' and 'clean_sd' to 'NA'
+    - if any cases are provided exactly as examples of messy data, they should be cleaned exactly as shown
+    "
+  )
+  
+  
+  
   # put all together ----
   prompt_specifics <- list(
     age_overall = age_overall,
@@ -672,7 +745,9 @@ get_prompt_specifics <- function(prompt_name) {
     supp_health = supp_health,
     supp_perio = supp_perio,
     pd_health = pd_health,
-    pd_perio = pd_perio
+    pd_perio = pd_perio,
+    cal_health = cal_health,
+    cal_perio = cal_perio
   )
   
   return(prompt_specifics[[prompt_name]])

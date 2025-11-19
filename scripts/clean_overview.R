@@ -412,10 +412,30 @@ if (!check_prev_prompt(pd_perio_messy, 'pd_perio', prompt_fixes)) {
 }
 
 # clinical attachment loss  -----
-# "Group 0 clinical attachment loss (mm)" =  cal_mean_health,
-# "Group 0 clinical attachment loss SD" =  cal_sd_health,
-# "Group 1 clinical attachment loss (mm)" =  cal_mean_perio,
-# "Group 1 clinical attachment loss SD" =  cal_sd_perio,
+
+# healthy group
+cal_health_messy <- tibble(
+  messy_num = df$`Clinical attachment loss/level (mm; mean+-SD) (periodontal health)`,
+  messy_sd = df$`CAL. SD (periodontal health)`
+)
+
+if (!check_prev_prompt(cal_health_messy, 'cal_health', prompt_fixes)) {
+  
+  prompt_fixes$cal_health <- run_generic_prompt(cal_health_messy, 'cal_health')
+  saveRDS(prompt_fixes, prompt_fixes_file)
+}
+
+# perio group
+cal_perio_messy <- tibble(
+  messy_num = df$`Clinical attachment loss/level (mm; mean+-SD) (periodontitis)`,
+  messy_sd = df$`CAL. SD (periodontitis)`
+)
+
+if (!check_prev_prompt(cal_perio_messy, 'cal_perio', prompt_fixes)) {
+  
+  prompt_fixes$cal_perio <- run_generic_prompt(cal_perio_messy, 'cal_perio')
+  saveRDS(prompt_fixes, prompt_fixes_file)
+}
 
 # plaque  -----
 # "Group 0 plaque" =  plaque_mean_health,
