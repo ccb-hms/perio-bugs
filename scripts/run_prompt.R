@@ -231,13 +231,226 @@ get_prompt_specifics <- function(prompt_name) {
     "
   )
   
+  # smokers overall ----
+  smokers_overall = list(
+    dirty_cols ='messy_num',
+    clean_cols = c('clean_num', 'clean_percent'),
+    eval_res = TRUE,
+    data_example = list(
+      c('ND', NA, NA),
+      c('2 (4.9%)*', '2', '4.9'),
+      c('59 (27.0%)*', '59', '27.0'),
+      c('37.7 %', NA, '37.7'),
+      c('50% H 40% P', NA, NA),
+      c('50, 32.47%', '50', '32.47'),
+      c('n=13', '13', NA),
+      c('Excluded', '0', '0'),
+      c('0', '0', '0'),
+      c('0.34100000000000003', NA, '34.1'),
+      c('0 , 38 %, 80%', NA, NA),
+      c('3.5000000000000003E-2', NA, '3.5'),
+      c('10', '10', NA),
+      c('30', '30', NA),
+      c('12,5  25', NA, NA)
+    ),
+    prompt_notes = "
+    Note that:
+    - if 'clean_num' or 'clean_percent' will be set to '0', set both to '0'
+    - if 'messy_num' indicates an exclusion criteria ('Excluded' or similar language),
+      set both 'clean_num' and 'clean_percent' to '0'
+    - row should be preserved exactly, going from 1 to {nrow(messy_data)}
+    - 'ND' or 'NA' should be set to 'NA'
+    - fractions (e.g. 0.371) should be treated as percentages to go in 'clean_percent' (e.g. '37.1')
+    - 'clean_num' should always be an integer
+    - if any cases are provided exactly as examples of messy data, they should be cleaned exactly as shown
+    "
+  )
+  
+  # smokers health ----
+  smokers_health = list(
+    dirty_cols =c('messy_num', 'messy_percent'),
+    clean_cols = c('clean_num', 'clean_percent'),
+    eval_res = TRUE,
+    data_example = list(
+     c('7', '29.2', '7', '29.2'),
+     c('18 (12.3%)', NA, '18', '12.3'),
+     c('ND', NA, NA, NA),
+     c('0.11600000000000001', NA, NA, '11.6'),
+     c('exclusion criteria', NA, '0', '0'),
+     c('0', NA, '0', '0'),
+     c('Excluded', NA, '0', '0'),
+     c('4 (18.2%)', NA, '4', '18.2'),
+     c('n=4', NA, '4', NA),
+     c('9.1999999999999998E-2', NA, NA, '9.20'),
+     c('18', '22.2', '18', '22.2'),
+     c('37.65±10.88', NA, NA, '37.65'),
+     c('0.5', NA, NA, '50'),
+     c('not reported', NA, NA, NA),
+     c('4 (31%) heatlh / 3 (17%) gingivitis', NA, '4+3', '(4+3)/((4/.31)+(3/.17))*100'),
+     c('32.4% of all cigarette smokers were in Controls group, 22.2% of all water pipe smokers were in Controls group, 50.0% of all qat chewers were in Controls group', NA, NA, NA)
+    ),
+    prompt_notes = "
+    Note that:
+    - if 'clean_num' or 'clean_percent' will be set to '0', set both to '0'
+    - row should be preserved exactly, going from 1 to {nrow(messy_data)}
+    - 'ND' or 'NA' should be set to 'NA'
+    - if any cases are provided exactly as examples of messy data, they should be cleaned exactly as shown
+    - fractions (e.g. 0.371) should be treated as percentages to go in 'clean_percent' (e.g. '37.1')
+    - 'clean_num' should always be an integer
+    - if values for multiple subgroups are provided (e.g. '4 (31%) heatlh / 3 (17%) gingivitis'), 
+      'clean_num' should sum of individuals in subgroups (e.g. '4+3') and 'clean_percent' should be
+      sum of individuals in subgroups divided by sum of calculated total size of subgroups 
+      (e.g. '(4+3)/((4/.31)+(3/.17))*100')
+    "
+  )
+  
+  # smokers perio ----
+  smokers_perio = list(
+    dirty_cols =c('messy_num', 'messy_percent'),
+    clean_cols = c('clean_num', 'clean_percent'),
+    eval_res = TRUE,
+    data_example = list(
+      c('34', '50.00', '34', '50.00'),
+      c('26 (24.8%)', NA, '26', '24.8'),
+      c('44.7, 4,1 % *', NA, NA, NA),
+      c('0', NA, '0', '0'),
+      c('178', '28.00', '178', '28.00'),
+      c('PCnoS group: 0, PCS group: 6 (100%)', NA, '6+0', NA),
+      c('43.1', NA, NA, '43.1'),
+      c('n=29', NA, '29', NA),
+      c('12 (25)', NA, '12', '25'),
+      c('0.2', NA, NA, '20'),
+      c('excluded', NA, '0', '0'),
+      c('0', '0.00', '0', '0'),
+      c('ChP: 10 (27.5%)*, AgP: 1 (2.9%)*', NA, '10+1', '(10+1)/((10/.275)+(1/.029))*100'),
+      c('active: 10 (83%)* / recession: 1 (20%)', NA, '10+1', '(10+1)/((10/.83)+(1/.20))*100'),
+      c('Current 17 (38.6) Former 4 (9.1)', NA, '17+4', '(17+4)/((17/.386)+(4/.091))*100'),
+      c('6 (46.15%)*', NA, '6', '46.15'),
+      c('2', '7.7', '2', '7.7'),
+      c('Ap 27, 34.6% / Cp 14, 22.2%', NA, '27+14', '(27+14)/((27/.346)+(14/.222))*100'),
+      c('n=29', NA, '29', NA),
+      c('0.40500000000000003', NA, NA, '40.5'),
+      c('ND', NA, NA, NA),
+      c('38-80%', NA, NA, NA),
+      c('49 (28.8%) [AgP and CP]*, 23 (30.7%) [AgP], 26 (27.4%) [CP]', NA, '49', '28.8'),
+      c('67.6% of all cigarette smokers were in Cases group, 77.8% of all cigarette smokers were in Cases group, 50.0% of all cigarette smokers were in Cases group', NA, NA, NA)
+      ),
+    prompt_notes = "
+    Note that:
+    - if 'clean_num' or 'clean_percent' will be set to '0', set both to '0'
+    - if any cases are provided exactly as examples of messy data, they should be cleaned exactly as shown
+    - row should be preserved exactly, going from 1 to {nrow(messy_data)}
+    - 'ND' or 'NA' should be set to 'NA'
+    - fractions (e.g. 0.371) should be treated as percentages to go in 'clean_percent' (e.g. '37.1')
+    - 'clean_num' should always be an integer
+    - if values for multiple subgroups are provided (e.g. 'Ap 27, 34.6% / Cp 14, 22.2%'), 
+      'clean_num' should sum of individuals in subgroups (e.g. '27+14') and 'clean_percent' should be
+      sum of individuals in subgroups divided by sum of calculated total size of subgroups 
+      (e.g. '(27+14)/((27/.346)+(14/.222))*100')
+    - if values for multiple subgroups are provided in addition to overall values (e.g. 
+      '49 (28.8%) [AgP and CP]*, 23 (30.7%) [AgP], 26 (27.4%) [CP]'), 'clean_num' should be the overall
+      group size (e.g. '49') and 'clean_percent' should be the overall group percent (e.g. '28.8')
+    "
+  )
+  
+  # bop health ----
+  bop_health = list(
+    dirty_cols =c('messy_percent', 'messy_sd'),
+    clean_cols = c('clean_percent', 'clean_sd'),
+    eval_res = TRUE,
+    data_example = list(
+      c(NA, NA, NA, NA),
+      c('10.31±9.25', NA, '10.31', '9.25'),
+      c('4.0 ±  0.5 %', NA, '4.0', '0.5'),
+      c('8 ± 9', NA, '8', '9'),
+      c('ND', NA, NA, NA),
+      c('1,9 ± 4,1 %', NA, '1.9', '4.1'),
+      c('0.0', NA, '0', NA),
+      c('6', '5.00', '6', '5.00'),
+      c('0.56±0.18 (GI)', NA, NA, NA),
+      c('<30% [FMBS}', NA, NA, NA),
+      c('range: 11.90-48.20* (% of total, full mouth BOP)', NA, NA, NA),
+      c('not reported', NA, NA, NA),
+      c('2.1 ± 1.1 and 3.2 ± 1.8 (% sites with gingival bleeding (0/1) and BOP (0/1), measured at six sites per tooth (MB, B, DB, DL, L and ML) in all teeth, excl 3rd molars)', NA, '3.2', '1.8'),
+      c('4.5 ± 2.7 (%)', NA, '4.5', '2.7'),
+      c('11.40 ± 1.22 (gingival plaque index)', NA, NA, NA),
+      c('5.8 ± 0.5 (6 sites per tooth of all teeth, excl 3rd molars) - BOP(% of sites)', NA, '5.8', '0.5'),
+      c('1±1% BOP, full-mouth, 6 ± 3% gingival bleeding (GB) full-mouth', NA, '1', '1')
+    ),
+    prompt_notes = "
+    Note that:
+    - row should be preserved exactly, going from 1 to {nrow(messy_data)}
+    - 'ND' or 'NA' should be set to 'NA'
+    - if any cases are provided exactly as examples of messy data, they should be cleaned exactly as shown
+    - if multiple measures are reported (e.g. '1±1% BOP, full-mouth, 6 ± 3% gingival bleeding (GB) full-mouth' 
+      report both bleeding on probing (BOP) and gingival bleeding (GB)) extract only the bleeding on probing
+      (e.g. 'clean_percent': '1' and 'clean_sd': '1')
+    - if a single measure is reported and there is an indication that it is not related to bleeding on probing (BOP)
+      (e.g. '0.56±0.18 (GI)'), set both 'clean_percent' and 'clean_sd' to 'NA'
+    - if a range is reported (e.g. <30% [FMBS}' or 'range: 11.90-48.20* (% of total, full mouth BOP)')
+      set both 'clean_percent' and 'clean_sd' to NA
+    "
+  )
+  
+  # bop perio ----
+  bop_perio = list(
+    dirty_cols =c('messy_percent', 'messy_sd'),
+    clean_cols = c('clean_percent', 'clean_sd'),
+    eval_res = TRUE,
+    data_example = list(
+      c('not reported', NA, NA, NA),
+      c('72.30±23.05', NA, '72.30', '23.05'),
+      c('40.9 ±  1.6 ; 64.5 ± 3.1 %', NA, NA, NA),
+      c('72 ± 28', NA, '72', '28'),
+      c('ND', NA, NA, NA),
+      c('0.53249999999999997', NA, '53.25', NA),
+      c('0.64', NA, '64', NA),
+      c('0.97 ± 0.02 [sampled tooth]', '0.02', '97', '2'),
+      c('47,2 ± 29', NA, '47.2', '29'),
+      c('100.0%', NA, '100', NA),
+      c('0.97 ± 0.02 [sampled tooth]', '0.02', '0.97', '0.02'),
+      c('35.78 ± 0.53 (%) (gingival plaque index)', NA, NA, NA),
+      c('19.3 ± 2.8 (6 sites per tooth of all teeth, excl 3rd molars) - BOP (% of sites) AND 19.5 (2.5) - GI (gingival bleeding (GI)) (6 sites per tooth of all teeth, excl 3rd molars)', NA, '19.3', '2.8'),
+      c('68±10% BOP full-mouth, 31 ± 6% full-mouth, gingival bleeding (GB) (%sites) full-mouth', NA, '68', '10'),
+      c('27.7±15.3 and 78.9±14.1 (% sites with gingival bleeding (0/1) and BOP (0/1), measured at six sites per tooth (measured at six sites per tooth (MB, B, DB, DL, L and ML) in all teeth, excl 3rd molars)', NA, '78.9', '14.1'),
+      c('35.5 ± 4.8 [localised aggressive periodontitis], 68.7 ± 15.8 [generalised aggressive periodontitis], 63.6 ± 20.2 [chronic periodontitis]', NA, NA, NA),
+      c('≥30% [FMBS]', NA, NA, NA),
+      c('ND', NA, NA, NA),
+      c('65.1 % (20.3)', NA, '65.1', '20.3'),
+      c('ChP: 51.5 ± 18.0, AgP: 72.3 ± 18.6 (%BOP, full mouth)', NA, NA, NA)
+    ),
+    prompt_notes = "
+    Note that:
+    - row should be preserved exactly, going from 1 to {nrow(messy_data)}
+    - 'ND' or 'NA' should be set to 'NA'
+    - if any cases are provided exactly as examples of messy data, they should be cleaned exactly as shown
+    - fractions (e.g. '0.64') should be treated as percents (e.g. 'clean_percent': '64')
+    - fractions (e.g. '0.97 ± 0.02 [sampled tooth]') should be treated as percents 
+      (e.g. 'clean_percent': '97' and 'clean_sd': '2')
+    - if multiple measures are reported (e.g. '68±10% BOP full-mouth, 31 ± 6% full-mouth, gingival bleeding (GB) (%sites) full-mouth' 
+      report both bleeding on probing (BOP) and gingival bleeding (GB)) extract only the bleeding on probing
+      (e.g. 'clean_percent': '68' and 'clean_sd': '10')
+    - if a single measure is reported and there is an indication that it is not related to bleeding on probing (BOP)
+      (e.g. '35.78 ± 0.53 (%) (gingival plaque index)'), set both 'clean_percent' and 'clean_sd' to 'NA'
+    - if a range is reported (e.g. ≥30% [FMBS]' or 'range: 69.87-100.00*  (% of total, full mouth BOP)')
+      set both 'clean_percent' and 'clean_sd' to NA
+    - if multiple subgroups are given (e.g. 'ChP: 51.5 ± 18.0, AgP: 72.3 ± 18.6 (%BOP, full mouth)'),
+      set both 'clean_percent' and 'clean_sd' to NA
+    "
+  )
+  
   # put all together ----
   prompt_specifics <- list(
     sum_group_size = sum_group_size,
     diagnostic_method = diagnostic_method,
     males_overall = males_overall,
     males_health = males_health,
-    males_perio = males_perio
+    males_perio = males_perio,
+    smokers_overall = smokers_overall,
+    smokers_health = smokers_health,
+    smokers_perio = smokers_perio,
+    bop_health = bop_health,
+    bop_perio = bop_perio
   )
   
   return(prompt_specifics[[prompt_name]])

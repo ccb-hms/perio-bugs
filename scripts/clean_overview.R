@@ -277,7 +277,7 @@ smokers_overall_messy <- tibble(
 
 if (!check_prev_prompt(smokers_overall_messy, 'smokers_overall', prompt_fixes)) {
   
-  prompt_fixes$smokers_overall <- run_num_percent_prompt(smokers_overall_messy)
+  prompt_fixes$smokers_overall <- run_generic_prompt(smokers_overall_messy, 'smokers_overall')
   saveRDS(prompt_fixes, prompt_fixes_file)
 }
 
@@ -289,7 +289,7 @@ smokers_health_messy <- tibble(
 
 if (!check_prev_prompt(smokers_health_messy, 'smokers_health', prompt_fixes)) {
   
-  prompt_fixes$smokers_health <- run_num_percent_prompt(smokers_health_messy)
+  prompt_fixes$smokers_health <- run_generic_prompt(smokers_health_messy, 'smokers_health')
   saveRDS(prompt_fixes, prompt_fixes_file)
 }
 
@@ -301,11 +301,9 @@ smokers_perio_messy <- tibble(
 
 if (!check_prev_prompt(smokers_perio_messy, 'smokers_perio', prompt_fixes)) {
   
-  prompt_fixes$smokers_perio <- run_num_percent_prompt(smokers_perio_messy)
+  prompt_fixes$smokers_perio <- run_generic_prompt(smokers_perio_messy, 'smokers_perio')
   saveRDS(prompt_fixes, prompt_fixes_file)
 }
-
-
 
 # bleeding on probing ----
 
@@ -317,11 +315,7 @@ bop_health_messy <- tibble(
 
 if (!check_prev_prompt(bop_health_messy, 'bop_health', prompt_fixes)) {
   
-  prompt_fixes$bop_health <- run_percent_sd_prompt(
-    bop_health_messy, 
-    focus = 'bleeding on probing (BOP)'
-  )
-  
+  prompt_fixes$bop_health <- run_generic_prompt(bop_health_messy, 'bop_health')
   saveRDS(prompt_fixes, prompt_fixes_file)
 }
 
@@ -334,11 +328,7 @@ bop_perio_messy <- tibble(
 
 if (!check_prev_prompt(bop_perio_messy, 'bop_perio', prompt_fixes)) {
   
-  prompt_fixes$bop_perio <- run_percent_sd_prompt(
-    bop_perio_messy, 
-    focus = 'bleeding on probing (BOP)'
-  )
-  
+  prompt_fixes$bop_perio <- run_generic_prompt(bop_perio_messy, 'bop_perio')
   saveRDS(prompt_fixes, prompt_fixes_file)
 }
 
@@ -352,10 +342,7 @@ supp_health_messy <- tibble(
 
 if (!check_prev_prompt(supp_health_messy, 'supp_health', prompt_fixes)) {
   
-  prompt_fixes$supp_health <- run_percent_sd_prompt(
-    supp_health_messy, 
-    focus = 'suppuration (SUP)')
-  
+  prompt_fixes$supp_health <- run_generic_prompt(supp_health_messy, 'supp_health')
   saveRDS(prompt_fixes, prompt_fixes_file)
 }
 
