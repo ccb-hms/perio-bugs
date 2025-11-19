@@ -77,32 +77,29 @@ get_type_clean_cols <- function(clean_cols) {
 
 get_prompt_specifics <- function(prompt_name) {
   
-  # males overall
-  males_overall = list(
-    dirty_cols ='messy_num',
-    clean_cols = c('clean_num', 'clean_percent'),
+  # sum group size -----
+  sum_group_size = list(
+    dirty_cols = 'messy_num',
+    clean_cols = 'clean_num',
     eval_res = TRUE,
     data_example = list(
-      c("0, 0%", "0", '0'),
-      c('89(35.5%)', '89', '35.5'),
-      c('27 ( 45%)', '27', '45'),
-      c(NA, NA, NA),
-      c('0.45', NA, '45'),
-      c('0', '0', '0'),
-      c('53, 33%', '53', '33'),
-      c('n=133', '133', NA)
+      c("CP: 30, AgP: 26", "30+26"),
+      c("ModP: 12, SevP: 13", "12+13"),
+      c("87", "87"),
+      c("15 [localised aggressive periodontitis], 25 [generalised aggressive periodontitis], 30 [chronic periodontitis]", "15+25+30"),
+      c("60.67", "60+67"),
+      c("ND", "NA"),
+      c("NA", "NA")
     ),
     prompt_notes = "
     Note that:
-    - if 'clean_num' or 'clean_percent' will be set to '0', set both to '0'
-    - row should be preserved exactly, going from 1 to {nrow(messy_data)}
-    - 'ND' or 'NA' should be set to 'NA'
-    - fractions (e.g. 0.371) should be treated as percentages to go in 'clean_percent' (e.g. '37.1')
-    - 'clean_num' should always be an integer
+    - sum subgroups if specified (e.g. 'CP: 30, AgP: 26' should be '30+26')
+    - do not attempt to evaluate sums (e.g. leave above as '30+26', NOT '56')
+    - set 'ND' or 'NA' or similar to 'NA'
     "
   )
   
-  # diagnostic method
+  # diagnostic method -----
   diagnostic_method = list(
     dirty_cols ='method',
     clean_cols = c('seq_type', '16s_regions', 'seq_plat'),
@@ -130,32 +127,117 @@ get_prompt_specifics <- function(prompt_name) {
       "
   )
   
-  # sum group size
-  sum_group_size = list(
-    dirty_cols = 'messy_num',
-    clean_cols = 'clean_num',
+  
+  # males overall ----
+  males_overall = list(
+    dirty_cols ='messy_num',
+    clean_cols = c('clean_num', 'clean_percent'),
     eval_res = TRUE,
     data_example = list(
-      c("CP: 30, AgP: 26", "30+26"),
-      c("ModP: 12, SevP: 13", "12+13"),
-      c("87", "87"),
-      c("15 [localised aggressive periodontitis], 25 [generalised aggressive periodontitis], 30 [chronic periodontitis]", "15+25+30"),
-      c("60.67", "60+67"),
-      c("ND", "NA"),
-      c("NA", "NA")
+      c("0, 0%", "0", '0'),
+      c('89(35.5%)', '89', '35.5'),
+      c('27 ( 45%)', '27', '45'),
+      c(NA, NA, NA),
+      c('0.45', NA, '45'),
+      c('0', '0', '0'),
+      c('53, 33%', '53', '33'),
+      c('n=133', '133', NA)
     ),
     prompt_notes = "
     Note that:
-    - sum subgroups if specified (e.g. 'CP: 30, AgP: 26' should be '30+26')
-    - do not attempt to evaluate sums (e.g. leave above as '30+26', NOT '56')
-    - set 'ND' or 'NA' or similar to 'NA'
+    - if 'clean_num' or 'clean_percent' will be set to '0', set both to '0'
+    - row should be preserved exactly, going from 1 to {nrow(messy_data)}
+    - 'ND' or 'NA' should be set to 'NA'
+    - fractions (e.g. 0.371) should be treated as percentages to go in 'clean_percent' (e.g. '37.1')
+    - 'clean_num' should always be an integer
     "
   )
   
+  # males health ----
+  males_health = list(
+    dirty_cols =c('messy_num', 'messy_percent'),
+    clean_cols = c('clean_num', 'clean_percent'),
+    eval_res = TRUE,
+    data_example = list(
+      c('46 (31,5%)', NA, '46', '31.5'),
+      c('n=13', NA, '13', NA),
+      c('0.37', NA, NA, '37'),
+      c('0.45', NA, NA, '45'),
+      c('0% (exclusion criteria)', NA, '0', '0'),
+      c('ND', NA, NA, NA),
+      c('17', '32.1%*', '17', '32.1'),
+      c('7', '50', '7', '50'),
+      c('41 (45.05%)', NA, '41', '45.05'),
+      c('26', '0.52', '26', '52'),
+      c('exclusion criteria', NA, '0', '0'),
+      c('45.9% of all males were in Controls group', NA, NA, NA),
+      c('health: 41*, 29.5% / gingivitis: 32*, 31.1%', NA, '41+32', '(41+32)/((41/.295)+(32/.311))*100'),
+      c('47,62%', NA, '47', '62')
+    ),
+    prompt_notes = "
+    Note that:
+    - if 'clean_num' or 'clean_percent' will be set to '0', set both to '0'
+    - row should be preserved exactly, going from 1 to {nrow(messy_data)}
+    - 'ND' or 'NA' should be set to 'NA'
+    - fractions (e.g. 0.371) should be treated as percentages to go in 'clean_percent' (e.g. '37.1')
+    - 'clean_num' should always be an integer
+    - if values for multiple subgroups are provided (e.g. 'health: 41*, 29.5% / gingivitis: 32*, 31.1%'), 
+      'clean_num' should sum of individuals in subgroups (e.g. '41+32') and 'clean_percent' should be
+      sum of individuals in subgroups divided by sum of calculated total size of subgroups 
+      (e.g. '(41+32)/((41/.295)+(32/.311))*100')
+    "
+  )
+  
+  # males perio ----
+  males_perio = list(
+    dirty_cols =c('messy_num', 'messy_percent'),
+    clean_cols = c('clean_num', 'clean_percent'),
+    eval_res = TRUE,
+    data_example = list(
+      c('0', '0', '0', '0'),
+      c('0.34200000000000003', NA, '0', '34.2'),
+      c('6', '34', '6', '34'),
+      c('59.2', NA, NA, '59.2'),
+      c('0.52', NA, NA, '52'),
+      c('37 (48.68%)', NA, '37', '48.68'),
+      c('ND', NA, NA, NA),
+      c('n=14', NA, '14', NA),
+      c('4 (66.67%)*', NA, '4', '66.67'),
+      c('41,18%', NA, '41', '18'),
+      c('343', '54', '343', '54'),
+      c('0.13', '26', NA, '26'),
+      c('4 (21.05%), (GAgP: 2 (22%)*, LAgP: 2 (23%)*)', NA, '4', '21.05'),
+      c('54.1% of all males were in Cases group', NA, NA, NA),
+      c('58 (34.1%) [AgP and CP]*, 23 (30.7%) [AgP], 35 (36.8%) [CP]', NA, '58', '34.1'),
+      c('24 (38.7%)36 (43.9%', NA, '24+36', '(24+36)/((24/.387)+(36/.439))*100'),
+      c('GAgP: 14 (46.67%), GChP: 13 (43.33%)', NA, '14+13', '(14+13)/((14.4667/)+(13/.4333))*100'),
+      c('6 (40.0%)* [localised aggressive periodontitis], 10 (40.0%)* [generalised aggressive periodontitis], 8 (26.7%)* [chronic periodontitis]', NA, '6+10+8', '(6+10+8)/((6/.40)+(10/.40)+(8/.267))*100')
+    ),
+    prompt_notes = "
+    Note that:
+    - if 'clean_num' or 'clean_percent' will be set to '0', set both to '0'
+    - if any cases are provided exactly as examples of messy data, they should be cleaned exactly as shown
+    - row should be preserved exactly, going from 1 to {nrow(messy_data)}
+    - 'ND' or 'NA' should be set to 'NA'
+    - fractions (e.g. 0.371) should be treated as percentages to go in 'clean_percent' (e.g. '37.1')
+    - 'clean_num' should always be an integer
+    - if values for multiple subgroups are provided (e.g. 'GAgP: 14 (46.67%), GChP: 13 (43.33%)'), 
+      'clean_num' should sum of individuals in subgroups (e.g. '14+13') and 'clean_percent' should be
+      sum of individuals in subgroups divided by sum of calculated total size of subgroups 
+      (e.g. '(14+13)/((14.4667/)+(13/.4333))*100')
+    - if values for multiple subgroups are provided in addition to overall values (e.g. 
+      '58 (34.1%) [AgP and CP]*, 23 (30.7%) [AgP], 35 (36.8%) [CP]'), 'clean_num' should be the overall
+      group size (e.g. '58') and 'clean_percent' should be the overall group percent (e.g. '34.1')
+    "
+  )
+  
+  # put all together ----
   prompt_specifics <- list(
     sum_group_size = sum_group_size,
     diagnostic_method = diagnostic_method,
-    males_overall = males_overall
+    males_overall = males_overall,
+    males_health = males_health,
+    males_perio = males_perio
   )
   
   return(prompt_specifics[[prompt_name]])

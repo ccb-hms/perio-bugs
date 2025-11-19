@@ -252,7 +252,6 @@ males_health_messy <- tibble(
 if (!check_prev_prompt(males_health_messy, 'males_health', prompt_fixes)) {
   
   prompt_fixes$males_health <- run_generic_prompt(males_health_messy, 'males_health')
-  prompt_fixes$males_health <- run_num_percent_prompt(males_health_messy)
   saveRDS(prompt_fixes, prompt_fixes_file)
 }
 
@@ -264,7 +263,7 @@ males_perio_messy <- tibble(
 
 if (!check_prev_prompt(males_perio_messy, 'males_perio', prompt_fixes)) {
   
-  prompt_fixes$males_perio <- run_num_percent_prompt(males_perio_messy)
+  prompt_fixes$males_perio <- run_generic_prompt(males_perio_messy, 'males_perio')
   saveRDS(prompt_fixes, prompt_fixes_file)
 }
 
