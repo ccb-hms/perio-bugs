@@ -389,7 +389,7 @@ sarahs_db2 <- process_sarahs_db2(microbe$`Sarah's Work (2`)
 overview_file <- 'output/overview_merged.rds'
 overview <- readRDS(overview_file)
 
-# none of "New DATABASE" is present in overview studies
+# all of "New DATABASE" is present in overview studies
 table(names(new_database$db_up) %in% overview$Number)
 
 # all of "Old Database" is present in overview studies
@@ -408,8 +408,17 @@ table(names(sarahs_db$db_up) %in% names(sarahs_db2$db_up))
 # have microbe data for all studies in overview
 table(
   overview$Number %in%
-    unique(c(names(old_database$db_up), names(sarahs_db2$db_up)))
+    unique(c(
+      names(new_database$db_up), 
+      names(old_database$db_up), 
+      names(sarahs_db2$db_up)
+      ))
 )
+
+# New DATABASE: setup ----
+new_database <- process_database(microbe$`New DATABASE`)
+
+#TODO process New DATABASE (should be similar to Old DATABASE)
 
 # Old DATABASE: setup ----
 old_database <- process_database(microbe$`Old DATABASE`)
