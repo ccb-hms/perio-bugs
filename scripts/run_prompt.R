@@ -77,6 +77,30 @@ get_type_clean_cols <- function(clean_cols) {
 
 get_prompt_specifics <- function(prompt_name) {
   
+  # males overall
+  males_overall = list(
+    dirty_cols ='messy_num',
+    clean_cols = c('clean_num', 'clean_percent'),
+    eval_res = TRUE,
+    data_example = list(
+      c("0, 0%", "0", '0'),
+      c('89(35.5%)', '89', '35.5'),
+      c('27 ( 45%)', '27', '45'),
+      c(NA, NA, NA),
+      c('0.45', NA, '45'),
+      c('0', '0', '0'),
+      c('53, 33%', '53', '33'),
+      c('n=133', '133', NA)
+    ),
+    prompt_notes = "
+    Note that:
+    - if 'clean_num' or 'clean_percent' will be set to '0', set both to '0'
+    - row should be preserved exactly, going from 1 to {nrow(messy_data)}
+    - 'ND' or 'NA' should be set to 'NA'
+    - fractions (e.g. 0.371) should be treated as percentages to go in 'clean_percent' (e.g. '37.1')
+    - 'clean_num' should always be an integer
+    "
+  )
   
   # diagnostic method
   diagnostic_method = list(
@@ -98,24 +122,11 @@ get_prompt_specifics <- function(prompt_name) {
       c('Metatranscriptomic Illumina sequencing', 'WMS', NA, 'Illumina'),
       c('Illumina sequencing (V1-V2 and V5-V6 regions) of the 16S rRNA gene', '16S', '1256', 'Illumina')
     ),
-    prompt_template = "
-      Extract 'seq_type', '16s_regions', and 'seq_plat' from 'method' in this JSON:
-      
-      {jsonlite::toJSON(messy_data, na='string')}
-      
+    prompt_notes = "
       Note that:
       - 'row' should be preserved exactly, going from 1 to {nrow(messy_data)}
       - For '16s_regions' the possible values are 1 to 9 and should be pasted together 
         in increasing order (e.g. 'V4-V5' should be '45') 
-    
-      Below are a few examples of how values should be fixed. 
-      Here are some of the original messy values:
-      
-      {jsonlite::toJSON(messy_data_example, na='string')}
-      
-      and the corresponding cleaned values:
-      
-      {jsonlite::toJSON(clean_data_example, na='string')}
       "
   )
   
@@ -133,30 +144,18 @@ get_prompt_specifics <- function(prompt_name) {
       c("ND", "NA"),
       c("NA", "NA")
     ),
-    prompt_template = "
-    Extract the total number of individuals from this JSON:
-    
-    {jsonlite::toJSON(messy_data, na='string')}
-    
+    prompt_notes = "
     Note that:
     - sum subgroups if specified (e.g. 'CP: 30, AgP: 26' should be '30+26')
     - do not attempt to evaluate sums (e.g. leave above as '30+26', NOT '56')
     - set 'ND' or 'NA' or similar to 'NA'
-    
-    Below are a few examples of how values should be fixed. 
-    Here are some of the original messy values:
-    
-    {jsonlite::toJSON(messy_data_example, na='string')}
-    
-    and the corresponding cleaned values:
-    
-    {jsonlite::toJSON(clean_data_example, na='string')}
     "
   )
   
   prompt_specifics <- list(
     sum_group_size = sum_group_size,
-    diagnostic_method = diagnostic_method
+    diagnostic_method = diagnostic_method,
+    males_overall = males_overall
   )
   
   return(prompt_specifics[[prompt_name]])
@@ -185,11 +184,11 @@ run_generic_prompt <- function(messy_data, prompt_name, model = c("gemini-2.0-fl
   clean_cols <- spec$clean_cols
   dirty_cols <- spec$dirty_cols
   data_example <- spec$data_example
-  prompt_template <- spec$prompt_template
+  prompt_notes <- spec$prompt_notes
   
   # setup messy and clean data examples
   data_example <- do.call(rbind, data_example) |> 
-    as.tibble() |> 
+    as_tibble() |> 
     setNames(c(dirty_cols, clean_cols)) |> 
     rownames_to_column('row')
   
@@ -204,6 +203,25 @@ run_generic_prompt <- function(messy_data, prompt_name, model = c("gemini-2.0-fl
   type_clean_df <- ellmer::type_array(type_clean_cols)
   
   # the actual prompt
+  prompt_template <- paste0(
+    "
+    Determine {paste(shQuote(clean_cols), collapse=' and ')} from {paste(shQuote(dirty_cols), collapse=' and ')} in this JSON:
+    
+    {jsonlite::toJSON(messy_data, na='string')}
+    ",
+    prompt_notes, 
+    "
+    Below are a few examples of how values should be fixed. 
+    Here are some of the original messy values:
+    
+    {jsonlite::toJSON(messy_data_example, na='string')}
+    
+    and the corresponding cleaned values:
+    
+    {jsonlite::toJSON(clean_data_example, na='string')}
+    "
+  )
+  
   prompt <- glue::glue(prompt_template)
   
   res <- run_prompt(chat, prompt, type_clean_df)
@@ -220,9 +238,6 @@ run_generic_prompt <- function(messy_data, prompt_name, model = c("gemini-2.0-fl
   
   return(res_final)
 }
-
-
-
 
 # used for:
 # - Males (n, %) 

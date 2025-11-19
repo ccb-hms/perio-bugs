@@ -3,6 +3,7 @@ library(readr)
 library(rentrez)
 library(dplyr)
 library(tibble)
+source('scripts/run_prompt.R')
 
 # get free API key here: https://aistudio.google.com/
 # Sys.setenv(GOOGLE_API_KEY = 'YOUR_API_KEY_HERE')
@@ -237,7 +238,7 @@ males_overall_messy <- tibble(
 
 if (!check_prev_prompt(males_overall_messy, 'males_overall', prompt_fixes)) {
   
-  prompt_fixes$males_overall <- run_num_percent_prompt(males_overall_messy)
+  prompt_fixes$males_overall <- run_generic_prompt(males_overall_messy, 'males_overall')
   saveRDS(prompt_fixes, prompt_fixes_file)
 }
 
@@ -250,6 +251,7 @@ males_health_messy <- tibble(
 
 if (!check_prev_prompt(males_health_messy, 'males_health', prompt_fixes)) {
   
+  prompt_fixes$males_health <- run_generic_prompt(males_health_messy, 'males_health')
   prompt_fixes$males_health <- run_num_percent_prompt(males_health_messy)
   saveRDS(prompt_fixes, prompt_fixes_file)
 }
