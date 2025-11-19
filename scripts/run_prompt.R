@@ -77,6 +77,102 @@ get_type_clean_cols <- function(clean_cols) {
 
 get_prompt_specifics <- function(prompt_name) {
   
+  # age overall ----
+  age_overall = list(
+    dirty_cols ='messy_num',
+    clean_cols = c('clean_num', 'clean_sd'),
+    eval_res = TRUE,
+    data_example = list(
+      c('average 30 (range 19-40)', '30', NA),
+      c('18 and 70', NA, NA),
+      c('26.2±4.1 (20–29)24.5±5.1 (20–28)', NA, NA),
+      c('≥18 years', NA, NA),
+      c('26 ± 3     25 ± 4', NA, NA),
+      c('43.8 years', '43.8', NA),
+      c('	over 18 years', NA, NA),
+      c('38.33 ± 13.19', '38.33', '13.19'),
+      c('36.2±21.3 (range: 18–70)', '36.2', '21.3'),
+      c('mean (±SD): 47.2 ± 8.3*, range: 33-63*', '47.2', '8.3'),
+      c('37,4 ± 12,9', '37.4', '12.9'),
+      c('mean*:54.53(±11.93), range*: 32-70; individual values: 63, 41, 54, 70, 70, 46, 49, 62, 55, 32, 65, 53, 41, 42, 44, 70, 46, 67, 66', '54.53', '11.93'),
+      c('not determined for all', NA, NA),
+      c('ND', NA, NA),
+      c('25-63 (range)', NA, NA)
+    ),
+    prompt_notes = "
+    Note that:
+    - row should be preserved exactly, going from 1 to {nrow(messy_data)}
+    - 'ND' or 'NA' should be set to 'NA'
+    - if values for multiple groups are reported and no overall mean or sd (e.g. '26 ± 3     25 ± 4'),
+      set both 'clean_num' and 'clean_sd' to 'NA'
+    - if a range is given and no mean or standard deviation (e.g. '≥18 years' or '25-63 (range)'),
+      set both 'clean_num' and 'clean_sd' to 'NA'
+    "
+  )
+  
+  # age health ----
+  age_health = list(
+    dirty_cols =c('messy_num', 'messy_sd'),
+    clean_cols = c('clean_num', 'clean_sd'),
+    eval_res = TRUE,
+    data_example = list(
+      c(NA, NA, NA, NA),
+      c('45.8 ± 10.5', NA, '45.8', '10.5'),
+      c('24.5±5.1 (20–28)', NA, '24.5', '5.1'),
+      c('30.6 ± 1.5', NA, '30.6', '1.5'),
+      c('42.8 years', NA, '42.8', NA),
+      c('27 1.5', NA, '27', '1.5'),
+      c('34,3 ± 12', NA, '34.3', '12'),
+      c('25.01', '5.96', '25.01', '5.96'),
+      c('42.8', '11.0', '42.8', '11.0'),
+      c('45.1 ± 5.9 (probably mean and SD)', NA, '45.1', '5.9'),
+      c('29.9 ± 9.7 (27.0) (Mean ± SD (Median))', NA, '29.9', '9.7'),
+      c('45.9 ± 9.9 (age range: 35–59)', NA, '45.9', '9.9'),
+      c('age range 13–20 yr', NA, NA, NA),
+      c('23.33±2.52* (mean±SD); 23, 21, 26 (individual values)', NA, '23.33', '2.52'),
+      c('33.4 (range: 18-60)', NA, '33.4', NA),
+      c('≥20', NA, NA, NA),
+      c('46 (mean)', NA, '46', NA)
+    ),
+    prompt_notes = "
+    Note that:
+    - row should be preserved exactly, going from 1 to {nrow(messy_data)}
+    - 'ND' or 'NA' should be set to 'NA'
+    - if a range is given and no mean or standard deviation (e.g. '≥20' or 'age range 13–20 yr'),
+      set both 'clean_num' and 'clean_sd' to 'NA'
+    "
+  )
+  
+  # age perio ----
+  age_perio = list(
+    dirty_cols =c('messy_num', 'messy_sd'),
+    clean_cols = c('clean_num', 'clean_sd'),
+    eval_res = TRUE,
+    data_example = list(
+      c('not reported', NA, NA, NA),
+      c('37.5± 11.1', NA, '37.5', '11.1'),
+      c('26.2±4.1 (20–29)', NA, '26.2', '4.1'),
+      c('≥18 years', NA, NA, NA),
+      c('44.7 years', NA, '44.7', NA),
+      c('52.44', '11.37', '52.44', '11.37'),
+      c('46.5 ± 9.0 (47.0) (Mean ± SD (Median))', NA, '46.5', '9.0'),
+      c('15.2 ± 2.8 [localised aggressive periodontitis], 25.2 ± 3.2 [generalised aggressive periodontitis], 42.0 ± 6.2 [chronic periodontitis]', NA, NA, NA),
+      c('GAgP: 26.3 ± 3.5, GChP: 42.0 ± 5.7', NA, NA, NA),
+      c('49.1', '8.6', '49.1', '8.6'),
+      c('range: 20-70', NA, NA, NA),
+      c('17.8 years (range 15–23)', NA, '17.8', NA)
+    ),
+    prompt_notes = "
+    Note that:
+    - row should be preserved exactly, going from 1 to {nrow(messy_data)}
+    - 'ND' or 'NA' should be set to 'NA'
+    - if a range is given and no mean or standard deviation (e.g. '≥18 years' or 'range: 20-70'),
+      set both 'clean_num' and 'clean_sd' to 'NA'
+    - if multiple subgroups are given (e.g. 'GAgP: 26.3 ± 3.5, GChP: 42.0 ± 5.7'),
+      set both 'clean_num' and 'clean_sd' to NA
+    "
+  )
+  
   # sum group size -----
   sum_group_size = list(
     dirty_cols = 'messy_num',
@@ -495,6 +591,9 @@ get_prompt_specifics <- function(prompt_name) {
   
   # put all together ----
   prompt_specifics <- list(
+    age_overall = age_overall,
+    age_health = age_health,
+    age_perio = age_perio,
     sum_group_size = sum_group_size,
     diagnostic_method = diagnostic_method,
     males_overall = males_overall,

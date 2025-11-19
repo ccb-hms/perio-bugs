@@ -217,18 +217,44 @@ if (!file.exists('output/possible_pmids.csv')) {
 
 
 # TODO: convert age to prompt ----
-# View(data.frame(original = df$`Age (years; mean +-SD)`, 
-#                 age_mean, age_sd))
-# 
-# 
-# View(data.frame(original_mean = df$`Age mean (periodontal health)`, 
-#                 original_sd = df$`Age SD (periodontal health)`,
-#                 age_mean_health, age_sd_health))
-# 
-# View(data.frame(original_mean = df$`Age mean (periodontitis)`, 
-#                 original_sd = df$`Age SD (periodontitis)`,
-#                 age_mean_perio, age_sd_perio))
 
+
+# overall age
+age_overall_messy <- tibble(
+  messy_num = df$`Age (years; mean +-SD)`
+)
+
+if (!check_prev_prompt(age_overall_messy, 'age_overall', prompt_fixes)) {
+  
+  prompt_fixes$age_overall <- run_generic_prompt(age_overall_messy, 'age_overall')
+  saveRDS(prompt_fixes, prompt_fixes_file)
+}
+
+# healthy group age
+age_health_messy <- tibble(
+  messy_num = df$`Age mean (periodontal health)`,
+  messy_sd = df$`Age SD (periodontal health)`
+)
+
+if (!check_prev_prompt(age_health_messy, 'age_health', prompt_fixes)) {
+  
+  prompt_fixes$age_health <- run_generic_prompt(age_health_messy, 'age_health')
+  saveRDS(prompt_fixes, prompt_fixes_file)
+}
+
+
+# perio group age
+
+age_perio_messy <- tibble(
+  messy_num = df$`Age mean (periodontitis)`,
+  messy_sd = df$`Age SD (periodontitis)`
+)
+
+if (!check_prev_prompt(age_perio_messy, 'age_perio', prompt_fixes)) {
+  
+  prompt_fixes$age_perio <- run_generic_prompt(age_perio_messy, 'age_perio')
+  saveRDS(prompt_fixes, prompt_fixes_file)
+}
 # number and percent male ----
 
 # overall (both groups)
