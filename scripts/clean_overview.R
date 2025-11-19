@@ -477,45 +477,50 @@ cleaned_df <- tibble::tibble(
   "Group 1 definition" = group1_def,
   "Group 0 sample size" = prompt_fixes$group0_size$clean_num,
   "Group 1 sample size" = prompt_fixes$group1_size$clean_num,
+  
   "Sequencing type" = prompt_fixes$seq_res$seq_type,
   "16S variable region" = prompt_fixes$seq_res$`16s_regions`,
   "Sequencing platform" = prompt_fixes$seq_res$seq_plat,
+  
   "Group 0 age mean" =  prompt_fixes$age_health$clean_num,
   "Group 0 age sd" =  prompt_fixes$age_health$clean_sd,
   "Group 1 age mean" =  prompt_fixes$age_perio$clean_num,
   "Group 1 age sd" =  prompt_fixes$age_perio$clean_sd,
+  
   "Group 0 num males" =  prompt_fixes$males_health$clean_num,
   "Group 1 num males" =  prompt_fixes$males_perio$clean_num,
   "Group 0 percent males" =  prompt_fixes$males_health$clean_percent,
   "Group 1 percent males" =  prompt_fixes$males_perio$clean_percent,
+  
   "Group 0 num smokers" =  prompt_fixes$smokers_health$clean_num,
   "Group 1 num smokers" =  prompt_fixes$smokers_perio$clean_num,
   "Group 0 percent smokers" =  prompt_fixes$smokers_health$clean_percent,
   "Group 1 percent smokers" =  prompt_fixes$smokers_perio$clean_percent,
+  
   "Group 0 bleeding on probing percent" =  prompt_fixes$bop_health$clean_percent,
   "Group 0 bleeding on probing SD" =  prompt_fixes$bop_health$clean_sd,
   "Group 1 bleeding on probing percent" =  prompt_fixes$bop_perio$clean_percent,
   "Group 1 bleeding on probing SD" =  prompt_fixes$bop_perio$clean_sd,
+  
   "Group 0 suppuration percent" =  prompt_fixes$supp_health$clean_percent,
   "Group 0 suppuration SD" =  prompt_fixes$supp_health$clean_sd,
   "Group 1 suppuration percent" =  prompt_fixes$supp_perio$clean_percent,
   "Group 1 suppuration SD" =  prompt_fixes$supp_perio$clean_sd,
   
-  # TODO:
-  # "Group 1 pocket depth mean (mm)" =  pd_mean_perio,
-  # "Group 1 pocket depth SD" =  pd_sd_perio,
-  # "Group 0 pocket depth mean (mm)" =  pd_mean_health,
-  # "Group 0 pocket depth SD" =  pd_sd_health,
-  # 
-  # "Group 0 clinical attachment loss (mm)" =  cal_mean_health,
-  # "Group 0 clinical attachment loss SD" =  cal_sd_health,
-  # "Group 1 clinical attachment loss (mm)" =  cal_mean_perio,
-  # "Group 1 clinical attachment loss SD" =  cal_sd_perio,
-  # 
-  # "Group 0 plaque" =  plaque_mean_health,
-  # "Group 0 plaque SD" =  plaque_sd_health,
-  # "Group 1 plaque" =  plaque_mean_perio,
-  # "Group 1 plaque SD" =  plaque_sd_perio,
+  "Group 1 pocket depth mean (mm)" =  prompt_fixes$pd_perio$clean_num,
+  "Group 1 pocket depth SD" =  prompt_fixes$pd_perio$clean_sd,
+  "Group 0 pocket depth mean (mm)" =  prompt_fixes$pd_health$clean_num,
+  "Group 0 pocket depth SD" =  prompt_fixes$pd_health$clean_sd,
+
+  "Group 0 clinical attachment loss (mm)" =  prompt_fixes$cal_health$clean_num,
+  "Group 0 clinical attachment loss SD" =  prompt_fixes$cal_health$clean_sd,
+  "Group 1 clinical attachment loss (mm)" =  prompt_fixes$cal_perio$clean_num,
+  "Group 1 clinical attachment loss SD" =  prompt_fixes$cal_perio$clean_sd,
+
+  "Group 0 plaque" =  prompt_fixes$plaque_health$clean_num,
+  "Group 0 plaque SD" =  prompt_fixes$plaque_health$clean_sd,
+  "Group 1 plaque" =  prompt_fixes$plaque_perio$clean_num,
+  "Group 1 plaque SD" =  prompt_fixes$plaque_perio$clean_sd
 )
 
 # load in microbe data ----
