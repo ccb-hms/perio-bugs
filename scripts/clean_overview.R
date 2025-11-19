@@ -438,11 +438,30 @@ if (!check_prev_prompt(cal_perio_messy, 'cal_perio', prompt_fixes)) {
 }
 
 # plaque  -----
-# "Group 0 plaque" =  plaque_mean_health,
-# "Group 0 plaque SD" =  plaque_sd_health,
-# "Group 1 plaque" =  plaque_mean_perio,
-# "Group 1 plaque SD" =  plaque_sd_perio,
 
+# healthy group
+plaque_health_messy <- tibble(
+  messy_num = df$`Plaque (mean +/SD) (periodontal health)`,
+  messy_sd = df$`Plaque (SD) (periodontal health)`
+)
+
+if (!check_prev_prompt(plaque_health_messy, 'plaque_health', prompt_fixes)) {
+  
+  prompt_fixes$plaque_health <- run_generic_prompt(plaque_health_messy, 'plaque_health')
+  saveRDS(prompt_fixes, prompt_fixes_file)
+}
+
+# perio group
+plaque_perio_messy <- tibble(
+  messy_num = df$`Plaque (mean +/SD) (periodontitis)`,
+  messy_sd = df$`Plaque (SD) (periodontitis)`
+)
+
+if (!check_prev_prompt(plaque_perio_messy, 'plaque_perio', prompt_fixes)) {
+  
+  prompt_fixes$plaque_perio <- run_generic_prompt(plaque_perio_messy, 'plaque_perio')
+  saveRDS(prompt_fixes, prompt_fixes_file)
+}
 
 # join cleaned up columns ----
 

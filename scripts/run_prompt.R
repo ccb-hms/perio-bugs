@@ -727,6 +727,69 @@ get_prompt_specifics <- function(prompt_name) {
   
   
   
+  # plaque health ----
+  plaque_health = list(
+    dirty_cols = c('messy_num', 'messy_sd'),
+    clean_cols = c('clean_num', 'clean_sd'),
+    eval_res = TRUE,
+    data_example = list(
+      c(NA, NA, NA, NA),
+      c('26.91±10.49', NA, '26.91', '10.49'),
+      c('ND', NA, NA, NA),
+      c('40 ± 14', NA, '40', '14'),
+      c('not reported', NA, NA, NA),
+      c('30.2 ± 6.2 (PI)', NA, '30.2', '6.2'),
+      c('20.40 ± 11.02 (%) (visible plaque index)', NA, '20.4', '11.02'),
+      c('47.5', '21.5', '47.5', '21.5'),
+      c('0.86', '0.47', '0.86', '0.47'),
+      c('health: 10.9 ± 12.2 / gingivitis: 35.7 ± 16.6 (% sites with PL)', NA, NA, NA)
+    ),
+    prompt_notes = "
+    Note that:
+    - row should be preserved exactly, going from 1 to {nrow(messy_data)}
+    - values like 'ND' or 'NA' or 'not reported' should be set to 'NA'
+    - if multiple subgroups are given (e.g. 'health: 10.9 ± 12.2 / gingivitis: 35.7 ± 16.6 (% sites with PL)'),
+      set both 'clean_num' and 'clean_sd' to 'NA'
+    - if any cases are provided exactly as examples of messy data, they should be cleaned exactly as shown
+    
+    "
+  )
+  
+  
+  
+  # plaque perio ----
+  plaque_perio = list(
+    dirty_cols = c('messy_num', 'messy_sd'),
+    clean_cols = c('clean_num', 'clean_sd'),
+    eval_res = TRUE,
+    data_example = list(
+      c('not reported', NA, NA, NA),
+      c('48.79±11.91', NA, '48.79', '11.91'),
+      c('ND', NA, NA, NA),
+      c('59 ± 31', NA, '59', '31'),
+      c('72±20', NA, '72', '20'),
+      c('56.9 ± 9.1 (PI)', NA, '56.9', '9.1'),
+      c('79.0 ± 15.0 (%)', '15.00', '79.0', '15.0'),
+      c('72', '20.00', '72', '20.00'),
+      c('41.7 ± 8.1 [localised aggressive periodontitis], 49.2 ± 12.9 [generalised aggressive periodontitis], 84.7 ± 10.7 [chronic periodontitis]', NA, NA, NA),
+      c('ChGP: 2.25±0.48 (PI), GAP: 1.06±0.35 (PI)', NA, NA, NA),
+      c('51.2 % (24.5)', NA, '51.2', '24.5'),
+      c('1.71 (1.52–1.96) (PI, recorded on index teeth, median, interquartile range)', NA, '1.71', NA),
+      c('0.79 (0.71 - 1.00) [Median and range, plaque was recorded as absent (0), detectable with a probe (1), just visible to the naked eye (2), or abundant (3).]', NA, '0.79', NA)
+    ),
+    prompt_notes = "
+    Note that:
+    - row should be preserved exactly, going from 1 to {nrow(messy_data)}
+    - values like 'ND' or 'NA' or 'not reported' should be set to 'NA'
+    - if multiple subgroups are given (e.g. 'ChGP: 2.25±0.48 (PI), GAP: 1.06±0.35 (PI)'),
+      set both 'clean_num' and 'clean_sd' to 'NA'
+    - if any cases are provided exactly as examples of messy data, they should be cleaned exactly as shown
+    
+    "
+  )
+  
+  
+  
   # put all together ----
   prompt_specifics <- list(
     age_overall = age_overall,
@@ -747,7 +810,9 @@ get_prompt_specifics <- function(prompt_name) {
     pd_health = pd_health,
     pd_perio = pd_perio,
     cal_health = cal_health,
-    cal_perio = cal_perio
+    cal_perio = cal_perio,
+    plaque_health = plaque_health,
+    plaque_perio = plaque_perio
   )
   
   return(prompt_specifics[[prompt_name]])
