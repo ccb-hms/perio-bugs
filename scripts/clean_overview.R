@@ -384,6 +384,45 @@ if (!check_prev_prompt(supp_perio_messy, 'supp_perio', prompt_fixes)) {
   saveRDS(prompt_fixes, prompt_fixes_file)
 }
 
+# pocket depth  -----
+
+# healthy group
+pd_health_messy <- tibble(
+  messy_num = df$`PD (periodontal health)`,
+  messy_num2 = df$`PD OG (periodontal health)`,
+  messy_sd = df$`PD SD (periodontal health)`
+)
+
+if (!check_prev_prompt(pd_health_messy, 'pd_health', prompt_fixes)) {
+  
+  prompt_fixes$pd_health <- run_generic_prompt(pd_health_messy, 'pd_health')
+  saveRDS(prompt_fixes, prompt_fixes_file)
+}
+
+# perio group
+pd_perio_messy <- tibble(
+  messy_num = df$`PD (periodontitis)`,
+  messy_sd = df$`PD SD (periodontitis)`
+)
+
+if (!check_prev_prompt(pd_perio_messy, 'pd_perio', prompt_fixes)) {
+  
+  prompt_fixes$pd_perio <- run_generic_prompt(pd_perio_messy, 'pd_perio')
+  saveRDS(prompt_fixes, prompt_fixes_file)
+}
+
+# clinical attachment loss  -----
+# "Group 0 clinical attachment loss (mm)" =  cal_mean_health,
+# "Group 0 clinical attachment loss SD" =  cal_sd_health,
+# "Group 1 clinical attachment loss (mm)" =  cal_mean_perio,
+# "Group 1 clinical attachment loss SD" =  cal_sd_perio,
+
+# plaque  -----
+# "Group 0 plaque" =  plaque_mean_health,
+# "Group 0 plaque SD" =  plaque_sd_health,
+# "Group 1 plaque" =  plaque_mean_perio,
+# "Group 1 plaque SD" =  plaque_sd_perio,
+
 
 # join cleaned up columns ----
 

@@ -589,6 +589,71 @@ get_prompt_specifics <- function(prompt_name) {
     "
   )
   
+  
+  # pocket depth health ----
+  pd_health = list(
+    dirty_cols =c('messy_num', 'messy_num2', 'messy_sd'),
+    clean_cols = c('clean_num', 'clean_sd'),
+    eval_res = TRUE,
+    data_example = list(
+      c(NA, NA, NA, NA, NA),
+      c('0.1', '0.1± 0.4', '0.4', '0.1', '0.4'),
+      c('2.2799999999999998', '2.28±0.59 (full mouth)', NA, '2.28', '0.59'),
+      c('2.4', '2.4 mm, ranging from 1.0 to 3.0 mm (full mouth)', NA, '2.4', NA),
+      c('2', '2.0 ± 0.07 (full mouth)', '7.0000000000000007E-2', '2.0', '0.07'),
+      c('2.1', '2.1', '0.21', '2.1', '0.21'),
+      c('2.7', '2.7', '0.5', '2.7', '0.5'),
+      c('1.7', '1.7 ± 0.6 (2.0) (Mean ± SD (Median); measurements made at 6 sites per tooth (MV, V, DV, ML, L and DL), excluding the 3rd molars)', '0.6', '1.7', '0.6'),
+      c(NA, 'ND recommendations (1997)', NA, NA, NA),
+      c(NA, 'ND', NA, NA, NA),
+      c(NA, 'ND (range: 2-3 mm)', NA, NA, NA),
+      c('1.75', '1.75 (0.75) ( sampled sites)', NA, '1.75', '0.75')
+    ),
+    prompt_notes = "
+    Note that:
+    - row should be preserved exactly, going from 1 to {nrow(messy_data)}
+    - values like 'ND' or 'NA' or 'not reported' should be set to 'NA'
+    - if only a range is given (e.g. 'ND (range: 2-3 mm)'), set both 'clean_num'
+      and 'clean_sd' to 'NA'
+    "
+  )
+  
+  
+  
+  # pocket depth perio ----
+  pd_perio = list(
+    dirty_cols =c('messy_num', 'messy_sd'),
+    clean_cols = c('clean_num', 'clean_sd'),
+    eval_res = TRUE,
+    data_example = list(
+      c(NA, NA, NA, NA),
+      c('38.5 ± 17.4', NA, '38.5', '17.4'),
+      c('4.3600000000000003', '0.880', '4.36', '0.880'),
+      c('2.9 ±  0.06 ;  3.9   ± 0.09 mm', NA, NA, NA),
+      c('4.5', '1.20', '4.5', '1.20'),
+      c('3.5 mm', NA, '3.5', NA),
+      c('ND (6 sites per tooth of all teeth, excl 3rd molars)', NA, NA, NA),
+      c('ChP: 2.8 ± 0.5, AgP: 4.6 ± 0.7 (full mouth)', NA, NA, NA),
+      c('≥5 (PD (mm) in > 30% of sites)', NA, NA, NA),
+      c('5.3 (6.7)', NA, '5.3', '6.7'),
+      c('range: 5-8 (8,6,6,5,5,6)  (average depth in millimeters of the 4 deepest periodontal pockets)', NA, NA, NA),
+      c('5.73±0.17 mm', NA, '5.73', '0.17'),
+      c('44473', NA, NA, NA)
+    ),
+    prompt_notes = "
+    Note that:
+    - row should be preserved exactly, going from 1 to {nrow(messy_data)}
+    - values like 'ND' or 'NA' or 'not reported' should be set to 'NA'
+    - if only a range is given (e.g. '≥5 (PD (mm) in > 30% of sites)'), set both 'clean_num'
+      and 'clean_sd' to 'NA'
+    - if values for multiple subgroups are provided (e.g. 'ChP: 2.8 ± 0.5, AgP: 4.6 ± 0.7 (full mouth)'), 
+      'clean_num' and 'clean_sd' should both be 'NA'
+    - if any cases are provided exactly as examples of messy data, they should be cleaned exactly as shown
+    "
+  )
+  
+  
+  
   # put all together ----
   prompt_specifics <- list(
     age_overall = age_overall,
@@ -605,7 +670,9 @@ get_prompt_specifics <- function(prompt_name) {
     bop_health = bop_health,
     bop_perio = bop_perio,
     supp_health = supp_health,
-    supp_perio = supp_perio
+    supp_perio = supp_perio,
+    pd_health = pd_health,
+    pd_perio = pd_perio
   )
   
   return(prompt_specifics[[prompt_name]])
