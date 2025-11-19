@@ -402,16 +402,10 @@ cleaned_df <- tibble::tibble(
   "Sequencing type" = prompt_fixes$seq_res$seq_type,
   "16S variable region" = prompt_fixes$seq_res$`16s_regions`,
   "Sequencing platform" = prompt_fixes$seq_res$seq_plat,
-  
-  # periodontits specific columns
-  
-  # TODO:
-  # "Group 0 age mean" =  age_mean_health,
-  # "Group 0 age sd" =  age_sd_health,
-  # "Group 1 age mean" =  age_mean_perio,
-  # "Group 1 age sd" =  age_sd_perio,
-  
-  
+  "Group 0 age mean" =  prompt_fixes$age_health$clean_num,
+  "Group 0 age sd" =  prompt_fixes$age_health$clean_sd,
+  "Group 1 age mean" =  prompt_fixes$age_perio$clean_num,
+  "Group 1 age sd" =  prompt_fixes$age_perio$clean_sd,
   "Group 0 num males" =  prompt_fixes$males_health$clean_num,
   "Group 1 num males" =  prompt_fixes$males_perio$clean_num,
   "Group 0 percent males" =  prompt_fixes$males_health$clean_percent,
