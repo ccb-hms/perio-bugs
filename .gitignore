@@ -9,4 +9,5 @@ data/*
 output/overview_merged.rds
 output/diff_species.rds
 output/possible_pmids.csv
+output/perio_bugs.xlsx
 .Rproj.user

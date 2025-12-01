@@ -142,7 +142,10 @@ clean_names <- function(taxon_names) {
   cleaned_names <- gsub(' sp(\\.)? ', ' sp. ', cleaned_names)
   cleaned_names <- gsub("\\s*\\[.*?\\]\\s*", " ", cleaned_names)
   
+  
+  
   # specific cases
+  cleaned_names <- gsub("Peptostreptococcaceae XI.+?$", "Peptostreptococcaceae", cleaned_names)
   cleaned_names[grepl('Fretibacterium fastidiosum', cleaned_names)] <- 'Fretibacterium fastidiosum'
   cleaned_names <- gsub('^Synergistetes OTU .+?$', 'Synergistetes', cleaned_names)
   
@@ -415,26 +418,27 @@ table(
       ))
 )
 
-# New DATABASE: setup ----
-new_database <- process_database(microbe$`New DATABASE`)
+# Old DATABASE and New DATABASE: setup ----
 
-#TODO process New DATABASE (should be similar to Old DATABASE)
-
-# Old DATABASE: setup ----
 old_database <- process_database(microbe$`Old DATABASE`)
+new_database <- process_database(microbe$`New DATABASE`)
+old_database <- rbind_taxdbs(old_database) 
+new_database <- rbind_taxdbs(new_database) 
 
-# multiple species in same row "intermedia/nigrescens"
-old_database <- rbind_taxdbs(old_database) |> 
+old_and_new_database <- dplyr::bind_rows(old_database, new_database) |> 
   tidyr::separate_rows(Species, sep = "\\/")
 
-old_database <- old_database |>
+# convert entries marked 'Unclassified' to NA
+old_and_new_database[old_and_new_database == 'Unclassified'] <- NA
+
+old_and_new_database <- old_and_new_database |>
   mutate(
-    most_specific = most_specific_name_base(old_database),
-    next_most_specific = most_specific_name_base(old_database, exclude_species = TRUE))
+    most_specific = most_specific_name_base(old_and_new_database),
+    next_most_specific = most_specific_name_base(old_and_new_database, exclude_species = TRUE))
 
 
-old_database_queries <- old_database |> 
-  select(most_specific, next_most_specific) |> 
+old_and_new_database_queries <- old_and_new_database |> 
+  select(most_specific, next_most_specific, Number, direction) |> 
   mutate(
     most_specific = clean_names(most_specific),
     next_most_specific = clean_names(next_most_specific)
@@ -442,39 +446,46 @@ old_database_queries <- old_database |>
   mutate(most_specific = expand_oral_taxon(most_specific)) |> 
   tidyr::separate_rows(most_specific, sep = ';')
 
-old_database_results <- run_ncbitaxon_queries(old_database_queries)
+old_and_new_database_results <- run_ncbitaxon_queries(old_and_new_database_queries)
+
+# add back Number and direction
+cols <- c('Number', 'direction')
+old_and_new_database_results[,cols] <- old_and_new_database_queries[,cols]
 
 # identify queries with wrong oral taxon mapping
-old_database_results <- old_database_results |> 
+old_and_new_database_results <- old_and_new_database_results |> 
   mutate(
-    taxname_ot = str_extract(taxname, "oral taxon \\d+"),
+    taxname_ot = str_extract(taxname, "oral taxon (\\d+)", group = 1),
     taxname_ot_wrong = !is.na(taxname_ot) &
       !str_detect(tolower(query), fixed(taxname_ot))
   )
 
 # inspect them
-old_database_results |> 
-  filter(taxname_ot_wrong)
+old_and_new_database_results |> 
+  filter(taxname_ot_wrong) |> 
+  View()
 
 # extract them and run the queries without oral taxon
-rerun_df <- old_database_results |> 
+rerun_df <- old_and_new_database_results |> 
   filter(taxname_ot_wrong) |> 
   mutate(most_specific = str_trim(str_remove(query, "oral taxon \\d+"))) |> 
   select(most_specific, next_most_specific) |> 
   run_ncbitaxon_queries()
 
+rerun_df |> View()
+
 # replace results
-wrong_idx <- which(old_database_results$taxname_ot_wrong)
-old_database_results[wrong_idx, names(rerun_df)] <- rerun_df
+wrong_idx <- which(old_and_new_database_results$taxname_ot_wrong)
+old_and_new_database_results[wrong_idx, names(rerun_df)] <- rerun_df
 
 
 # manually check results where Domain isn't Bacteria
-domain <- get_rank_vals(old_database_results)
-old_database_results[domain != 'Bacteria', ]
+domain <- get_rank_vals(old_and_new_database_results)
+old_and_new_database_results[domain != 'Bacteria', ]
 
 # fix results where Domain is not Bacteria
 # also other manually identified errors go here
-old_database_results <- old_database_results |> 
+old_and_new_database_results <- old_and_new_database_results |> 
   mutate(
     taxname_fixed = case_match(
       query,
@@ -484,14 +495,19 @@ old_database_results <- old_database_results |>
       'Micromonas micros' ~ 'Parvimonas micra',
       'Eubacterium yuri subsp' ~ 'Eubacterium yurii subsp. yurii',
       'Treponema E25 8' ~ 'Treponema',
-      'Treponema E D 05 72' ~ 'Treponema',
+      'Lachnospiracee sp.' ~ 'unclassified Lachnospiraceae',
+      'Tessnema sp.' ~ 'Synergistaceae',
       'Streptococcus sanguis' ~ 'Streptococcus sanguinis',
       'Haemophilus P3D1 620' ~ 'Haemophilus',
+      'G1 958' ~ 'unclassified Bacteria',
+      'G1 869' ~ 'unclassified Bacteria',
       
       # manually identified errors
       
+      'Treponema E D 05 72' ~ 'Treponema',
       'Bifidobacterium dentum' ~ 'Bifidobacterium dentium',
       'Lachnospiraceae JM048' ~ 'Lachnospiraceae',
+      'Saccharibacteria (TM7) -like sp.' ~ 'unclassified Candidatus Saccharimonadota',
       'TM7 401H12' ~ 'unclassified Candidatus Saccharimonadota',
       'TM7 clone I025' ~ 'unclassified Candidatus Saccharimonadota',
       'Prevotella oralis' ~ 'Hoylesella oralis',
@@ -499,40 +515,48 @@ old_database_results <- old_database_results |>
   )
 
 # extract them and run the queries
-rerun_df <- old_database_results |> 
+rerun_df <- old_and_new_database_results |> 
   filter(!is.na(taxname_fixed)) |> 
   mutate(most_specific = taxname_fixed) |> 
   select(most_specific, next_most_specific) |> 
   run_ncbitaxon_queries()
 
 # replace results
-fixed_idx <- which(!is.na(old_database_results$taxname_fixed))
-old_database_results[fixed_idx, names(rerun_df)] <- rerun_df
+fixed_idx <- which(!is.na(old_and_new_database_results$taxname_fixed))
+old_and_new_database_results[fixed_idx, names(rerun_df)] <- rerun_df
 
 # add exact taxizedb results
-old_database_results <- add_exact_taxids(old_database_results)
+old_and_new_database_results <- add_exact_taxids(old_and_new_database_results)
 
 # add distances between taxids and genus
-old_database_results <- add_tree_dist_genus(old_database_results)
+old_and_new_database_results <- add_tree_dist_genus(old_and_new_database_results)
 
-table(old_database_results$tree_dist_genus, useNA = 'always')
+table(old_and_new_database_results$tree_dist_genus, useNA = 'always')
 
 # inspect large genus tree dist
-old_database_results |> 
+old_and_new_database_results |> 
   filter(is.na(taxid_exact)) |> 
-  filter(tree_dist_genus >= 3)
+  filter(tree_dist_genus >= 3) |> 
+  View()
 
 # inspect NA genus tree dists
-old_database_results |> 
+old_and_new_database_results |> 
   filter(is.na(taxid_exact)) |> 
-  filter(is.na(tree_dist_genus))
+  filter(is.na(tree_dist_genus)) |> 
+  View()
 
 # prefer exact taxid and add distances to genus
-old_database_results <- old_database_results |> 
+old_and_new_database_results <- old_and_new_database_results |> 
   mutate(taxid = coalesce(taxid_exact, taxid)) |>
   add_tree_dist_genus()
 
-table(old_database_results$tree_dist_genus, useNA = 'always')
+table(old_and_new_database_results$tree_dist_genus, useNA = 'always')
+
+# double check that have results for all studies
+stopifnot(setequal(
+  old_and_new_database_results$Number,
+  c(old_database$Number, new_database$Number)
+))
 
 
 # Sarah's Work (2) ----
@@ -575,7 +599,7 @@ sarahs_db2 <- sarahs_db2 |>
 
 # clean up names for OLS queries
 sarahs_db2_queries <- sarahs_db2 |> 
-  select(most_specific, next_most_specific, genus_annot, species_annot) |> 
+  select(most_specific, next_most_specific, genus_annot, species_annot, Number, direction) |> 
   mutate(
     most_specific = clean_names_sarah(most_specific),
     next_most_specific = clean_names_sarah(next_most_specific)
@@ -606,7 +630,8 @@ sarahs_db2_results <- sarahs_db2_results |>
 
 # inspect them
 sarahs_db2_results |> 
-  filter(taxname_ot_wrong)
+  filter(taxname_ot_wrong) |> 
+  View()
 
 # extract them and run the queries without oral taxon identifier
 rerun_df <- sarahs_db2_results |> 
@@ -616,7 +641,7 @@ rerun_df <- sarahs_db2_results |>
   run_ncbitaxon_queries()
 
 # inspect results
-rerun_df
+rerun_df |> View()
 
 # replace results
 wrong_idx <- which(sarahs_db2_results$taxname_ot_wrong)
@@ -720,18 +745,25 @@ sarahs_db2_results |>
 # join distinct query results back to non-distinct
 nrow(sarahs_db2_results) == nrow(sarahs_db2_distinct_queries)
 
+# restore most_specific as it was mutated a bunch
 sarahs_db2_results$most_specific <- 
   sarahs_db2_distinct_queries$most_specific
 
-sarahs_db2_queries <- sarahs_db2_queries |> 
-  left_join(sarahs_db2_results)
+sarahs_db2_results <- sarahs_db2_results |>
+  right_join(sarahs_db2_queries)
+
+# double check that have all studies
+stopifnot(setequal(
+  sarahs_db2_results$Number,
+  sarahs_db2$Number
+))
 
 # check concordance with collaborator annotated ----
 
 # join results back to annotated names
 annotated_names <- annotated_names |> 
   left_join(
-    sarahs_db2_queries |> 
+    sarahs_db2_results |> 
       select(taxid, genus_annot, species_annot) |> 
       distinct(),
     relationship = 'many-to-many'
@@ -757,7 +789,7 @@ annotated_names |>
 # length = 584
 #
 #   0   1   2   3   4   5   6   7  12  14 
-# 328  34 128  35  17  23  12   3   2   2
+# 328  33 129  35  17  23  12   3   2   2
 
 # 14 more results (probably line splits)
 # 0: 99 more
@@ -768,3 +800,22 @@ annotated_names |>
 # 5: 5 more
 # 6: 8 more
 # 7: same
+
+
+# Old DATABASE and Sarah's Work (2): merge all and save ---
+
+# have taxids for all
+sum(is.na(sarahs_db2_results$taxid))
+sum(is.na(old_and_new_database_results$taxid))
+
+diff_species <- rbind(
+  old_and_new_database_results |> select('Number', 'taxid', 'direction'),
+  sarahs_db2_results |> select('Number', 'taxid', 'direction')
+) |> distinct()
+
+stopifnot(setequal(
+  diff_species$Number,
+  c(old_database$Number, new_database$Number, sarahs_db2$Number)
+))
+
+saveRDS(diff_species, 'output/diff_species.rds')

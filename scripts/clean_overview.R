@@ -1,9 +1,14 @@
-library(bugsigdbr)
 library(readr)
 library(rentrez)
 library(dplyr)
 library(tibble)
+library(openxlsx)
+
+# functions to run prompts
 source('scripts/run_prompt.R')
+
+# controlled vocabs from bugsigdb
+source('scripts/controlled_vocab.R')
 
 # get free API key here: https://aistudio.google.com/
 # Sys.setenv(GOOGLE_API_KEY = 'YOUR_API_KEY_HERE')
@@ -23,16 +28,10 @@ if (file.exists(prompt_fixes_file)) {
 # Get all sheet names
 df <- readRDS(overview_file)
 
-# read in bugsigdb database for reference
-bugsigdb <- importBugSigDB()
-
 # common function to extract unique types from bugsigdb column
 extract_unique <- function(vals) {
   unique(unlist(strsplit(vals, split = ",(?! )", perl = TRUE)))
 }
-
-# controlled vocabs from bugsigdb
-source('scripts/controlled_vocab.R')
 
 # extract and cleanup all fields from Feres data that need for bugsigdb
 
@@ -465,7 +464,15 @@ if (!check_prev_prompt(plaque_perio_messy, 'plaque_perio', prompt_fixes)) {
 
 # join cleaned up columns ----
 
+# fix up factor results
+prompt_fixes$seq_res[] <- lapply(prompt_fixes$seq_res, as.character)
+prompt_fixes$seq_res[prompt_fixes$seq_res == 'NA'] <- NA
+
 cleaned_df <- tibble::tibble(
+  "PMID" = NA_integer_,
+  # for joining with microbe data
+  "Number" = df$Number,
+  
   # use bugsigdb column names
   "Study design" = designs,
   "Location of subjects" = locs,
@@ -475,12 +482,14 @@ cleaned_df <- tibble::tibble(
   "Group 0 name" = group0_name,
   "Group 1 name" = group1_name,
   "Group 1 definition" = group1_def,
-  "Group 0 sample size" = prompt_fixes$group0_size$clean_num,
-  "Group 1 sample size" = prompt_fixes$group1_size$clean_num,
   
   "Sequencing type" = prompt_fixes$seq_res$seq_type,
   "16S variable region" = prompt_fixes$seq_res$`16s_regions`,
   "Sequencing platform" = prompt_fixes$seq_res$seq_plat,
+  
+  "Group 0 sample size" = prompt_fixes$group0_size$clean_num,
+  "Group 1 sample size" = prompt_fixes$group1_size$clean_num,
+  
   
   "Group 0 age mean" =  prompt_fixes$age_health$clean_num,
   "Group 0 age sd" =  prompt_fixes$age_health$clean_sd,
@@ -498,34 +507,207 @@ cleaned_df <- tibble::tibble(
   "Group 1 percent smokers" =  prompt_fixes$smokers_perio$clean_percent,
   
   "Group 0 bleeding on probing percent" =  prompt_fixes$bop_health$clean_percent,
-  "Group 0 bleeding on probing SD" =  prompt_fixes$bop_health$clean_sd,
+  "Group 0 bleeding on probing sd" =  prompt_fixes$bop_health$clean_sd,
   "Group 1 bleeding on probing percent" =  prompt_fixes$bop_perio$clean_percent,
-  "Group 1 bleeding on probing SD" =  prompt_fixes$bop_perio$clean_sd,
+  "Group 1 bleeding on probing sd" =  prompt_fixes$bop_perio$clean_sd,
   
   "Group 0 suppuration percent" =  prompt_fixes$supp_health$clean_percent,
-  "Group 0 suppuration SD" =  prompt_fixes$supp_health$clean_sd,
+  "Group 0 suppuration sd" =  prompt_fixes$supp_health$clean_sd,
   "Group 1 suppuration percent" =  prompt_fixes$supp_perio$clean_percent,
-  "Group 1 suppuration SD" =  prompt_fixes$supp_perio$clean_sd,
+  "Group 1 suppuration sd" =  prompt_fixes$supp_perio$clean_sd,
   
   "Group 1 pocket depth mean (mm)" =  prompt_fixes$pd_perio$clean_num,
-  "Group 1 pocket depth SD" =  prompt_fixes$pd_perio$clean_sd,
+  "Group 1 pocket depth sd" =  prompt_fixes$pd_perio$clean_sd,
   "Group 0 pocket depth mean (mm)" =  prompt_fixes$pd_health$clean_num,
-  "Group 0 pocket depth SD" =  prompt_fixes$pd_health$clean_sd,
-
+  "Group 0 pocket depth sd" =  prompt_fixes$pd_health$clean_sd,
+  
   "Group 0 clinical attachment loss (mm)" =  prompt_fixes$cal_health$clean_num,
-  "Group 0 clinical attachment loss SD" =  prompt_fixes$cal_health$clean_sd,
+  "Group 0 clinical attachment loss sd" =  prompt_fixes$cal_health$clean_sd,
   "Group 1 clinical attachment loss (mm)" =  prompt_fixes$cal_perio$clean_num,
-  "Group 1 clinical attachment loss SD" =  prompt_fixes$cal_perio$clean_sd,
-
+  "Group 1 clinical attachment loss sd" =  prompt_fixes$cal_perio$clean_sd,
+  
   "Group 0 plaque" =  prompt_fixes$plaque_health$clean_num,
-  "Group 0 plaque SD" =  prompt_fixes$plaque_health$clean_sd,
+  "Group 0 plaque sd" =  prompt_fixes$plaque_health$clean_sd,
   "Group 1 plaque" =  prompt_fixes$plaque_perio$clean_num,
-  "Group 1 plaque SD" =  prompt_fixes$plaque_perio$clean_sd
+  "Group 1 plaque sd" =  prompt_fixes$plaque_perio$clean_sd
 )
 
-# load in microbe data ----
+# evaluate numeric columns (e.g. '139+100' --> 239)
+non_numeric_cols <- c(
+  'Study design', 'Location of subjects', 'Host species', 'Body site',
+  'Condition', 'Group 0 name', 'Group 1 name', 'Group 1 definition', 
+  'Sequencing type', 'Sequencing platform'
+)
+
+
+for (col in colnames(cleaned_df)) {
+  if (col %in% non_numeric_cols) next()
+  cleaned_df[[col]] <- evaluate_col(cleaned_df[[col]])
+}
+
+# clean non-utf characters ----
+
+# Clean by working with raw bytes directly
+clean_string_safe <- function(x) {
+  if (is.na(x)) return(x)
+  
+  raw_bytes <- charToRaw(x)
+  
+  # Keep only: printable chars (32-126), tab (9), newline (10), carriage return (13), 
+  # and UTF-8 continuation bytes (128+)
+  keep <- (raw_bytes >= as.raw(32) & raw_bytes <= as.raw(126)) |  # printable ASCII
+    raw_bytes == as.raw(9) |   # tab
+    raw_bytes == as.raw(10) |  # newline  
+    raw_bytes == as.raw(13) |  # carriage return
+    raw_bytes >= as.raw(128)   # UTF-8 multibyte
+  
+  rawToChar(raw_bytes[keep])
+}
+
+# Apply to all character columns
+for (col_name in names(cleaned_df)) {
+  if (is.character(cleaned_df[[col_name]])) {
+    cat("Cleaning column:", col_name, "\n")
+    cleaned_df[[col_name]] <- sapply(cleaned_df[[col_name]], 
+                                     clean_string_safe, 
+                                     USE.NAMES = FALSE)
+  }
+}
+
+# load in microbe data and join ----
 
 diff_species <- readRDS('output/diff_species.rds')
+
+diff_species_collapsed <- diff_species  |> 
+  group_by(Number, direction)  |> 
+  summarise('NCBI Taxonomy IDs' = paste(taxid, collapse = ", "), .groups = "drop") |> 
+  mutate(
+    'Abundance in Group 1' = ifelse(direction == 'up', 'increased', 'decreased'),
+    'Number' = as.numeric(Number)
+    ) |> 
+  dplyr::select(-direction)
+
+# join, only keeping studies with microbe data
+final_df <- cleaned_df |> 
+  right_join(diff_species_collapsed, by='Number')
+
+# save Excel with data validation build in ----
+
+# Define validation configuration with actual column names
+validation_config <- list(
+  # Dropdowns from controlled vocab
+  dropdowns = list(
+    "Study design" = controlled_vocab$study_design,
+    "Location of subjects" = controlled_vocab$location,
+    "Host species" = "Homo sapiens",
+    "Body site" = "Subgingival dental plaque",
+    "Condition" = "Periodontitis",
+    "Sequencing type" = controlled_vocab$sequencing_type,
+    "Sequencing platform" = controlled_vocab$sequencing_platform,
+    "Abundance in Group 1" = c("increased", "decreased")
+  ),
+  
+  # Integer columns (>= 0) - get actual column names
+  integers = grep("num|sample size|16S variable region|PMID|Number", names(final_df), value = TRUE),
+  
+  # Percentage columns (0-100) - get actual column names
+  percentages = grep("percent", names(final_df), value = TRUE),
+  
+  # Positive decimals - get actual column names
+  positive_decimals = grep("mean|sd|plaque|pocket depth|clinical attachment loss", 
+                           names(final_df), value = TRUE)
+)
+
+# Get all columns with validation rules
+validated_columns <- c(
+  names(validation_config$dropdowns),
+  validation_config$integers,
+  validation_config$percentages,
+  validation_config$positive_decimals
+)
+
+# Find columns NOT in any validation rule
+unspecified_columns <- setdiff(names(final_df), validated_columns)
+
+# Show them
+cat("Columns without validation (free text):\n")
+print(unspecified_columns)
+
+# Create workbook
+wb <- createWorkbook()
+addWorksheet(wb, "DATABASE")
+writeData(wb, "DATABASE", final_df)
+
+max_rows <- nrow(final_df) + 2000
+rows <- 2:max_rows
+
+# Apply DROPDOWN validations
+for (col_name in names(validation_config$dropdowns)) {
+  col_idx <- which(names(final_df) == col_name)
+  if (!length(col_idx)) {
+    stop("Column doesn't exist: ", col_name)
+  }
+  
+  values <- validation_config$dropdowns[[col_name]]
+  values_string <- paste(values, collapse = ",")
+  
+  cat("Applying dropdown to:", col_name, "- Length:", nchar(values_string), "chars\n")
+  
+  dataValidation(wb, "DATABASE", 
+                 col = col_idx, 
+                 rows = rows,
+                 type = "list",
+                 value = paste0('"', values_string, '"'))
+}
+
+# Apply INTEGER validations
+for (col_name in validation_config$integers) {
+  col_idx <- which(names(final_df) == col_name)
+  if (!length(col_idx)) {
+    stop("Column doesn't exist: ", col_name)
+  }
+  
+  dataValidation(wb, "DATABASE", col = col_idx, rows = rows,
+                 type = "whole", operator = "greaterThanOrEqual", value = 0)
+  cat("Applied integer validation to:", col_name, "\n")
+}
+
+# Apply PERCENTAGE validations
+for (col_name in validation_config$percentages) {
+  col_idx <- which(names(final_df) == col_name)
+  if (!length(col_idx)) {
+    stop("Column doesn't exist: ", col_name)
+  }
+  
+  # Format as 2 decimal places
+  addStyle(wb, "DATABASE", 
+           style = createStyle(numFmt = "0.00"),
+           rows = rows, cols = col_idx, gridExpand = TRUE)
+  
+  dataValidation(wb, "DATABASE", col = col_idx, rows = rows,
+                 type = "decimal", operator = "between", value = c(0, 100))
+  cat("Applied percentage validation to:", col_name, "\n")
+}
+
+# Apply POSITIVE DECIMAL validations
+for (col_name in validation_config$positive_decimals) {
+  col_idx <- which(names(final_df) == col_name)
+  if (!length(col_idx)) {
+    stop("Column doesn't exist: ", col_name)
+  }
+  
+  # Format as 2 decimal places
+  addStyle(wb, "DATABASE", 
+           style = createStyle(numFmt = "0.00"),
+           rows = rows, cols = col_idx, gridExpand = TRUE)
+  
+  dataValidation(wb, "DATABASE", col = col_idx, rows = rows,
+                 type = "decimal", operator = "greaterThanOrEqual", value = 0)
+  cat("Applied decimal validation to:", col_name, "\n")
+}
+
+saveWorkbook(wb, "output/perio_bugs.xlsx", overwrite = TRUE)
+cat("\n✓ Workbook saved: output/perio_bugs.xlsx\n")
 
 # Other columns that still need ----
 # Statistical test
