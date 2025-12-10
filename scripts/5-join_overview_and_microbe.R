@@ -21,6 +21,9 @@ diff_species_collapsed <- diff_species  |>
 final_df <- overview_cleaned |> 
   right_join(diff_species_collapsed, by='Number')
 
+# save
+saveRDS(final_df, 'output/perio_bugs.rds')
+
 # save Excel with data validation build in ----
 
 # Define validation configuration with actual column names
