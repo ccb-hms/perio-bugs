@@ -62,6 +62,8 @@ studies <- studies |>
     PMID = if (!is.na(PMCID) & is.na(PMID)) pmcid_to_pmid(PMCID) else PMID
   )
 
+studies <- select(studies, Number, PMID)
+
 stopifnot(sum(is.na(studies$PMID)) == 0)
 
 saveRDS(studies, 'output/study_pmids.rds')

@@ -4,9 +4,25 @@ library(openxlsx)
 source('scripts/controlled_vocab.R')
 
 
-# load in microbe and cleaned overview
+# load in microbe, cleaned overview, and study pmids
 overview_cleaned <- readRDS('output/overview_cleaned.rds')
 diff_species <- readRDS('output/diff_species.rds')
+study_pmids <- readRDS('output/study_pmids.rds')
+
+# add PMIDs to overview
+overview_cleaned <- overview_cleaned |> 
+  select(-PMID) |> 
+  left_join(study_pmids, by = 'Number') |> 
+  relocate(PMID, .before = 1) |> 
+  mutate(PMID = as.numeric(PMID))
+
+overview_cleaned |> 
+  select(Number, PMID) |> 
+  distinct() |> 
+  pull(PMID) |> 
+  is.na() |> 
+  table()
+
 
 diff_species_collapsed <- diff_species  |> 
   group_by(Number, direction)  |> 
