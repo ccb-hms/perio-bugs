@@ -1,0 +1,23 @@
+{
+  "creators": [
+    {
+      "orcid": "0000-0002-0002-6759",
+      "affiliation": "Harvard Medical School",
+      "name": "Pickering, Alex"
+    },
+    {
+      "orcid": "0000-0003-4809-6227",
+      "affiliation": "Harvard Medical School",
+      "name": "Nguyen, Tram"
+    },
+    {
+      "orcid": "0000-0002-2495-5464",
+      "affiliation": "Harvard Medical School",
+      "name": "Geistlinger, Ludwig"
+    }
+  ], 
+  
+  "license": "CC-by-4.0",
+  "title": "PerioSigDB: A Comprehensive Database of Published Periodontal Microbial Signatures",
+  "keywords": ["human microbiome", "differential abundance", "microbe set enrichment analysis"]
+}

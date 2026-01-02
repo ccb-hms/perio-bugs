@@ -213,10 +213,6 @@ if (!file.exists('output/possible_pmids.csv')) {
   write.csv(possible_pmids, 'output/possible_pmids.csv')
 }
 
-
-# TODO: convert age to prompt ----
-
-
 # overall age
 age_overall_messy <- tibble(
   messy_num = df$`Age (years; mean +-SD)`

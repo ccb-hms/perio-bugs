@@ -158,7 +158,7 @@ for (col_name in validation_config$positive_decimals) {
 saveWorkbook(wb, "output/perio_bugs.xlsx", overwrite = TRUE)
 cat("\n✓ Workbook saved: output/perio_bugs.xlsx\n")
 
-# Other columns that still need ----
+# Other columns in BugSigDB that don't have ----
 # Statistical test
 # Significance threshold	
 # MHT correction
