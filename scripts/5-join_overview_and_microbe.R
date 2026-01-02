@@ -39,6 +39,7 @@ final_df <- overview_cleaned |>
 
 # save
 saveRDS(final_df, 'output/perio_bugs.rds')
+write.csv(final_df, 'output/perio_bugs.csv', row.names = FALSE)
 
 # save Excel with data validation build in ----
 
