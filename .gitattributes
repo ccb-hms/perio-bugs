@@ -1,0 +1,13 @@
+# .gitattributes
+
+# Exclude everything at root level
+/* export-ignore
+
+# Un-ignore the outputs directory itself
+/output/ -export-ignore
+
+# Exclude everything inside outputs
+/output/* export-ignore
+
+# Un-ignore only the specific file
+/output/perio_bugs.csv -export-ignore
