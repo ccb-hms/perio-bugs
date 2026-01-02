@@ -1,5 +1,6 @@
 .DS_Store
 .Rhistory
+.Renviron
 .Rproj.user/*
 .cache/*
 .ipynb_checkpoints/*
