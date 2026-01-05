@@ -13,6 +13,5 @@ output/diff_species.rds
 output/possible_pmids.csv
 output/perio_bugs.xlsx
 output/perio_bugs.rds
-output/perio_bugs.csv
 output/study_pmids.rds
 .Rproj.user
