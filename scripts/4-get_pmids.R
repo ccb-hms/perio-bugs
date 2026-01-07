@@ -1,5 +1,6 @@
 library(readxl)
 library(rentrez)
+library(dplyr)
 
 studies_file <- 'data/articles_included/Final selection Yes.xlsx'
 overview_cleaned <- readRDS('output/overview_cleaned.rds')
@@ -12,7 +13,20 @@ studies <- studies |>
   mutate(Number = as.numeric(Number)) |> 
   select(Number, `Article nr`, `Article link`)
 
-table(perio_bugs$Number %in% studies$Number)
+table(overview_cleaned$Number %in% studies$Number)
+setdiff(overview_cleaned$Number, studies$Number)
+
+# check which database missing PMIDs from
+microbe_file <- 'data/Cleaned Micro List RY_final.xlsx'
+microbe_sheets <- excel_sheets(microbe_file)
+
+# Read all sheets into a named list
+microbe <- lapply(microbe_sheets, function(sheet) read_excel(microbe_file, sheet = sheet))
+names(microbe) <- microbe_sheets
+
+setdiff(microbe$`Old DATABASE`$...1, studies$Number)
+setdiff(microbe$`New DATABASE`$...1, studies$Number)
+setdiff(microbe$`Sarah's Work (2`$Number, studies$Number)
 
 is.pubmed <- grepl("pubmed", studies$`Article link`)
 is.pmc <- grepl("PMC[0-9]+", studies$`Article link`)
