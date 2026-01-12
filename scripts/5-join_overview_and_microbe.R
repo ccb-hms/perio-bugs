@@ -2,6 +2,7 @@ library(dplyr)
 library(openxlsx)
 
 source('scripts/controlled_vocab.R')
+source('scripts/create_metaphlan_hierarchy.R')
 
 
 # load in microbe, cleaned overview, and study pmids
@@ -40,15 +41,37 @@ final_df <- overview_cleaned |>
 # do we have PMIDs for everything?
 table(is.na(final_df$PMID))
 
+# get MetaPhlAn taxon names as in bugsigdb
+metaphlan_hierarchy <- create_metaphlan_hierarchy(final_df$`NCBI Taxonomy IDs`)
 
-# save
-saveRDS(final_df, 'output/perio_bugs.rds')
-write.csv(final_df, 'output/perio_bugs.csv', row.names = FALSE)
+# save in BugSigDB format for Users ----
+
+# Need NCBI taxon IDs and names in MetaPhlAn format
+perio_bugs <- final_df
+perio_bugs$`NCBI Taxonomy IDs` <- NULL
+perio_bugs <- bind_cols(perio_bugs, metaphlan_hierarchy)
+
+# Need 'Study' and 'Experiment' (internal identifiers in BugSigDB)
+perio_bugs <- perio_bugs |> 
+  mutate(Study = paste('Study', Number)) |> 
+  relocate(Study, .before = `Study design`) |> 
+  select(-Number)
+
+# only one experiment per study for all perio sigs
+# up to two signatures (up and down)
+stopifnot(max(table(perio_bugs$Study)) == 2)
+
+perio_bugs <- perio_bugs |> 
+  mutate(Experiment = 'Experiment 1') |> 
+  relocate(Experiment, .before = `Location of subjects`)
+
+saveRDS(perio_bugs, 'output/perio_bugs.rds')
+write.csv(perio_bugs, 'output/perio_bugs.csv', row.names = FALSE)
 
 # just columns for development
-write.csv(final_df[1, ], 'output/perio_bugs_example.csv', row.names = FALSE)
+write.csv(perio_bugs[1, ], 'output/perio_bugs_example.csv', row.names = FALSE)
 
-# save Excel with data validation build in ----
+# save Excel with data validation build in for Curators ----
 
 # Define validation configuration with actual column names
 validation_config <- list(
