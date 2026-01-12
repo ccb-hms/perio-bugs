@@ -6,3 +6,4 @@
 # Include the specific file (and its directory path)
 output/ -export-ignore
 output/perio_bugs.csv -export-ignore
+output/perio_bugs_example.csv -export-ignore

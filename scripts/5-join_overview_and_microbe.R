@@ -45,6 +45,9 @@ table(is.na(final_df$PMID))
 saveRDS(final_df, 'output/perio_bugs.rds')
 write.csv(final_df, 'output/perio_bugs.csv', row.names = FALSE)
 
+# just columns for development
+write.csv(final_df[0, ], 'output/perio_bugs_example.csv', row.names = FALSE)
+
 # save Excel with data validation build in ----
 
 # Define validation configuration with actual column names
