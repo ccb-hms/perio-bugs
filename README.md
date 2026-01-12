@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18220860.svg)](https://doi.org/10.5281/zenodo.18220860)
+
 # Microbial Signatures of Periodontal Disease
 
 *Standardized, accessible, and FAIR data resources of published microbial differential abundance signatures in periodontal health and disease.*
