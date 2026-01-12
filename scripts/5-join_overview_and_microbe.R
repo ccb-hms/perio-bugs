@@ -37,6 +37,10 @@ diff_species_collapsed <- diff_species  |>
 final_df <- overview_cleaned |> 
   right_join(diff_species_collapsed, by='Number')
 
+# do we have PMIDs for everything?
+table(is.na(final_df$PMID))
+
+
 # save
 saveRDS(final_df, 'output/perio_bugs.rds')
 write.csv(final_df, 'output/perio_bugs.csv', row.names = FALSE)

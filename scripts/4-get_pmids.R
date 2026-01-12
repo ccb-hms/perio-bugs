@@ -2,8 +2,12 @@ library(readxl)
 library(rentrez)
 library(dplyr)
 
+
 studies_file <- 'data/articles_included/Final selection Yes.xlsx'
 overview_cleaned <- readRDS('output/overview_cleaned.rds')
+
+# additional PMIDs added
+missing_pmids <- readr::read_csv('data/missing_pmids.csv', col_types = 'cd') |> distinct()
 
 
 # check concordance of study Number
@@ -13,20 +17,8 @@ studies <- studies |>
   mutate(Number = as.numeric(Number)) |> 
   select(Number, `Article nr`, `Article link`)
 
-table(overview_cleaned$Number %in% studies$Number)
-setdiff(overview_cleaned$Number, studies$Number)
-
-# check which database missing PMIDs from
-microbe_file <- 'data/Cleaned Micro List RY_final.xlsx'
-microbe_sheets <- excel_sheets(microbe_file)
-
-# Read all sheets into a named list
-microbe <- lapply(microbe_sheets, function(sheet) read_excel(microbe_file, sheet = sheet))
-names(microbe) <- microbe_sheets
-
-setdiff(microbe$`Old DATABASE`$...1, studies$Number)
-setdiff(microbe$`New DATABASE`$...1, studies$Number)
-setdiff(microbe$`Sarah's Work (2`$Number, studies$Number)
+table(overview_cleaned$Number %in% c(studies$Number, missing_pmids$Number))
+setdiff(overview_cleaned$Number, c(studies$Number, missing_pmids$Number))
 
 is.pubmed <- grepl("pubmed", studies$`Article link`)
 is.pmc <- grepl("PMC[0-9]+", studies$`Article link`)
@@ -79,5 +71,11 @@ studies <- studies |>
 studies <- select(studies, Number, PMID)
 
 stopifnot(sum(is.na(studies$PMID)) == 0)
+
+# add previously missing pmids
+studies <- bind_rows(studies, missing_pmids)
+
+# TODO: add study info
+# records <- entrez_summary(db = "pubmed", id = studies$PMID)
 
 saveRDS(studies, 'output/study_pmids.rds')
