@@ -15,3 +15,7 @@ output/perio_bugs.xlsx
 output/perio_bugs.rds
 output/study_pmids.rds
 .Rproj.user
+
+# things that will be in final release
+output/prompt_fixes.rds
+output/perio_bugs.csv
