@@ -1,0 +1,355 @@
+---
+title: "Periodontal Microbiome Signatures"
+format: 
+    html:
+        grid:
+            sidebar-width: 50px
+            body-width: 1000px
+            margin-width: 300px
+        toc: true
+        toc-depth: 2 
+        code-fold: true
+        code-tools: true
+        theme: 
+          light: [flatly, style.scss]
+          dark: [darkly, style.scss]
+        fontsize: 1.2em
+        linestretch: 2
+        highlight-style: a11y
+        date: "February 10, 2026"
+        embed-resources: true
+title-block-banner: "images/HMS_DBMI_Logo.png"
+title-block-banner-color: "#333333"
+css: style.css
+bibliography: refs.bib
+author:
+    - name: Alex Pickering
+      orcid: 0000-0002-0002-6759
+      email: alex_pickering@hms.harvard.edu
+      affiliation:
+          - name: CCB
+            url: https://ccb.hms.harvard.edu/
+            id: ccb
+      roles: [formal analysis, software]
+    - name: Tram Nguyen
+      orcid: 0000-0003-4809-6227
+      email: tram_nguyen@hms.harvard.edu
+      affiliation:
+          - name: CCB
+            url: https://ccb.hms.harvard.edu/
+            id: ccb
+      roles: [formal analysis, software]
+    - name: Ludwig Geistlinger 
+      orcid: 0000-0002-2495-5464
+      email: ludwig_geistlinger@hms.harvard.edu
+      affiliation:
+          - ref: ccb
+      roles: supervision
+license: 
+    - text: "HMS authorship guidelines: https://hms.harvard.edu/sites/default/files/assets/Sites/Ombuds/files/AUTHORSHIP%20GUIDELINES.pdf"
+    - url: https://hms.harvard.edu/sites/default/files/assets/Sites/Ombuds/files/AUTHORSHIP%20GUIDELINES.pdf
+editor: source 
+---
+ 
+This report was rendered on `r format(Sys.time(), "%B %d, %Y")`.
+
+
+
+```{r}
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+```{r}
+library(tidyverse)
+library(bugSigSimple)
+library(ggplot2)
+library(ComplexHeatmap)
+library(circlize)
+library(dendextend)
+
+# TODO: replace by bigsigdbr::importBugSigDB()
+dat <- readRDS('example_data/perio_bugs.rds')
+```
+
+# Background
+Periodontitis is a chronic inflammatory disease affecting the supporting structures of teeth, including the gingiva, periodontal ligament, and alveolar bone. The disease is driven by dysbiosis of the oral microbiome, with shifts from commensal to pathogenic bacterial communities. Understanding which microbial taxa are consistently associated with periodontitis across multiple studies can help identify key drivers of disease and potential therapeutic targets.
+
+PerioSigDB is a comprehensive database of periodontal microbial signatures curated from published literature, providing a resource for meta-analysis of microbiome studies. Here, we analyze periodontal disease-associated signatures from PerioSigDB to identify taxa that show consistent patterns of abundance changes across studies.
+
+# Taxa Increased in Periodontitis
+
+From the periodontal microbiome signatures, we generated a table of taxa showing consistent increases in periodontitis. The binomial test evaluates whether each taxon is more frequently reported as increased rather than decreased across studies. Taxa appearing in this table show statistically significant directional consistency.
+
+```{r}
+#| classes: plain
+
+dat_condition <- dat |> 
+  mutate(comparison1 = paste(`Group 0 name`, `Group 1 name`, sep = " vs "))
+
+# table of studies
+taxon_table <- bugSigSimple::createTaxonTable(dat_condition, n=20) |> 
+  select(
+    `Taxon Name`,
+    `Signatures` = total_signatures,
+    `Increased` = increased_signatures,
+    `Decreased` = decreased_signatures,
+    `P-value` = `Binomial Test pval`
+  )
+
+taxon_table |> 
+  dplyr::filter(Increased > Decreased) |>
+  dplyr::filter(`P-value` < 0.05) |>
+  kableExtra::kbl()
+```
+
+# Taxa Decreased in Periodontitis
+
+Conversely, we identified taxa that are consistently depleted in periodontitis compared to healthy controls. These may represent commensal or health-associated microbes that are displaced during disease progression.
+
+```{r}
+#| classes: plain
+
+taxon_table |> 
+  dplyr::filter(Decreased > Increased) |>
+  kableExtra::kbl()
+
+```
+
+# Signature Length
+
+Understanding the size distribution of microbial signatures provides insight into the complexity of microbiome alterations in periodontitis. Most signatures report relatively few differentially abundant taxa:
+
+```{r}
+#| fig-width: 10
+
+# cluster analysis
+allsigs <- bugsigdbr::getSignatures(dat_condition, tax.id.type = "taxname")
+allsigs <- allsigs[sapply(allsigs, length) > 1] #require length > 1
+
+# what is the distribution of signature lengths?
+siglengths <- sapply(allsigs, length)
+siglengths.df <- data.frame(siglengths = siglengths)
+ggplot(siglengths.df, aes(x=siglengths)) +
+  geom_bar(width=.9, colour='black', fill= '#ddd', linewidth=0.5) +
+  theme_bw() +
+  xlab('Number of Microbes in Signature') +
+  ylab('Number of Signatures')
+
+```
+
+The distribution shows that most signatures contain between 1-10 taxa, with a long tail of larger signatures. This pattern may reflect differences in study design, sequencing depth, statistical power, or biological reality.
+
+# Cluster Analysis
+
+To assess consistency across studies, we calculated pairwise Jaccard similarities between all signatures. The heatmap below shows how similar signatures are to each other, with hierarchical clustering grouping similar signatures together. The top annotation bar shows the size (number of taxa) of each signature.
+
+```{r}
+#| fig-width: 10
+#| fig-height: 8
+mydists <- BugSigDBStats::calcPairwiseOverlaps(allsigs)
+
+# Create a matrix of Jaccard similarities (0 for no overlap, 1 for 100% overlap)
+jmat <- BugSigDBStats::calcJaccardSimilarity(allsigs)
+
+# Remove annotation name, use column title on heatmap
+ha <- HeatmapAnnotation(
+  `Signature Length` = anno_barplot(siglengths),
+  show_annotation_name = FALSE  # Hide the annotation label
+)
+hm <- Heatmap(
+  jmat,
+  top_annotation = ha, 
+  column_title = "Signature Length",  # Add as column title
+  column_title_side = "top",
+  left_annotation = NULL,
+  row_names_max_width = unit(20, "cm"),
+  column_names_max_height = unit(20, "cm"),
+  row_labels = gsub('^.+?_(UP|DOWN)$', "\\1", rownames(jmat)),
+  column_labels = gsub('^.+?_(UP|DOWN)$', "\\1", colnames(jmat)),
+  row_names_gp = gpar(fontsize = 6),  
+  column_names_gp = gpar(fontsize = 6),
+  show_column_dend = FALSE,
+  heatmap_legend_param = list(
+    title = 'Jaccard Similarity',
+    direction = "horizontal"  # Make legend horizontal
+  )
+)
+
+# Draw with legend at bottom
+draw(hm, heatmap_legend_side = "bottom")
+```
+
+ Signatures reporting increased taxa (UP) in periodontitis show particularly strong clustering, suggesting a core set of disease-associated microbes is consistently identified.
+ 
+# Explore Species Within Clusters
+```{r}
+#| fig-width: 10
+#| fig-height: 8
+
+# Helper function to get author labels (without year)
+get_author_label <- function(dat, sname) {
+  id <- unlist(strsplit(sname, "_"))[1]
+  id <- gsub("^bsdb:", "", id)
+  id <- unlist(strsplit(id, "/"))
+  
+  sdat <- dat[dat$Study == paste0("Study ", id[1]) & 
+                dat$Experiment == paste0("Experiment ", id[2]), ]
+  
+  if(nrow(sdat) == 0) return("Unknown")
+  
+  author <- sdat$`Authors list`[1]
+  # Get first author last name
+  aspl <- unlist(strsplit(author, " "))[1]
+  year <- sdat$Year[1]
+  
+  # Add "et al." if multiple authors
+  if(grepl(",", author)) {
+    return(paste0(aspl, " et al. (", year, ")"))
+  } else {
+    return(paste0(aspl, " (", year, ")"))
+  }
+}
+# Helper function to plot frequency heatmaps
+create_taxa_heatmap <- function(dat_condition, 
+                                clust_up, 
+                                jmat, 
+                                hc, 
+                                tax_level = "species") {
+  
+  # Get signatures
+  sigs_taxa <- bugsigdbr::getSignatures(
+    dat_condition,
+    tax.id.type = "taxname",
+    tax.level = tax_level,
+    exact.tax.level = FALSE
+  )
+  
+  # Filter to only signatures in clust_up
+  sigs_taxa <- sigs_taxa[names(sigs_taxa) %in% clust_up]
+  
+  # Remove empty signatures
+  sigs_taxa <- sigs_taxa[sapply(sigs_taxa, length) > 0]
+  
+  # Create binary presence/absence matrix
+  all_taxa <- unique(unlist(sigs_taxa))
+  
+  taxa_matrix <- matrix(0, 
+                        nrow = length(sigs_taxa),
+                        ncol = length(all_taxa),
+                        dimnames = list(names(sigs_taxa), all_taxa))
+  
+  for(i in seq_along(sigs_taxa)) {
+    sig_name <- names(sigs_taxa)[i]
+    taxa_in_sig <- sigs_taxa[[i]]
+    taxa_matrix[sig_name, taxa_in_sig] <- 1
+  }
+  
+  # Calculate taxa frequency
+  taxa_freq <- colSums(taxa_matrix) / nrow(taxa_matrix)
+  taxa_order <- order(taxa_freq, decreasing = TRUE)
+  taxa_freq_ordered <- taxa_freq[taxa_order]
+  
+  # Re-cluster using original distance matrix
+  sigs_to_use <- rownames(taxa_matrix)
+  jmat_subset <- jmat[sigs_to_use, sigs_to_use]
+  hc_subset <- hclust(dist(jmat_subset), method = hc$method)
+  dend_subset <- as.dendrogram(hc_subset)
+  
+  # Reorder taxa_matrix to match clustering
+  taxa_matrix_ordered <- taxa_matrix[hc_subset$labels, taxa_order]
+  
+  # Apply author labels
+  sig_labels_ordered <- vapply(rownames(taxa_matrix_ordered), 
+                               get_author_label, 
+                               character(1), 
+                               dat = dat_condition)
+  
+  labels(dend_subset) <- sig_labels_ordered
+  rownames(taxa_matrix_ordered) <- sig_labels_ordered
+  
+  # Create color matrix
+  color_matrix <- taxa_matrix_ordered
+  for(j in 1:ncol(color_matrix)) {
+    for(i in 1:nrow(color_matrix)) {
+      if(color_matrix[i, j] == 0) {
+        color_matrix[i, j] <- NA
+      } else {
+        color_matrix[i, j] <- taxa_freq_ordered[j]
+      }
+    }
+  }
+  
+  # Color function
+  col_fun <- colorRamp2(c(0, 0.5, 1), c("blue", "white", "red"))
+  
+  # Create heatmap
+  hm_taxa <- Heatmap(
+    color_matrix,
+    name = "Frequency",
+    col = col_fun,
+    na_col = "white",
+    cluster_rows = dend_subset,
+    cluster_columns = FALSE,
+    show_row_dend = TRUE,
+    row_dend_width = unit(1, "cm"),
+    row_names_side = "left",
+    column_names_side = "bottom",
+    row_names_gp = gpar(fontsize = 10),
+    column_names_gp = gpar(fontsize = 10),
+    column_names_rot = 90,
+    column_title = NULL,
+    row_title = NULL,
+    top_annotation = NULL,
+    heatmap_legend_param = list(
+      title = "Frequency",
+      direction = "vertical",
+      title_gp = gpar(fontsize = 9),
+      labels_gp = gpar(fontsize = 8),
+      at = c(0, 0.25, 0.5, 0.75, 1),
+      labels = c("0", "0.25", "0.5", "0.75", "1"),
+      legend_height = unit(2, "cm"),
+      legend_width = unit(0.3, "cm")
+    )
+  )
+  
+  return(hm_taxa)
+}
+```
+
+Another way to explore the species that are more abundant in periodontitis is to look at the species present within the studies whose signatures are highly similar (the cluster we identified in the previous section). We start but looking at signatures at the genus level:
+
+
+```{r}
+#| fig-width: 10
+#| fig-height: 8
+# identify the clusters
+hc <- hclust(dist(jmat))
+
+#set the number of clusters here with k
+clusts <- sort(cutree(hc, k = 2)) 
+clusts <- lapply(unique(clusts), function(i) names(clusts)[clusts == i])
+
+# proceed with cluster of UP signatures with high similarity
+clust_up <- clusts[[2]]
+
+hm_genus <- create_taxa_heatmap(dat_condition, clust_up, jmat, hc, 
+                                  tax_level = "genus")
+draw(hm_genus, heatmap_legend_side = "right")
+```
+
+If we want a bit more detail we can also look at the same plot for the species level:
+
+```{r}
+#| fig-width: 10
+#| fig-height: 8
+
+hm_species <- create_taxa_heatmap(dat_condition, clust_up, jmat, hc, 
+                                  tax_level = "species")
+draw(hm_species, heatmap_legend_side = "right")
+
+```
+# References
+
+:::{#refs}
+:::

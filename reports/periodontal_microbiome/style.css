@@ -1,0 +1,20 @@
+.quarto-title-block .quarto-title-banner {
+	background-color: transparent;
+	background-size: 350px;
+	background-position: 50px center;
+	background-repeat: no-repeat;
+	background-origin: content-box;
+}
+
+/* prevent banner image from overlapping title */
+.quarto-title-block h1 {
+    margin-top: 200px !important;
+}
+
+#title-block-header {
+    margin-top: -120px !important;
+}
+
+.quarto-title-meta-author {
+    margin-top: -30px;
+}

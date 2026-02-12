@@ -19,3 +19,8 @@ output/study_pmids.rds
 # things that will be in final release
 output/prompt_fixes.rds
 output/perio_bugs.csv
+
+# quarto report stuff
+reports/periodontal_microbiome/example_data/*
+reports/periodontal_microbiome/report.html
+reports/periodontal_microbiome/rsconnect/*
