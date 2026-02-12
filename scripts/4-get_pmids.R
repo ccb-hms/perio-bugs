@@ -75,7 +75,31 @@ stopifnot(sum(is.na(studies$PMID)) == 0)
 # add previously missing pmids
 studies <- bind_rows(studies, missing_pmids)
 
-# TODO: add study info
-# records <- entrez_summary(db = "pubmed", id = studies$PMID)
+# add study info
+
+records <- entrez_summary(db = "pubmed", id = studies$PMID)
+records <- unname(records)
+authors <- sapply(records, function(x) paste0(x$authors$name, collapse = ', '))
+get_doi <- function(articleids) {
+  doi <- articleids |> 
+    filter(idtype=='doi') |>
+    pull(value)
+  
+  if (!length(doi)) return(NA)
+  
+  return(doi)
+}
+dois <- sapply(records, function(x) get_doi(x$articleids))
+titles <- sapply(records, `[[`, 'title')
+journal <- sapply(records, `[[`, 'fulljournalname')
+pubdates <- sapply(records, `[[`, 'pubdate')
+pubyears <- gsub('^(\\d{4}).+?$', '\\1', pubdates)
+
+
+studies$`Authors list` <- authors
+studies$Title <- titles
+studies$DOI <- dois
+studies$Journal <- journal
+studies$Year <- pubyears
 
 saveRDS(studies, 'output/study_pmids.rds')
