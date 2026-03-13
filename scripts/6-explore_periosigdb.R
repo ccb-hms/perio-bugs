@@ -4,28 +4,272 @@ library(ggplot2)
 library(ComplexHeatmap)
 library(circlize)
 library(dendextend)
+library(plotly)
+
+# helper functions ----
+
+get_most_specific <- function(taxpart) {
+  taxpart_split <- strsplit(taxpart, split='|', fixed=TRUE)
+  most_specific <- sapply(taxpart_split, tail, 1)
+  sapply(strsplit(most_specific, '__'), tail, 1)
+}
+
+make_freq_dat <- function(dat_exp, direction, min_freq = 3) {
+  dat_exp |>
+    filter(`Abundance in Group 1` == direction) |> 
+    count(last_taxname, last_taxid, name = "freq") |>
+    filter(freq >= min_freq) |> 
+    arrange(desc(freq)) |> 
+    mutate(across(c(last_taxid, last_taxname), ~ factor(., levels = .)))
+}
+
+make_freq_dat_combined <- function(dat_exp, pval_dat, min_freq = 3) {
+  dat_up_unfiltered <- dat_exp |>
+    filter(`Abundance in Group 1` == "increased") |> 
+    count(last_taxname, last_taxid, name = "freq") |> 
+    arrange(desc(freq))
+
+  dat_dn_unfiltered <- dat_exp |>
+    filter(`Abundance in Group 1` == "decreased") |> 
+    count(last_taxname, last_taxid, name = "freq") |> 
+    arrange(desc(freq))
+
+  # Get taxa with freq >= min_freq in EITHER direction
+  taxa_to_show <- unique(c(
+    (dat_up_unfiltered |> filter(freq >= min_freq))$last_taxname,
+    (dat_dn_unfiltered |> filter(freq >= min_freq))$last_taxname
+  ))
+
+  # Use provided p-values
+  taxon_table_for_pval <- pval_dat
+
+  # Get dominance and difference info
+  taxa_stats <- bind_rows(
+    dat_up_unfiltered |> mutate(direction = "increased"),
+    dat_dn_unfiltered |> mutate(direction = "decreased")
+  ) |>
+    pivot_wider(
+      id_cols = last_taxname,
+      names_from = direction,
+      values_from = freq,
+      values_fill = 0
+    ) |>
+    mutate(
+      difference = increased - decreased
+    ) |>
+    select(last_taxname, difference) |>
+    left_join(taxon_table_for_pval, by = "last_taxname")
+
+  # Combine all data
+  result <- bind_rows(
+    dat_up_unfiltered |> mutate(direction = "increased"),
+    dat_dn_unfiltered |> mutate(direction = "decreased")
+  ) |>
+    filter(last_taxname %in% taxa_to_show) |>
+    left_join(taxa_stats, by = "last_taxname") |>
+    mutate(
+      freq_display = freq,
+      alpha_val = ifelse(pval > 0.05, 0.3, 1)
+    ) |>
+    # Create taxon factor ordered by number of signatures (descending)
+    mutate(
+      last_taxname = factor(last_taxname, 
+        levels = names(sort(sapply(split(freq, last_taxname), sum), decreasing = TRUE)))
+    )
+  
+  result
+}
+
+make_freq_plot <- function(dat_combined, title) {
+  ggplot(dat_combined, aes(
+    y = forcats::fct_rev(last_taxname), 
+    x = freq_display,
+    fill = direction,
+    alpha = alpha_val
+  )) +
+    geom_col(position = "stack", color = "#333") +
+    scale_x_continuous(labels = abs, position = "top") +
+    scale_fill_manual(
+      values = c("increased" = "#ffcccc", "decreased" = "#b3d9ff"),
+      labels = c("increased" = "Increased", "decreased" = "Decreased")
+    ) +
+    scale_alpha_identity() +
+    labs(
+      y = NULL, 
+      x = NULL,
+      title = title,
+      subtitle = "Excludes taxa in fewer than 3 signatures\nTransparent: p-value > 0.05",
+      fill = NULL
+    ) +
+    theme_minimal() +
+    theme(
+      panel.grid.major.y = element_blank(),
+      panel.grid.minor.y = element_blank(),
+      panel.grid.minor.x = element_blank(),
+      legend.position = "top",
+      plot.title = element_text(hjust = 0)
+    )
+}
+
+make_taxon_table <- function(dat) {
+  bugSigSimple::createTaxonTable(
+    mutate(dat, comparison1 = paste(`Group 0 name`, `Group 1 name`, sep = " vs ")),
+    n = Inf
+  ) |> 
+    select(
+      `Taxon Name`,
+      `Signatures` = total_signatures,
+      `Increased` = increased_signatures,
+      `Decreased` = decreased_signatures,
+      `P-value` = `Binomial Test pval`
+    ) |> 
+    mutate(`Δ` = Increased - Decreased, .after = Decreased)
+}
+
+make_dt <- function(dat) {
+  DT::datatable(
+    dat,
+    filter = 'top',
+    class = 'row-border hover order-column',
+    options = list(
+      dom = 'lrtip',
+      columnDefs = list(list(targets = c(6), searchable = FALSE))
+    )
+  )
+}
+
+# load data ----
 
 # replace by bigsigdbr::importBugSigDB()
 dat <- readRDS('output/perio_bugs.rds')
 dim(dat)
 
+# expand one row per bug and extract terminal taxon ----
+dat_exp <- dat |> 
+  unnest(c(`NCBI Taxonomy IDs`, `MetaPhlAn taxon names`)) |>
+  mutate(
+    last_taxname = get_most_specific(`MetaPhlAn taxon names`),
+    last_taxid = get_most_specific(`NCBI Taxonomy IDs`)
+  )
+
+# number of unique bugs per direction
+dat_exp |>
+  summarise(
+    n_unique = n_distinct(last_taxname),
+    .by = `Abundance in Group 1`)
+
+# number of unique bugs total
+n_distinct(dat_exp$last_taxname)
+
+# frequency plots ----
+taxon_table <- make_taxon_table(dat)
+pval_dat_all <- taxon_table |>
+  select(last_taxname = `Taxon Name`, pval = `P-value`)
+
+dat_freq_combined <- make_freq_dat_combined(dat_exp, pval_dat_all)
+dat_freq_combined |> 
+  filter(difference > 0) |>
+  mutate(direction = factor(direction, levels = c("decreased", "increased"))) |>
+  make_freq_plot("Taxon Frequency: Up-Regulated")
+
+dat_freq_combined |> 
+  filter(difference < 0) |>
+  mutate(freq_display = abs(freq_display)) |>
+  mutate(direction = factor(direction, levels = c("increased", "decreased"))) |>
+  make_freq_plot("Taxon Frequency: Down-Regulated")
+
+
+# identify broad coverage signatures ----
+broad_platforms <- c("DNA-DNA Hybridization", "Human Intestinal Tract Chip", 
+                     "Illumina", "Roche454")
+
+targeted_platforms <- c("RT-qPCR", "Non-quantitative PCR", "Sanger", "Mass spectrometry")
+
+dat_broad <- dat |> 
+  mutate(seq_keep = case_when(
+    # use seq_type first if available
+    `Sequencing type` %in% c("16S", "WMS") ~ TRUE,
+    `Sequencing type` %in% c("PCR", "16S,PCR") ~ FALSE,
+    # fall back to seq_plat if seq_type is NA
+    is.na(`Sequencing type`) & `Sequencing platform` %in% broad_platforms ~ TRUE,
+    is.na(`Sequencing type`) & `Sequencing platform` %in% targeted_platforms ~ FALSE,
+    .default = NA
+  )) |>
+  filter(seq_keep)
+
+# checks
+count(dat_broad, seq_keep)
+table(dat_broad$`Sequencing platform`, dat_broad$seq_keep)
+table(dat_broad$`Sequencing type`, dat_broad$seq_keep)
+
+# sig length histogram ----
+# Create dat_condition for signature length extraction
 dat_condition <- dat |> 
   mutate(comparison1 = paste(`Group 0 name`, `Group 1 name`, sep = " vs "))
 
-# table of studies
-taxon_table <- bugSigSimple::createTaxonTable(dat_condition, n=20) |> 
-  select(
-    `Taxon Name`,
-    `Signatures` = total_signatures,
-    `Increased` = increased_signatures,
-    `Decreased` = decreased_signatures,
-    `P-value` = `Binomial Test pval`
+dat_condition_broad <- dat_broad |> 
+  mutate(comparison1 = paste(`Group 0 name`, `Group 1 name`, sep = " vs "))
+
+# Get signatures and extract lengths
+allsigs <- bugsigdbr::getSignatures(dat_condition, tax.id.type = "taxname")
+siglengths <- sapply(allsigs, length)
+
+allsigs_broad <- bugsigdbr::getSignatures(dat_condition_broad, tax.id.type = "taxname")
+siglengths_broad <- sapply(allsigs_broad, length)
+
+# Create bar chart with overlaid bars
+sig_counts_all <- data.frame(siglength = siglengths) |>
+  count(siglength, name = "count") |>
+  mutate(data_type = "All Data")
+
+sig_counts_broad <- data.frame(siglength = siglengths_broad) |>
+  count(siglength, name = "count") |>
+  mutate(data_type = "Broad Data Only")
+
+sig_data <- bind_rows(sig_counts_all, sig_counts_broad)
+
+ggplot(sig_data, aes(x = siglength, y = count, fill = data_type)) +
+  geom_col(position = "identity", alpha = c(0.5, 0.8)[match(sig_data$data_type, c("All Data", "Broad Data Only"))]) +
+  scale_fill_manual(values = c("All Data" = "#999999", "Broad Data Only" = "#2ecc71")) +
+  scale_x_continuous(limits = c(0.5, 50.5), breaks = c(1, seq(5, 50, by = 5))) +
+  labs(
+    x = "Signature Length (number of taxa)",
+    y = "Number of Signatures",
+    title = "Distribution of Signature Lengths: All Data vs Broad Data Only",
+    fill = "Data Type"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "top",
+    panel.grid.minor = element_blank()
   )
 
-taxon_table |> 
-  dplyr::filter(Increased > Decreased) |>
-  kableExtra::kbl()
 
+# taxon tables - all signatures ----
+taxon_table |> 
+  filter(Increased > Decreased)  |>
+  arrange(`P-value`) |>
+  make_dt()
+
+taxon_table |> 
+  filter(Decreased >= Increased) |>
+  arrange(`P-value`) |>
+  make_dt()
+
+# taxon tables - broad coverage signatures only ----
+taxon_table_broad <- make_taxon_table(dat_broad)
+pval_dat_broad <- taxon_table_broad |>
+  select(last_taxname = `Taxon Name`, pval = `P-value`)
+
+taxon_table_broad |> 
+  filter(Increased > Decreased) |>
+  arrange(`P-value`) |>
+  make_dt()
+
+taxon_table_broad |>
+  filter(Decreased >= Increased) |>
+  arrange(`P-value`) |>
+  make_dt()
 # ============================================================================
 # PART 1: Basic Jaccard Similarity Analysis
 # ============================================================================
@@ -33,15 +277,6 @@ taxon_table |>
 # cluster analysis
 allsigs <- bugsigdbr::getSignatures(dat_condition, tax.id.type = "taxname")
 allsigs <- allsigs[sapply(allsigs, length) > 1] #require length > 1
-
-# what is the distribution of signature lengths?
-siglengths <- sapply(allsigs, length)
-siglengths.df <- data.frame(siglengths = siglengths)
-ggplot(siglengths.df, aes(x=siglengths)) +
-  geom_bar(width=.9, colour='black', fill= '#ddd', linewidth=0.5) +
-  theme_bw() +
-  xlab('Number of Microbes in Signature') +
-  ylab('Number of Signatures')
 
 mydists <- BugSigDBStats::calcPairwiseOverlaps(allsigs)
 
