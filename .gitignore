@@ -24,3 +24,5 @@ output/perio_bugs.csv
 reports/periodontal_microbiome/example_data/*
 reports/periodontal_microbiome/report.html
 reports/periodontal_microbiome/rsconnect/*
+reports/periodontal_microbiome/report_cache/*
+reports/periodontal_microbiome/report_files/*
