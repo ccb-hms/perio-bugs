@@ -144,6 +144,49 @@ if (!check_prev_prompt(dirty_seq, 'seq_res', prompt_fixes)) {
   saveRDS(prompt_fixes, prompt_fixes_file)
 }
 
+if (!check_prev_prompt(dirty_seq, 'seq_res_cleaned', prompt_fixes)) {
+  
+  # cleanup some inconsistencies
+  broad_platforms <- c("Illumina", "Roche454", "DNA-DNA Hybridization", "Human Intestinal Tract Chip")
+  targeted_platforms <- c("RT-qPCR", "Sanger", "Non-quantitative PCR", "Mass spectrometry")
+  
+  seq_res <- prompt_fixes$seq_res
+  seq_res$Number <- df$Number
+  
+  # inspect
+  seq_res |> 
+    filter(
+      (seq_type %in% c("16S", "WMS") & seq_plat %in% targeted_platforms) |
+        (seq_type == "PCR" & seq_plat %in% broad_platforms)
+    ) |> 
+    View()
+  
+  # cleanup
+  prompt_fixes$seq_res_cleaned <- seq_res |> 
+    mutate(
+      seq_type = case_when(
+        # labelled 16S but method describes targeted species-specific PCR only
+        Number %in% c(124, 1713, 127) ~ factor("PCR", levels = levels(seq_type)),
+        
+        # labelled PCR but method describes Pyrosequencing = broad 16S amplicon
+        Number == 260 ~ factor("16S", levels = levels(seq_type)),
+        
+        # method describes both broad 16S sequencing and targeted qPCR
+        Number %in% c(459, 428, 452, 509, 549) ~ factor("16S,PCR", levels = c(levels(seq_type), "16S,PCR")),
+        .default = seq_type
+      ),
+      seq_plat = case_when(
+        # labelled PCR but Pyrosequencing is the Roche454 platform
+        Number == 260 ~ factor("Roche454", levels = levels(seq_plat)),
+        .default = seq_plat
+      )
+    )
+  
+  saveRDS(prompt_fixes, prompt_fixes_file)
+}
+
+
+
 # get possible PMIDs ----
 
 # skip if already have
@@ -460,8 +503,8 @@ if (!check_prev_prompt(plaque_perio_messy, 'plaque_perio', prompt_fixes)) {
 # join cleaned up columns ----
 
 # fix up factor results
-prompt_fixes$seq_res[] <- lapply(prompt_fixes$seq_res, as.character)
-prompt_fixes$seq_res[prompt_fixes$seq_res == 'NA'] <- NA
+prompt_fixes$seq_res_cleaned[] <- lapply(prompt_fixes$seq_res_cleaned, as.character)
+prompt_fixes$seq_res_cleaned[prompt_fixes$seq_res_cleaned == 'NA'] <- NA
 
 cleaned_df <- tibble::tibble(
   "PMID" = NA_integer_,
@@ -478,9 +521,9 @@ cleaned_df <- tibble::tibble(
   "Group 1 name" = group1_name,
   "Group 1 definition" = group1_def,
   
-  "Sequencing type" = prompt_fixes$seq_res$seq_type,
-  "16S variable region" = prompt_fixes$seq_res$`16s_regions`,
-  "Sequencing platform" = prompt_fixes$seq_res$seq_plat,
+  "Sequencing type" = prompt_fixes$seq_res_cleaned$seq_type,
+  "16S variable region" = prompt_fixes$seq_res_cleaned$`16s_regions`,
+  "Sequencing platform" = prompt_fixes$seq_res_cleaned$seq_plat,
   
   "Group 0 sample size" = prompt_fixes$group0_size$clean_num,
   "Group 1 sample size" = prompt_fixes$group1_size$clean_num,
