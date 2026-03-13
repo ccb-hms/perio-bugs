@@ -4,7 +4,7 @@ format:
     html:
         grid:
             sidebar-width: 50px
-            body-width: 1000px
+            body-width: 1100px
             margin-width: 300px
         toc: true
         toc-depth: 2 
@@ -53,14 +53,11 @@ editor: source
  
 This report was rendered on `r format(Sys.time(), "%B %d, %Y")`.
 
-
-
-```{r}
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 ```
 
-```{r}
+```{r helper-functions}
 library(tidyverse)
 library(bugSigSimple)
 library(ggplot2)
@@ -68,8 +65,168 @@ library(ComplexHeatmap)
 library(circlize)
 library(dendextend)
 
-# TODO: replace by bigsigdbr::importBugSigDB()
-dat <- readRDS('example_data/perio_bugs.rds')
+# Helper functions ----
+
+get_most_specific <- function(taxpart) {
+  taxpart_split <- strsplit(taxpart, split='|', fixed=TRUE)
+  most_specific <- sapply(taxpart_split, tail, 1)
+  sapply(strsplit(most_specific, '__'), tail, 1)
+}
+
+make_freq_dat <- function(dat_exp, direction, min_freq = 3) {
+  dat_exp |>
+    filter(`Abundance in Group 1` == direction) |> 
+    count(last_taxname, last_taxid, name = "freq") |>
+    filter(freq >= min_freq) |> 
+    arrange(desc(freq)) |> 
+    mutate(across(c(last_taxid, last_taxname), ~ factor(., levels = .)))
+}
+
+make_freq_dat_combined <- function(dat_exp, pval_dat, min_freq = 3) {
+  dat_up_unfiltered <- dat_exp |>
+    filter(`Abundance in Group 1` == "increased") |> 
+    count(last_taxname, last_taxid, name = "freq") |> 
+    arrange(desc(freq))
+
+  dat_dn_unfiltered <- dat_exp |>
+    filter(`Abundance in Group 1` == "decreased") |> 
+    count(last_taxname, last_taxid, name = "freq") |> 
+    arrange(desc(freq))
+
+  # Get taxa with freq >= min_freq in EITHER direction
+  taxa_to_show <- unique(c(
+    (dat_up_unfiltered |> filter(freq >= min_freq))$last_taxname,
+    (dat_dn_unfiltered |> filter(freq >= min_freq))$last_taxname
+  ))
+
+  # Use provided p-values
+  taxon_table_for_pval <- pval_dat
+
+  # Get dominance and difference info
+  taxa_stats <- bind_rows(
+    dat_up_unfiltered |> mutate(direction = "increased"),
+    dat_dn_unfiltered |> mutate(direction = "decreased")
+  ) |>
+    pivot_wider(
+      id_cols = last_taxname,
+      names_from = direction,
+      values_from = freq,
+      values_fill = 0
+    ) |>
+    mutate(
+      difference = increased - decreased
+    ) |>
+    select(last_taxname, difference) |>
+    left_join(taxon_table_for_pval, by = "last_taxname")
+
+  # Combine all data
+  result <- bind_rows(
+    dat_up_unfiltered |> mutate(direction = "increased"),
+    dat_dn_unfiltered |> mutate(direction = "decreased")
+  ) |>
+    filter(last_taxname %in% taxa_to_show) |>
+    left_join(taxa_stats, by = "last_taxname") |>
+    mutate(
+      freq_display = freq,
+      alpha_val = ifelse(pval > 0.05, 0.4, 1)
+    ) |>
+    # Create taxon factor ordered by number of signatures (descending)
+    mutate(
+      last_taxname = factor(last_taxname, 
+        levels = names(sort(sapply(split(freq, last_taxname), sum), decreasing = TRUE)))
+    )
+  
+  result
+}
+
+make_freq_plot <- function(dat_combined, title) {
+  ggplot(dat_combined, aes(
+    y = forcats::fct_rev(last_taxname), 
+    x = freq_display,
+    fill = direction,
+    alpha = alpha_val
+  )) +
+    geom_col(position = "stack") +
+    scale_x_continuous(labels = abs, position = "top") +
+    scale_fill_manual(
+      values = c("increased" = "#f1807e", "decreased" = "#6182a6"),
+      labels = c("increased" = "Increased", "decreased" = "Decreased")
+    ) +
+    scale_alpha_identity() +
+    labs(
+      y = NULL, 
+      x = NULL,
+      title = title,
+      fill = NULL
+    ) +
+    theme_minimal() +
+    theme(
+      panel.grid.major.y = element_blank(),
+      panel.grid.minor.y = element_blank(),
+      panel.grid.minor.x = element_blank(),
+      legend.position = "top",
+      plot.title = element_text(hjust = 0)
+    )
+}
+
+make_taxon_table <- function(dat) {
+  bugSigSimple::createTaxonTable(
+    mutate(dat, comparison1 = paste(`Group 0 name`, `Group 1 name`, sep = " vs ")),
+    n = Inf
+  ) |> 
+    select(
+      `Taxon Name`,
+      `Signatures` = total_signatures,
+      `Increased` = increased_signatures,
+      `Decreased` = decreased_signatures,
+      `P-value` = `Binomial Test pval`
+    ) |> 
+    mutate(`Δ` = Increased - Decreased, .after = Decreased)
+}
+
+make_dt <- function(dat) {
+  DT::datatable(
+    dat,
+    filter = 'top',
+    class = 'row-border hover order-column nowrap',
+    options = list(
+      dom = 'lrtip',
+      pageLength = 10
+    )
+  )
+}
+
+```
+
+```{r load-data}
+
+dat <- readRDS("example_data/perio_bugs.rds")
+
+# Expand one row per bug and extract terminal taxon ----
+dat_exp <- dat |> 
+  unnest(c(`NCBI Taxonomy IDs`, `MetaPhlAn taxon names`)) |>
+  mutate(
+    last_taxname = get_most_specific(`MetaPhlAn taxon names`),
+    last_taxid = get_most_specific(`NCBI Taxonomy IDs`)
+  )
+
+# Identify broad coverage signatures ----
+broad_platforms <- c("DNA-DNA Hybridization", "Human Intestinal Tract Chip", 
+                     "Illumina", "Roche454")
+
+targeted_platforms <- c("RT-qPCR", "Non-quantitative PCR", "Sanger", "Mass spectrometry")
+
+dat_broad <- dat |> 
+  mutate(seq_keep = case_when(
+    # use seq_type first if available
+    `Sequencing type` %in% c("16S", "WMS") ~ TRUE,
+    `Sequencing type` %in% c("PCR", "16S,PCR") ~ FALSE,
+    # fall back to seq_plat if seq_type is NA
+    is.na(`Sequencing type`) & `Sequencing platform` %in% broad_platforms ~ TRUE,
+    is.na(`Sequencing type`) & `Sequencing platform` %in% targeted_platforms ~ FALSE,
+    .default = NA
+  )) |>
+  filter(seq_keep)
 ```
 
 # Background
@@ -77,76 +234,254 @@ Periodontitis is a chronic inflammatory disease affecting the supporting structu
 
 PerioSigDB is a comprehensive database of periodontal microbial signatures curated from published literature, providing a resource for meta-analysis of microbiome studies. Here, we analyze periodontal disease-associated signatures from PerioSigDB to identify taxa that show consistent patterns of abundance changes across studies.
 
+```{r signature-lengths}
+#| echo: false
+# Create dat_condition for signature-level analysis
+dat_condition <- dat |> 
+  mutate(comparison1 = paste(`Group 0 name`, `Group 1 name`, sep = " vs "))
+
+dat_condition_broad <- dat_broad |> 
+  mutate(comparison1 = paste(`Group 0 name`, `Group 1 name`, sep = " vs "))
+
+# get signatures and lengths
+allsigs <- bugsigdbr::getSignatures(dat_condition, tax.id.type = "taxname")
+siglengths <- sapply(allsigs, length)
+
+allsigs_broad <- bugsigdbr::getSignatures(dat_condition_broad, tax.id.type = "taxname")
+siglengths_broad <- sapply(allsigs_broad, length)
+```
+
+# Broad Data Definition
+
+Throughout this report, we present analyses for two data perspectives: "All Data" and "Broad Data Only." Broad data is defined as signatures from studies utilizing broad-coverage sequencing technologies, specifically:
+
+  - **Sequencing type**: 16S ribosomal RNA or Whole Metagenome Sequencing (WMS)
+  - **Sequencing platforms**: DNA-DNA Hybridization, Human Intestinal Tract Chip, Illumina, or Roche454
+
+Signatures generated using targeted or limited approaches (RT-qPCR, non-quantitative PCR, Sanger sequencing, mass spectrometry) are excluded from the broad data subset. 
+
+## Signature Length Distribution Comparison
+
+```{r signature-length-comparison}
+#| fig-width: 10
+#| fig-cap: !expr "paste0('Distribution of signature lengths. Note: ', sum(siglengths > 50), ' signatures with length > 50 are excluded from this visualization (', sum(siglengths_broad > 50), ' from broad data).')"
+
+# Combine data for visualization
+sig_counts_all <- data.frame(siglength = siglengths) |>
+  count(siglength, name = "count") |>
+  mutate(data_type = "All Data")
+
+sig_counts_broad <- data.frame(siglength = siglengths_broad) |>
+  count(siglength, name = "count") |>
+  mutate(data_type = "Broad Data Only")
+
+# Combine data
+sig_data <- bind_rows(sig_counts_all, sig_counts_broad)
+
+# Create bar chart with overlaid bars
+ggplot(sig_data, aes(x = siglength, y = count, fill = data_type)) +
+  geom_col(position = "identity") +
+  scale_fill_manual(values = c("All Data" = "#999999", "Broad Data Only" = "#2ecc71")) +
+  scale_x_continuous(limits = c(0.5, 50.5), breaks = c(1, seq(5, 50, by = 5))) +
+  labs(
+    x = "Signature Length (number of taxa)",
+    y = "Number of Signatures",
+    title = "Distribution of Signature Lengths: All Data vs Broad Data Only",
+    fill = "Data Type"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "top",
+    panel.grid.minor = element_blank()
+  )
+```
+
+This comparison illustrates how the broad data subset differs from the full dataset in terms of signature composition size. The overlaid bar chart shows the number of signatures at each length, with grey bars representing all signatures and green bars showing the broad data subset in front, allowing visual comparison of the distribution differences.
+
 # Taxa Increased in Periodontitis
 
 From the periodontal microbiome signatures, we generated a table of taxa showing consistent increases in periodontitis. The binomial test evaluates whether each taxon is more frequently reported as increased rather than decreased across studies. Taxa appearing in this table show statistically significant directional consistency.
 
-```{r}
-#| classes: plain
+```{r create-taxon-tables}
+#| cache: true
+#| echo: false 
+taxon_table <- make_taxon_table(dat)
+taxon_table_broad <- make_taxon_table(dat_broad)
+```
 
-dat_condition <- dat |> 
-  mutate(comparison1 = paste(`Group 0 name`, `Group 1 name`, sep = " vs "))
+```{r extract-pvals}
+#| echo: false
+# Extract p-values for use in frequency plots
+pval_dat_all <- taxon_table |>
+  select(last_taxname = `Taxon Name`, pval = `P-value`)
 
-# table of studies
-taxon_table <- bugSigSimple::createTaxonTable(dat_condition, n=20) |> 
-  select(
-    `Taxon Name`,
-    `Signatures` = total_signatures,
-    `Increased` = increased_signatures,
-    `Decreased` = decreased_signatures,
-    `P-value` = `Binomial Test pval`
+pval_dat_broad <- taxon_table_broad |>
+  select(last_taxname = `Taxon Name`, pval = `P-value`)
+```
+
+## Frequency Distribution
+
+Bars show the count of signatures in which each taxon appears as increased or decreased. Excluded taxa appearing in fewer than 3 signatures. Transparency indicates statistical significance (opaque: p ≤ 0.05; transparent: p > 0.05).
+
+::: {.panel-tabset}
+
+### All Data
+
+:::: {style="max-height: 800px; overflow-y: auto; border: 1px solid #ddd; padding: 10px;"}
+
+```{r freq-increased-all}
+#| fig-width: 10
+#| fig-height: 15
+
+dat_freq_combined <- make_freq_dat_combined(dat_exp, pval_dat_all) 
+
+dat_freq_combined |>
+  filter(difference > 0) |>
+  arrange(pval) |>
+  slice_head(n=40) |>
+  mutate(direction = factor(direction, levels = c("increased", "decreased"))) |>
+  make_freq_plot("Taxon Frequency: Increased > Decreased")
+```
+
+::::
+
+### Broad Data Only
+
+:::: {style="max-height: 800px; overflow-y: auto; border: 1px solid #ddd; padding: 10px;"}
+
+```{r freq-increased-broad}
+#| fig-width: 10
+#| fig-height: 12
+
+dat_exp_broad <- dat_broad |> 
+  unnest(c(`NCBI Taxonomy IDs`, `MetaPhlAn taxon names`)) |>
+  mutate(
+    last_taxname = get_most_specific(`MetaPhlAn taxon names`),
+    last_taxid = get_most_specific(`NCBI Taxonomy IDs`)
   )
 
-taxon_table |> 
-  dplyr::filter(Increased > Decreased) |>
-  dplyr::filter(`P-value` < 0.05) |>
-  kableExtra::kbl()
+dat_freq_broad_combined <- make_freq_dat_combined(dat_exp_broad, pval_dat_broad) 
+dat_freq_broad_combined |>
+  filter(difference > 0) |>
+  mutate(direction = factor(direction, levels = c("increased", "decreased"))) |>
+  make_freq_plot("Taxon Frequency: Increased > Decreased")
 ```
+
+::::
+
+:::
+
+## Taxon Summary Tables
+
+::: {.panel-tabset}
+
+### All Data
+
+```{r taxon-summary-increased-all}
+taxon_table |> 
+  filter(Increased > Decreased) |>
+  arrange(`P-value`) |>
+  make_dt()
+```
+
+### Broad Data Only
+
+```{r taxon-summary-increased-broad}
+taxon_table_broad |> 
+  filter(Increased > Decreased) |>
+  arrange(`P-value`) |>
+  make_dt()
+```
+
+:::
 
 # Taxa Decreased in Periodontitis
 
 Conversely, we identified taxa that are consistently depleted in periodontitis compared to healthy controls. These may represent commensal or health-associated microbes that are displaced during disease progression.
 
-```{r}
-#| classes: plain
+## Frequency Distribution
+
+Bars show the count of signatures in which each taxon appears as increased or decreased. Excluded taxa appearing in fewer than 3 signatures. Transparency indicates statistical significance (opaque: p ≤ 0.05; transparent: p > 0.05).
+
+::: {.panel-tabset}
+
+### All Data
+
+:::: {style="max-height: 800px; overflow-y: auto; border: 1px solid #ddd; padding: 10px;"}
+
+```{r freq-decreased-all}
+#| fig-width: 10
+#| fig-height: 15
+
+dat_freq_combined |> 
+  filter(difference < 0) |>
+  arrange(pval) |>
+  slice_head(n=40) |>
+  mutate(freq_display = abs(freq_display)) |>
+  mutate(direction = factor(direction, levels = c("decreased", "increased"))) |>
+  make_freq_plot("Taxon Frequency: Decreased > Increased")
+```
+
+::::
+
+### Broad Data Only
+
+:::: {style="max-height: 800px; overflow-y: auto; border: 1px solid #ddd; padding: 10px;"}
+
+```{r freq-decreased-broad}
+#| fig-width: 10
+#| fig-height: 12
+
+dat_freq_broad_combined |>
+  filter(difference < 0) |>
+  mutate(freq_display = abs(freq_display)) |>
+  mutate(direction = factor(direction, levels = c("decreased", "increased"))) |>
+  make_freq_plot("Taxon Frequency: Decreased > Increased")
+```
+
+::::
+
+:::
+
+## Taxon Summary Tables
+
+::: {.panel-tabset}
+
+### All Data
+
+```{r taxon-summary-decreased-all}
 
 taxon_table |> 
-  dplyr::filter(Decreased > Increased) |>
-  kableExtra::kbl()
-
+  filter(Decreased >= Increased) |>
+  arrange(`P-value`) |>
+  make_dt()
 ```
 
-# Signature Length
+### Broad Data Only
 
-Understanding the size distribution of microbial signatures provides insight into the complexity of microbiome alterations in periodontitis. Most signatures report relatively few differentially abundant taxa:
+```{r taxon-summary-decreased-broad}
 
-```{r}
-#| fig-width: 10
-
-# cluster analysis
-allsigs <- bugsigdbr::getSignatures(dat_condition, tax.id.type = "taxname")
-allsigs <- allsigs[sapply(allsigs, length) > 1] #require length > 1
-
-# what is the distribution of signature lengths?
-siglengths <- sapply(allsigs, length)
-siglengths.df <- data.frame(siglengths = siglengths)
-ggplot(siglengths.df, aes(x=siglengths)) +
-  geom_bar(width=.9, colour='black', fill= '#ddd', linewidth=0.5) +
-  theme_bw() +
-  xlab('Number of Microbes in Signature') +
-  ylab('Number of Signatures')
-
+taxon_table_broad |>
+  filter(Decreased >= Increased) |>
+  arrange(`P-value`) |>
+  make_dt()
 ```
 
-The distribution shows that most signatures contain between 1-10 taxa, with a long tail of larger signatures. This pattern may reflect differences in study design, sequencing depth, statistical power, or biological reality.
+:::
 
 # Cluster Analysis
 
 To assess consistency across studies, we calculated pairwise Jaccard similarities between all signatures. The heatmap below shows how similar signatures are to each other, with hierarchical clustering grouping similar signatures together. The top annotation bar shows the size (number of taxa) of each signature.
 
-```{r}
+```{r cluster-analysis}
 #| fig-width: 10
 #| fig-height: 8
+
+
+# require length > 1
+allsigs <- allsigs[sapply(allsigs, length) > 1]
+siglengths <- sapply(allsigs, length)
+
 mydists <- BugSigDBStats::calcPairwiseOverlaps(allsigs)
 
 # Create a matrix of Jaccard similarities (0 for no overlap, 1 for 100% overlap)
@@ -183,7 +518,7 @@ draw(hm, heatmap_legend_side = "bottom")
  Signatures reporting increased taxa (UP) in periodontitis show particularly strong clustering, suggesting a core set of disease-associated microbes is consistently identified.
  
 # Explore Species Within Clusters
-```{r}
+```{r create-taxa-heatmap}
 #| fig-width: 10
 #| fig-height: 8
 
@@ -317,12 +652,14 @@ create_taxa_heatmap <- function(dat_condition,
 }
 ```
 
-Another way to explore the species that are more abundant in periodontitis is to look at the species present within the studies whose signatures are highly similar (the cluster we identified in the previous section). We start but looking at signatures at the genus level:
+Another way to explore taxa associated with periodontitis is to examine which genera/species are present across the cluster of highly similar signatures identified above. The heatmap shows each signature (rows) and taxa (columns, ordered by frequency), with colors indicating the overall frequency of each taxon across all signatures in the cluster.
 
 
-```{r}
+```{r heatmap-genus}
 #| fig-width: 10
 #| fig-height: 8
+#| fig-cap: "Genus-level signatures: The heatmap above shows genus-level taxa present across signatures in the high-similarity cluster."
+
 # identify the clusters
 hc <- hclust(dist(jmat))
 
@@ -338,11 +675,11 @@ hm_genus <- create_taxa_heatmap(dat_condition, clust_up, jmat, hc,
 draw(hm_genus, heatmap_legend_side = "right")
 ```
 
-If we want a bit more detail we can also look at the same plot for the species level:
 
-```{r}
+```{r heatmap-species}
 #| fig-width: 10
 #| fig-height: 8
+#| fig-cap: "Species-level signatures: For a more detailed view, the heatmap above shows the same signatures at the species level."
 
 hm_species <- create_taxa_heatmap(dat_condition, clust_up, jmat, hc, 
                                   tax_level = "species")
