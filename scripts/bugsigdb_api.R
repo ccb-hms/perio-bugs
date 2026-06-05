@@ -90,11 +90,20 @@ bugsigdb_create_study <- function(cookies,
                                   edit_summary = "Adding study via API",
                                   base_url = "https://bugsigdb.org/w/api.php") {
   
+  # Generate a target page name based on PMID or DOI
+  if (!is.null(pmid)) {
+    target_page <- paste0("Study_", pmid)
+  } else if (!is.null(doi)) {
+    # Convert DOI to valid page name (replace / with _)
+    target_page <- paste0("Study_", gsub("/", "_", doi))
+  } else {
+    stop("Either PMID or DOI must be provided")
+  }
+  
   # Build query parameters
   query_params <- list(
     editRevId = "0",
-    wpSummary = edit_summary,
-    form = "Study"
+    wpSummary = edit_summary
   )
   
   if (!is.null(study_design)) {
@@ -121,12 +130,14 @@ bugsigdb_create_study <- function(cookies,
     collapse = "&"
   )
   
-  # Make request
+  # Make request - form and target at top level
   response <- POST(
     base_url,
     body = list(
       action = "pfautoedit",
       format = "json",
+      form = "Study",
+      target = target_page,
       query = query_string
     ),
     encode = "form",
@@ -136,6 +147,7 @@ bugsigdb_create_study <- function(cookies,
   result <- content(response, as = "parsed")
   
   if (result$status != 200) {
+    print(result)
     stop("Failed to create study: ", result$responseText)
   }
   

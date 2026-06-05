@@ -10,15 +10,10 @@ cookies <- bugsigdb_login(username, password)
 
 # study creation
 # can only run once (only admin can delete)
-
 test_study <- bugsigdb_create_study(
   cookies = cookies,
-  pmid = "12345678",
-  doi = "10.1234/test",
-  dry_run = FALSE  # Just print, don't execute
-)
-
-test_study <- list(target = '12345678')
+  pmid = "34853945839458",
+  doi = "10.123s3434534545/test")
 
 # create experiment
 test_experiment <- bugsigdb_create_experiment(
@@ -43,11 +38,7 @@ test_experiment <- bugsigdb_create_experiment(
   # Statistical info
   significance_threshold = 0.05,
   
-  state = "Complete",
-  dry_run = FALSE
-)
-
-test_experiment <- list(target = "12345678/Experiment 1")
+  state = "Complete")
 
 test_signature <- bugsigdb_create_signature(
   cookies = cookies,
@@ -63,8 +54,7 @@ test_signature <- bugsigdb_create_signature(
   source = "Figure 2A",
   description = "Test signature - increased in case group",
   
-  state = "Complete",
-  dry_run = FALSE
+  state = "Complete"
 )
 
 # Check what was created
