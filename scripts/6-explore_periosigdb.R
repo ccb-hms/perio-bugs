@@ -277,6 +277,7 @@ taxon_table_broad |>
 # cluster analysis
 allsigs <- bugsigdbr::getSignatures(dat_condition, tax.id.type = "taxname")
 allsigs <- allsigs[sapply(allsigs, length) > 1] #require length > 1
+siglengths <- sapply(allsigs, length)
 
 mydists <- BugSigDBStats::calcPairwiseOverlaps(allsigs)
 
@@ -461,7 +462,7 @@ clusts <- sort(cutree(hc, k = 2))
 clusts <- lapply(unique(clusts), function(i) names(clusts)[clusts == i])
 
 # proceed with cluster of UP signatures with high similarity
-clust_up <- clusts[[2]]
+clust_up <- clusts[[which.max(sapply(clusts, function(x) mean(grepl("_UP$", x))))]]
 
 # Usage examples:
 # For species

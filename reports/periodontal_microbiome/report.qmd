@@ -668,7 +668,7 @@ clusts <- sort(cutree(hc, k = 2))
 clusts <- lapply(unique(clusts), function(i) names(clusts)[clusts == i])
 
 # proceed with cluster of UP signatures with high similarity
-clust_up <- clusts[[2]]
+clust_up <- clusts[[which.max(sapply(clusts, function(x) mean(grepl("_UP$", x))))]]
 
 hm_genus <- create_taxa_heatmap(dat_condition, clust_up, jmat, hc, 
                                   tax_level = "genus")
