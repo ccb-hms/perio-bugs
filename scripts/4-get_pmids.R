@@ -7,18 +7,39 @@ studies_file <- 'data/articles_included/Final selection Yes.xlsx'
 overview_cleaned <- readRDS('output/overview_cleaned.rds')
 
 # additional PMIDs added
-missing_pmids <- readr::read_csv('data/missing_pmids.csv', col_types = 'cd') |> distinct()
+missing_pmids <- readr::read_csv('data/missing_pmids.csv', col_types = 'cc') |> distinct()
+
+# PMIDs for 2022-2025 studies (searched by first author and year, checked against title/abstract)
+new_data_pmids <- tribble(
+  ~Number, ~PMID,
+  '2025-Embase-55', '36519166',
+  '2025-PubMed-14', '36792073',
+  '2025-PubMed-49', '39365037',
+  '2025-PubMed-55', '40329006',
+  '2025-PubMed-130', '36077282',
+  '2025-144', '39617812',
+  '2025-180', '36844402',
+  '2025-187', '38193290',
+  '2025-224', '39788958',
+  '2025-231', '40396735',
+  '2025-234', '36076344',
+  '2025-246', '36806930',
+  '2025-253', '34252627',
+  '2025-274', '35998186',
+  '2025-PubMed-357', '40202358',
+  '2025-PubMed-504', '40344212'
+)
 
 
 # check concordance of study Number
 studies <- read_excel(studies_file)
 studies <- studies |> 
   mutate(Number = gsub('[.]$', '', Number)) |> 
-  mutate(Number = as.numeric(Number)) |> 
+  mutate(Number = as.character(as.numeric(Number))) |> 
   select(Number, `Article nr`, `Article link`)
 
-table(overview_cleaned$Number %in% c(studies$Number, missing_pmids$Number))
-setdiff(overview_cleaned$Number, c(studies$Number, missing_pmids$Number))
+table(overview_cleaned$Number %in% c(studies$Number, missing_pmids$Number, new_data_pmids$Number))
+setdiff(overview_cleaned$Number, c(studies$Number, missing_pmids$Number, new_data_pmids$Number))
 
 is.pubmed <- grepl("pubmed", studies$`Article link`)
 is.pmc <- grepl("PMC[0-9]+", studies$`Article link`)
@@ -73,7 +94,7 @@ studies <- select(studies, Number, PMID)
 stopifnot(sum(is.na(studies$PMID)) == 0)
 
 # add previously missing pmids
-studies <- bind_rows(studies, missing_pmids)
+studies <- bind_rows(studies, missing_pmids, new_data_pmids)
 
 # add study info
 

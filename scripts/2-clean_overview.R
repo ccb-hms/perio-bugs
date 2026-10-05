@@ -27,6 +27,35 @@ if (file.exists(prompt_fixes_file)) {
 # Get all sheet names
 df <- readRDS(overview_file)
 
+# manually cleaned values for 2022-2025 studies (used instead of LLM prompts)
+source('scripts/manual_fixes_new_data.R')
+
+# append manually cleaned values for rows not in previous prompt results
+add_manual_fixes <- function(messy_data, check_name, prompt_fixes) {
+  prev <- prompt_fixes[[check_name]]
+  if (is.null(prev) || nrow(prev) >= nrow(messy_data)) return(prompt_fixes)
+  
+  new_idx <- seq(nrow(prev) + 1, nrow(messy_data))
+  manual <- manual_fixes[[check_name]]
+  manual <- manual[match(df$Number[new_idx], manual$Number), ]
+  stopifnot(identical(manual$Number, df$Number[new_idx]))
+  
+  new_rows <- bind_cols(messy_data[new_idx, ], select(manual, -Number))
+  
+  # match column types of previous results
+  for (col in names(new_rows)) {
+    prev_col <- prev[[col]]
+    new_rows[[col]] <- if (is.factor(prev_col)) {
+      factor(new_rows[[col]], levels = union(levels(prev_col), new_rows[[col]]))
+    } else {
+      as(new_rows[[col]], class(prev_col))
+    }
+  }
+  
+  prompt_fixes[[check_name]] <- bind_rows(prev, new_rows)
+  return(prompt_fixes)
+}
+
 # common function to extract unique types from bugsigdb column
 extract_unique <- function(vals) {
   unique(unlist(strsplit(vals, split = ",(?! )", perl = TRUE)))
@@ -85,6 +114,10 @@ locs[locs == 'Korea'] <- 'South Korea'
 locs[locs == 'Russia'] <- 'Russian Federation'
 locs[locs == 'Czech Republic'] <- 'Czechia'
 
+# e.g. 'Belgium; Chile; Peru; Spain (countries of origin of the subgingival samples)...'
+locs <- gsub(' \\(.*$', '', locs)
+locs <- gsub('; ?', ',', locs)
+
 # really?
 locs[locs == 'Hong Kong'] <- 'China'
 
@@ -118,6 +151,8 @@ group1_size_messy <- tibble(
 )
 
 # prompt if don't have
+prompt_fixes <- add_manual_fixes(group0_size_messy, 'group0_size', prompt_fixes)
+prompt_fixes <- add_manual_fixes(group1_size_messy, 'group1_size', prompt_fixes)
 if (!check_prev_prompt(group0_size_messy, 'group0_size', prompt_fixes)) {
   
   prompt_fixes$group0_size <- run_generic_prompt(group0_size_messy, 'sum_group_size')
@@ -134,6 +169,7 @@ dirty_seq <- tibble(
   method = df$`Diagnostic Method`
 )
 
+prompt_fixes <- add_manual_fixes(dirty_seq, 'seq_res', prompt_fixes)
 if (!check_prev_prompt(dirty_seq, 'seq_res', prompt_fixes)) {
   
   prompt_fixes$seq_res <- run_generic_prompt(
@@ -154,12 +190,14 @@ if (!check_prev_prompt(dirty_seq, 'seq_res_cleaned', prompt_fixes)) {
   seq_res$Number <- df$Number
   
   # inspect
-  seq_res |> 
-    filter(
-      (seq_type %in% c("16S", "WMS") & seq_plat %in% targeted_platforms) |
-        (seq_type == "PCR" & seq_plat %in% broad_platforms)
-    ) |> 
-    View()
+  if (interactive()) {
+    seq_res |> 
+      filter(
+        (seq_type %in% c("16S", "WMS") & seq_plat %in% targeted_platforms) |
+          (seq_type == "PCR" & seq_plat %in% broad_platforms)
+      ) |> 
+      View()
+  }
   
   # cleanup
   prompt_fixes$seq_res_cleaned <- seq_res |> 
@@ -261,6 +299,7 @@ age_overall_messy <- tibble(
   messy_num = df$`Age (years; mean +-SD)`
 )
 
+prompt_fixes <- add_manual_fixes(age_overall_messy, 'age_overall', prompt_fixes)
 if (!check_prev_prompt(age_overall_messy, 'age_overall', prompt_fixes)) {
   
   prompt_fixes$age_overall <- run_generic_prompt(age_overall_messy, 'age_overall')
@@ -273,6 +312,7 @@ age_health_messy <- tibble(
   messy_sd = df$`Age SD (periodontal health)`
 )
 
+prompt_fixes <- add_manual_fixes(age_health_messy, 'age_health', prompt_fixes)
 if (!check_prev_prompt(age_health_messy, 'age_health', prompt_fixes)) {
   
   prompt_fixes$age_health <- run_generic_prompt(age_health_messy, 'age_health')
@@ -287,6 +327,7 @@ age_perio_messy <- tibble(
   messy_sd = df$`Age SD (periodontitis)`
 )
 
+prompt_fixes <- add_manual_fixes(age_perio_messy, 'age_perio', prompt_fixes)
 if (!check_prev_prompt(age_perio_messy, 'age_perio', prompt_fixes)) {
   
   prompt_fixes$age_perio <- run_generic_prompt(age_perio_messy, 'age_perio')
@@ -299,6 +340,7 @@ males_overall_messy <- tibble(
   messy_num = df$`Males (n,%)`
 )
 
+prompt_fixes <- add_manual_fixes(males_overall_messy, 'males_overall', prompt_fixes)
 if (!check_prev_prompt(males_overall_messy, 'males_overall', prompt_fixes)) {
   
   prompt_fixes$males_overall <- run_generic_prompt(males_overall_messy, 'males_overall')
@@ -312,6 +354,7 @@ males_health_messy <- tibble(
   messy_percent = df$`Males % (periodontal health)`
 )
 
+prompt_fixes <- add_manual_fixes(males_health_messy, 'males_health', prompt_fixes)
 if (!check_prev_prompt(males_health_messy, 'males_health', prompt_fixes)) {
   
   prompt_fixes$males_health <- run_generic_prompt(males_health_messy, 'males_health')
@@ -324,6 +367,7 @@ males_perio_messy <- tibble(
   messy_percent = df$`Males % (periodontitis)`
 )
 
+prompt_fixes <- add_manual_fixes(males_perio_messy, 'males_perio', prompt_fixes)
 if (!check_prev_prompt(males_perio_messy, 'males_perio', prompt_fixes)) {
   
   prompt_fixes$males_perio <- run_generic_prompt(males_perio_messy, 'males_perio')
@@ -338,6 +382,7 @@ smokers_overall_messy <- tibble(
   messy_num = df$`Smokers (n,%)`
 )
 
+prompt_fixes <- add_manual_fixes(smokers_overall_messy, 'smokers_overall', prompt_fixes)
 if (!check_prev_prompt(smokers_overall_messy, 'smokers_overall', prompt_fixes)) {
   
   prompt_fixes$smokers_overall <- run_generic_prompt(smokers_overall_messy, 'smokers_overall')
@@ -350,6 +395,7 @@ smokers_health_messy <- tibble(
   messy_percent = df$`Smokers (%) (periodontal health)`
 )
 
+prompt_fixes <- add_manual_fixes(smokers_health_messy, 'smokers_health', prompt_fixes)
 if (!check_prev_prompt(smokers_health_messy, 'smokers_health', prompt_fixes)) {
   
   prompt_fixes$smokers_health <- run_generic_prompt(smokers_health_messy, 'smokers_health')
@@ -362,6 +408,7 @@ smokers_perio_messy <- tibble(
   messy_percent = df$`Smokers (%) (periodontitis)`
 )
 
+prompt_fixes <- add_manual_fixes(smokers_perio_messy, 'smokers_perio', prompt_fixes)
 if (!check_prev_prompt(smokers_perio_messy, 'smokers_perio', prompt_fixes)) {
   
   prompt_fixes$smokers_perio <- run_generic_prompt(smokers_perio_messy, 'smokers_perio')
@@ -376,6 +423,7 @@ bop_health_messy <- tibble(
   messy_sd = df$`Bleeding on probing (SD) (periodontal health)`
 )
 
+prompt_fixes <- add_manual_fixes(bop_health_messy, 'bop_health', prompt_fixes)
 if (!check_prev_prompt(bop_health_messy, 'bop_health', prompt_fixes)) {
   
   prompt_fixes$bop_health <- run_generic_prompt(bop_health_messy, 'bop_health')
@@ -389,6 +437,7 @@ bop_perio_messy <- tibble(
   messy_sd = df$`Bleeding on probing (SD) (periodontitis)`
 )
 
+prompt_fixes <- add_manual_fixes(bop_perio_messy, 'bop_perio', prompt_fixes)
 if (!check_prev_prompt(bop_perio_messy, 'bop_perio', prompt_fixes)) {
   
   prompt_fixes$bop_perio <- run_generic_prompt(bop_perio_messy, 'bop_perio')
@@ -403,6 +452,7 @@ supp_health_messy <- tibble(
   messy_sd = df$`Suppuration (SD) (periodontal health)`
 )
 
+prompt_fixes <- add_manual_fixes(supp_health_messy, 'supp_health', prompt_fixes)
 if (!check_prev_prompt(supp_health_messy, 'supp_health', prompt_fixes)) {
   
   prompt_fixes$supp_health <- run_generic_prompt(supp_health_messy, 'supp_health')
@@ -415,6 +465,7 @@ supp_perio_messy <- tibble(
   messy_sd = df$`Suppuration (SD) (periodontitis)`
 )
 
+prompt_fixes <- add_manual_fixes(supp_perio_messy, 'supp_perio', prompt_fixes)
 if (!check_prev_prompt(supp_perio_messy, 'supp_perio', prompt_fixes)) {
   
   prompt_fixes$supp_perio <- run_generic_prompt(supp_perio_messy, 'supp_perio')
@@ -430,6 +481,7 @@ pd_health_messy <- tibble(
   messy_sd = df$`PD SD (periodontal health)`
 )
 
+prompt_fixes <- add_manual_fixes(pd_health_messy, 'pd_health', prompt_fixes)
 if (!check_prev_prompt(pd_health_messy, 'pd_health', prompt_fixes)) {
   
   prompt_fixes$pd_health <- run_generic_prompt(pd_health_messy, 'pd_health')
@@ -442,6 +494,7 @@ pd_perio_messy <- tibble(
   messy_sd = df$`PD SD (periodontitis)`
 )
 
+prompt_fixes <- add_manual_fixes(pd_perio_messy, 'pd_perio', prompt_fixes)
 if (!check_prev_prompt(pd_perio_messy, 'pd_perio', prompt_fixes)) {
   
   prompt_fixes$pd_perio <- run_generic_prompt(pd_perio_messy, 'pd_perio')
@@ -456,6 +509,7 @@ cal_health_messy <- tibble(
   messy_sd = df$`CAL. SD (periodontal health)`
 )
 
+prompt_fixes <- add_manual_fixes(cal_health_messy, 'cal_health', prompt_fixes)
 if (!check_prev_prompt(cal_health_messy, 'cal_health', prompt_fixes)) {
   
   prompt_fixes$cal_health <- run_generic_prompt(cal_health_messy, 'cal_health')
@@ -468,6 +522,7 @@ cal_perio_messy <- tibble(
   messy_sd = df$`CAL. SD (periodontitis)`
 )
 
+prompt_fixes <- add_manual_fixes(cal_perio_messy, 'cal_perio', prompt_fixes)
 if (!check_prev_prompt(cal_perio_messy, 'cal_perio', prompt_fixes)) {
   
   prompt_fixes$cal_perio <- run_generic_prompt(cal_perio_messy, 'cal_perio')
@@ -482,6 +537,7 @@ plaque_health_messy <- tibble(
   messy_sd = df$`Plaque (SD) (periodontal health)`
 )
 
+prompt_fixes <- add_manual_fixes(plaque_health_messy, 'plaque_health', prompt_fixes)
 if (!check_prev_prompt(plaque_health_messy, 'plaque_health', prompt_fixes)) {
   
   prompt_fixes$plaque_health <- run_generic_prompt(plaque_health_messy, 'plaque_health')
@@ -494,6 +550,7 @@ plaque_perio_messy <- tibble(
   messy_sd = df$`Plaque (SD) (periodontitis)`
 )
 
+prompt_fixes <- add_manual_fixes(plaque_perio_messy, 'plaque_perio', prompt_fixes)
 if (!check_prev_prompt(plaque_perio_messy, 'plaque_perio', prompt_fixes)) {
   
   prompt_fixes$plaque_perio <- run_generic_prompt(plaque_perio_messy, 'plaque_perio')
@@ -501,6 +558,8 @@ if (!check_prev_prompt(plaque_perio_messy, 'plaque_perio', prompt_fixes)) {
 }
 
 # join cleaned up columns ----
+
+saveRDS(prompt_fixes, prompt_fixes_file)
 
 # fix up factor results
 prompt_fixes$seq_res_cleaned[] <- lapply(prompt_fixes$seq_res_cleaned, as.character)
@@ -574,7 +633,7 @@ cleaned_df <- tibble::tibble(
 
 # evaluate numeric columns (e.g. '139+100' --> 239)
 non_numeric_cols <- c(
-  'Study design', 'Location of subjects', 'Host species', 'Body site',
+  'Number', 'Study design', 'Location of subjects', 'Host species', 'Body site',
   'Condition', 'Group 0 name', 'Group 1 name', 'Group 1 definition', 
   'Sequencing type', 'Sequencing platform'
 )

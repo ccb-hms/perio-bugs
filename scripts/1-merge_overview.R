@@ -5,19 +5,69 @@ library(purrr)
 # Get all sheet names
 overview_file <- 'data/OVERVIEW_SHEET_RY.xlsx'
 overview2_file <- 'data/OVERVIEW_SHEET_2_new_articles_2019-2021.xlsx'
+overview3_file <- 'data/OVERVIEW_SHEET_NEW_DATA_2022-2025.xlsx'
 exclude_sheets <- c(
-  'RoB_Cohort', 'RoB_Cross-sectional', 'RoB_Case Control', 'RoB_RCT', 'RoB_NonRCT') 
+  'RoB_Cohort', 'RoB_Cross-sectional', 'RoB_Case Control', 'RoB_RCT', 'RoB_NonRCT')
 
 overview_sheets <- setdiff(excel_sheets(overview_file), exclude_sheets)
 overview2_sheets <- setdiff(excel_sheets(overview2_file), exclude_sheets)
+overview3_sheets <- c(
+  'General information', 'Periodontal health', 'Periodontitis',
+  'Microbiological assessment', 'Others')
 
 # Read all sheets into a named list
 overview <- map(overview_sheets, ~ read_excel(overview_file, sheet = .x))
 overview2 <- map(overview2_sheets, ~ read_excel(overview2_file, sheet = .x))
+overview3 <- map(overview3_sheets, ~ read_excel(overview3_file, sheet = .x))
 names(overview) <- overview_sheets
 names(overview2) <- overview2_sheets
+names(overview3) <- overview3_sheets
 
 all(names(overview2) %in% names(overview))
+all(names(overview3) %in% names(overview))
+
+# study Number is character so that 2022-2025 ids can be distinguished
+for (sheet_name in names(overview)) {
+  if ('Number' %in% colnames(overview[[sheet_name]]))
+    overview[[sheet_name]]$Number <- as.character(overview[[sheet_name]]$Number)
+}
+
+# 2022-2025 studies: unique ids and exclusions ----
+
+# Number in 2022-2025 sheet is a screening id per search source (e.g. 'PubMed 14',
+# 'Embase 55', '144') that overlaps with ids in other sheets (e.g. 144 and 156)
+# prefix with '2025-' and keep source to make unique (e.g. '2025-PubMed-14')
+# NOTE: no '_' or '/' as these are used as separators in bugsigdbr signature names
+make_new_data_id <- function(number) {
+  number <- trimws(number)
+  source <- case_when(
+    grepl('^embase', number, ignore.case = TRUE) ~ 'Embase-',
+    grepl('^pu?b?med', number, ignore.case = TRUE) ~ 'PubMed-',
+    .default = ''
+  )
+  ifelse(is.na(number), NA, paste0('2025-', source, gsub('\\D', '', number)))
+}
+
+for (sheet_name in names(overview3)) {
+  overview3[[sheet_name]]$Number <- make_new_data_id(overview3[[sheet_name]]$Number)
+}
+
+# excluded studies are documented in "Other comments" of "Others" sheet
+new_others <- overview3$Others
+new_excluded <- new_others$Number[grepl('^\\s*excluded', new_others$`Other comments`, ignore.case = TRUE)]
+
+# studies already included from 2019-2021 sheet (identified by PMID)
+new_duplicated <- c(
+  '2025-PubMed-90',   # PMID 34890714: Number 28 (Nibali et al.)
+  '2025-PubMed-502',  # PMID 34177951: Number 191 (Lee et al.)
+  '2025-PubMed-689'   # PMID 32844406: Number 485 (Feres et al.)
+)
+
+# remove from "General information" so that dropped from all sheets below
+overview3$`General information` <- overview3$`General information` |>
+  filter(!Number %in% c(new_excluded, new_duplicated))
+
+stopifnot(nrow(overview3$`General information`) == 16)
 
 # make overview2 column names the same as overview column names ----
 
@@ -49,31 +99,37 @@ overview2$`Microbiological assessment` <-
   )
 
 # merge excel files
-for (sheet_name in names(overview2)) {
-  # get same sheet from each excel
-  overview_sheet <- overview[[sheet_name]]
-  overview2_sheet <- overview2[[sheet_name]]
-  
-  # make sure overview2 cols are subset of overview
-  if(!all(colnames(overview2_sheet) %in% colnames(overview_sheet))) {
-    print(sheet_name)
-    stop()
+merge_overview <- function(overview, overview2) {
+  for (sheet_name in names(overview2)) {
+    # get same sheet from each excel
+    overview_sheet <- overview[[sheet_name]]
+    overview2_sheet <- overview2[[sheet_name]]
+
+    # make sure overview2 cols are subset of overview
+    if(!all(colnames(overview2_sheet) %in% colnames(overview_sheet))) {
+      print(sheet_name)
+      stop()
+    }
+
+    # coerce overview2_sheet column types to match overview_sheet
+    overview2_sheet[] <- lapply(
+      names(overview2_sheet), function(col2_name){
+        col <- overview_sheet[[col2_name]]
+        col2 <- overview2_sheet[[col2_name]]
+        as(col2, class(col))
+      })
+
+    # bind them and put into overview
+    overview[[sheet_name]] <- bind_rows(
+      overview_sheet,
+      overview2_sheet
+    )
   }
-  
-  # coerce overview2_sheet column types to match overview_sheet
-  overview2_sheet[] <- lapply(
-    names(overview2_sheet), function(col2_name){
-      col <- overview_sheet[[col2_name]]
-      col2 <- overview2_sheet[[col2_name]]
-      as(col2, class(col))
-    })
-  
-  # bind them and put into overview
-  overview[[sheet_name]] <- bind_rows(
-    overview_sheet, 
-    overview2_sheet
-  )
+  return(overview)
 }
+
+overview <- merge_overview(overview, overview2)
+overview <- merge_overview(overview, overview3)
 
 # get correspondence between sheets
 # need study number to connect different sheets

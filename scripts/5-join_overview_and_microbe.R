@@ -7,7 +7,10 @@ source('scripts/create_metaphlan_hierarchy.R')
 
 # load in microbe, cleaned overview, and study pmids
 overview_cleaned <- readRDS('output/overview_cleaned.rds')
-diff_species <- readRDS('output/diff_species.rds')
+diff_species <- bind_rows(
+  readRDS('output/diff_species.rds'),
+  readRDS('output/diff_species_new_data.rds')
+)
 study_pmids <- readRDS('output/study_pmids.rds')
 
 # add PMIDs to overview
@@ -29,8 +32,7 @@ diff_species_collapsed <- diff_species  |>
   group_by(Number, direction)  |> 
   summarise('NCBI Taxonomy IDs' = paste(taxid, collapse = ", "), .groups = "drop") |> 
   mutate(
-    'Abundance in Group 1' = ifelse(direction == 'up', 'increased', 'decreased'),
-    'Number' = as.numeric(Number)
+    'Abundance in Group 1' = ifelse(direction == 'up', 'increased', 'decreased')
   ) |> 
   dplyr::select(-direction)
 
@@ -88,7 +90,7 @@ validation_config <- list(
   ),
   
   # Integer columns (>= 0) - get actual column names
-  integers = grep("num|sample size|16S variable region|PMID|Number", names(final_df), value = TRUE),
+  integers = grep("num|sample size|16S variable region|PMID", names(final_df), value = TRUE),
   
   # Percentage columns (0-100) - get actual column names
   percentages = grep("percent", names(final_df), value = TRUE),
