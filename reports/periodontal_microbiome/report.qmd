@@ -64,6 +64,9 @@ library(ggplot2)
 library(ComplexHeatmap)
 library(circlize)
 library(dendextend)
+library(patchwork)
+library(ggrepel)
+library(sf)
 
 # Helper functions ----
 
@@ -250,6 +253,212 @@ siglengths <- sapply(allsigs, length)
 allsigs_broad <- bugsigdbr::getSignatures(dat_condition_broad, tax.id.type = "taxname")
 siglengths_broad <- sapply(allsigs_broad, length)
 ```
+
+# Dataset Overview
+
+```{r overview-fig}
+#| fig-width: 13
+#| fig-height: 8.5
+#| fig-cap: "PerioSigDB overview. **(A)** Papers and signatures by publication period. **(B)** Papers per country of study population; multi-country studies count toward each country. **(C)** Signatures per microbial profiling method, coloured by broad versus targeted coverage (see [Broad Data Definition](#broad-data-definition)). All signatures come from subgingival plaque, so no body-site panel is shown. **(D)** Number of signatures each taxon appears in; the 10 most frequent taxa are labelled. **(E)** Distribution of signature size (number of taxa). **(F)** Signatures by smoking status of the study population: non-smokers only (0% smokers in both groups), smokers included, or not reported. **(G)** Signatures containing each of the 10 most frequent taxa, split by smoking status."
+
+# each panel gets its own hues; grey always means "not reported"
+pal_A <- c("#1baf7a", "#4a3aa7")
+pal_C <- c("#eda100", "#e34948", "grey65")
+pal_DE <- "#3d5a80"
+pal_FG <- c("#2a78d6", "#eb6834", "grey65")
+
+theme_overview <- theme_bw(base_size = 10) +
+  theme(
+    panel.grid.minor = element_blank(),
+    legend.position = "top",
+    legend.title = element_blank(),
+    legend.key.size = unit(0.4, "cm")
+  )
+
+# panel tag at the top of the plot (so tags in a row align), x as a fraction of plot width
+tag_at <- function(x) {
+  theme(
+    plot.tag.location = "plot",
+    plot.tag.position = c(x, 1),
+    plot.tag = element_text(face = "bold", size = 13, hjust = 0, vjust = 0),
+    plot.margin = margin(t = 20, r = 5.5, b = 5.5, l = 5.5)
+  )
+}
+
+# Panel A: papers and signatures by publication period
+pub_period <- function(year) {
+  start <- pmin(5 * (year %/% 5), 2020)
+  end <- ifelse(start == 2020, max(year), start + 4)
+  factor(paste0(start, "–", end), levels = rev(unique(paste0(start, "–", end)[order(start)])))
+}
+
+dat_period <- dat |>
+  mutate(period = pub_period(as.integer(Year))) |>
+  summarise(papers = n_distinct(PMID), signatures = n(), .by = period) |>
+  pivot_longer(c(papers, signatures), names_to = "type", values_to = "n")
+
+pA <- ggplot(dat_period, aes(x = n, y = period, fill = type)) +
+  geom_col(position = position_dodge(0.85), width = 0.8) +
+  scale_fill_manual(values = pal_A) +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.05))) +
+  labs(x = "count", y = NULL) +
+  theme_overview
+
+# Panel B: papers per country (multi-country studies count for each country)
+country_fix <- c(
+  "United States of America" = "United States",
+  "South Korea" = "Republic of Korea",
+  "Czechia" = "Czech Republic"
+)
+
+papers_per_country <- dat |>
+  distinct(PMID, `Location of subjects`) |>
+  separate_longer_delim(`Location of subjects`, ",") |>
+  mutate(country = recode(trimws(`Location of subjects`), !!!country_fix)) |>
+  distinct(PMID, country) |>
+  count(country, name = "papers") |>
+  mutate(papers_bin = cut(papers, breaks = c(0, 1, 4, 9, Inf), labels = c("1", "2–4", "5–9", "10+")))
+
+world <- spData::world |>
+  filter(name_long != "Antarctica") |>
+  left_join(papers_per_country, by = c("name_long" = "country"))
+stopifnot(all(papers_per_country$country %in% world$name_long))
+
+pB <- ggplot(world) +
+  geom_sf(aes(fill = papers_bin), color = "white", linewidth = 0.1) +
+  scale_fill_manual(
+    values = c("1" = "#c6dbef", "2–4" = "#6baed6", "5–9" = "#2171b5", "10+" = "#08306b"),
+    breaks = c("1", "2–4", "5–9", "10+"), na.value = "grey85", name = "papers"
+  ) +
+  coord_sf(expand = FALSE) +
+  theme_void(base_size = 10) +
+  theme(
+    legend.position = "inside",
+    legend.position.inside = c(0.01, 0.05),
+    legend.justification = c(0, 0),
+    legend.key.size = unit(0.4, "cm")
+  )
+
+# Panel C: signatures per profiling method (body site is constant)
+dat_method <- dat |>
+  mutate(
+    method = case_when(
+      `Sequencing type` == "16S" ~ "16S rRNA sequencing",
+      `Sequencing type` == "WMS" ~ "Shotgun metagenomics",
+      `Sequencing type` %in% c("PCR", "16S,PCR") ~ "PCR",
+      `Sequencing platform` == "DNA-DNA Hybridization" ~ "DNA-DNA hybridization",
+      `Sequencing platform` == "Human Intestinal Tract Chip" ~ "Phylogenetic microarray",
+      `Sequencing platform` == "Mass spectrometry" ~ "Mass spectrometry",
+      .default = "Not reported"
+    ),
+    coverage = case_when(
+      method %in% c("PCR", "Mass spectrometry") ~ "targeted",
+      method == "Not reported" ~ "not reported",
+      .default = "broad"
+    )
+  ) |>
+  count(method, coverage) |>
+  mutate(
+    method = fct_reorder(method, n),
+    coverage = factor(coverage, levels = c("broad", "targeted", "not reported"))
+  )
+
+pC <- ggplot(dat_method, aes(x = n, y = method, fill = coverage)) +
+  geom_col(width = 0.75) +
+  scale_fill_manual(values = pal_C) +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.05))) +
+  labs(x = "number of signatures", y = NULL) +
+  theme_overview
+
+# Panel D: number of signatures per taxon, top taxa labelled
+msc <- bugsigdbr::getSignatures(dat_condition, tax.id.type = "metaphlan")
+taxon_freq <- tibble(taxon = unlist(msc)) |>
+  count(taxon, name = "signatures") |>
+  arrange(desc(signatures)) |>
+  mutate(label = sub("^[a-z]__", "", vapply(taxon, bugsigdbr:::.getTip, character(1))))
+
+top_taxa <- head(taxon_freq, 10)
+
+pD <- ggplot(taxon_freq, aes(x = signatures)) +
+  geom_histogram(bins = 20, fill = pal_DE, color = "white", linewidth = 0.3) +
+  geom_text_repel(
+    data = top_taxa, aes(x = signatures, y = 1, label = label),
+    angle = 90, hjust = 0, direction = "x", nudge_y = 40,
+    segment.color = "grey50", segment.size = 0.2,
+    size = 2.6, fontface = "italic", min.segment.length = 0
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 1.1))) +
+  labs(x = "number of signatures", y = "number of taxa") +
+  theme_overview
+
+# Panel E: signature size
+pE <- ggplot(tibble(size = lengths(msc)), aes(x = size)) +
+  geom_histogram(bins = 30, fill = pal_DE, color = "white", linewidth = 0.3) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
+  labs(x = "signature size", y = "number of signatures") +
+  theme_overview
+
+# Panels F, G: smoking status of the study population
+smoke_levels <- c("non-smokers only", "smokers included", "not reported")
+
+smoking <- dat_condition |>
+  mutate(
+    max_smokers = pmax(
+      `Group 0 percent smokers`, `Group 1 percent smokers`,
+      `Group 0 num smokers`, `Group 1 num smokers`,
+      na.rm = TRUE
+    ),
+    smoking = factor(case_when(
+      max_smokers > 0 ~ "smokers included",
+      max_smokers == 0 ~ "non-smokers only",
+      .default = "not reported"
+    ), levels = smoke_levels)
+  ) |>
+  pull(smoking)
+
+smoke_counts <- tibble(smoking) |>
+  count(smoking) |>
+  mutate(pct = paste0(round(100 * n / sum(n)), "%"))
+
+pF <- ggplot(smoke_counts, aes(x = "", y = n, fill = smoking)) +
+  geom_col(color = "white", linewidth = 0.8, position = position_stack(reverse = TRUE)) +
+  geom_text(aes(label = pct), position = position_stack(vjust = 0.5, reverse = TRUE),
+            color = "white", size = 3.2, fontface = "bold") +
+  coord_polar(theta = "y", direction = -1) +
+  scale_fill_manual(values = pal_FG, drop = FALSE) +
+  theme_void(base_size = 10) +
+  theme(legend.position = "bottom", legend.title = element_blank(),
+        legend.direction = "vertical")
+
+# signatures containing each top taxon, split by smoking status
+top_taxa_smoking <- map_dfr(seq_len(nrow(top_taxa)), function(i) {
+  has_taxon <- vapply(msc, function(s) top_taxa$taxon[i] %in% s, logical(1))
+  tibble(taxon = top_taxa$label[i], smoking = smoking[has_taxon])
+}) |>
+  count(taxon, smoking) |>
+  mutate(taxon = factor(taxon, levels = rev(top_taxa$label)))
+
+pG <- ggplot(top_taxa_smoking, aes(x = n, y = taxon, fill = smoking)) +
+  geom_col(width = 0.75, color = "white", linewidth = 0.3, position = position_stack(reverse = TRUE)) +
+  scale_fill_manual(values = pal_FG, drop = FALSE) +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.05))) +
+  labs(x = "number of signatures", y = NULL) +
+  theme_overview +
+  theme(axis.text.y = element_text(face = "italic"), legend.position = "none")
+
+top_row <- (pA + tag_at(0.08) | pB + tag_at(0) | pC + tag_at(0.28)) +
+  plot_layout(widths = c(1.3, 2.6, 1.4))
+
+# spacer pushes the pie up towards its tag
+col_DE <- (pD + tag_at(0.08)) / (pE + tag_at(0.08)) + plot_layout(heights = c(1.6, 1))
+col_F <- (pF + tag_at(0)) / plot_spacer() + plot_layout(heights = c(4, 1))
+bottom_row <- (col_DE | col_F | pG + tag_at(0.22)) + plot_layout(widths = c(1.2, 0.8, 1.6))
+
+(top_row / bottom_row) +
+  plot_layout(heights = c(1, 1.3)) +
+  plot_annotation(tag_levels = "A")
+```
+
 
 # Broad Data Definition
 
