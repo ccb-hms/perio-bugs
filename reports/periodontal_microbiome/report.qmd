@@ -65,7 +65,6 @@ library(ComplexHeatmap)
 library(circlize)
 library(dendextend)
 library(patchwork)
-library(ggrepel)
 library(sf)
 
 # Helper functions ----
@@ -259,13 +258,12 @@ siglengths_broad <- sapply(allsigs_broad, length)
 ```{r overview-fig}
 #| fig-width: 13
 #| fig-height: 8.5
-#| fig-cap: "PerioSigDB overview. **(A)** Papers and signatures by publication period. **(B)** Papers per country of study population; multi-country studies count toward each country. **(C)** Signatures per microbial profiling method, coloured by broad versus targeted coverage (see [Broad Data Definition](#broad-data-definition)). All signatures come from subgingival plaque, so no body-site panel is shown. **(D)** Number of signatures each taxon appears in; the 10 most frequent taxa are labelled. **(E)** Distribution of signature size (number of taxa). **(F)** Signatures by smoking status of the study population: non-smokers only (0% smokers in both groups), smokers included, or not reported. **(G)** Signatures containing each of the 10 most frequent taxa, split by smoking status."
+#| fig-cap: "PerioSigDB overview. **(A)** Papers and signatures by publication period. **(B)** Papers per country of study population; multi-country studies count toward each country. All signatures come from subgingival plaque, so no body-site panel is shown. Panels C–F are split by whether the signature lists taxa increased or decreased in periodontitis. **(C)** Number of signatures each taxon appears in (increased above the axis, decreased below); the 4 most frequent taxa in each direction are labelled. **(D)** Distribution of signature size (number of taxa). **(E)** Profiling method of increased and decreased signatures. **(F)** Signatures containing the 5 taxa most often reported as increased (top) and the 5 most often reported as decreased (bottom), by direction and profiling method."
 
 # each panel gets its own hues; grey always means "not reported"
 pal_A <- c("#1baf7a", "#4a3aa7")
-pal_C <- c("#eda100", "#e34948", "grey65")
-pal_DE <- "#3d5a80"
-pal_FG <- c("#2a78d6", "#eb6834", "grey65")
+pal_CD <- c(increased = "#f1807e", decreased = "#6182a6")
+pal_EF <- c("#2a78d6", "#eb6834", "#008300", "#d55181", "grey65")
 
 theme_overview <- theme_bw(base_size = 10) +
   theme(
@@ -339,120 +337,181 @@ pB <- ggplot(world) +
     legend.key.size = unit(0.4, "cm")
   )
 
-# Panel C: signatures per profiling method (body site is constant)
-dat_method <- dat |>
-  mutate(
-    method = case_when(
-      `Sequencing type` == "16S" ~ "16S rRNA sequencing",
-      `Sequencing type` == "WMS" ~ "Shotgun metagenomics",
-      `Sequencing type` %in% c("PCR", "16S,PCR") ~ "PCR",
-      `Sequencing platform` == "DNA-DNA Hybridization" ~ "DNA-DNA hybridization",
-      `Sequencing platform` == "Human Intestinal Tract Chip" ~ "Phylogenetic microarray",
-      `Sequencing platform` == "Mass spectrometry" ~ "Mass spectrometry",
-      .default = "Not reported"
-    ),
-    coverage = case_when(
-      method %in% c("PCR", "Mass spectrometry") ~ "targeted",
-      method == "Not reported" ~ "not reported",
-      .default = "broad"
+# Panels C-F are split by direction: signatures of taxa increased vs decreased in periodontitis
+msc <- bugsigdbr::getSignatures(dat_condition, tax.id.type = "metaphlan")
+sig_dir <- factor(
+  ifelse(grepl("_UP$", names(msc)), "increased", "decreased"),
+  levels = c("increased", "decreased")
+)
+tax_label <- function(taxon) sub("^[a-z]__", "", vapply(taxon, bugsigdbr:::.getTip, character(1)))
+
+# Panel C: number of signatures per taxon (increased up, decreased down), top taxa labelled
+taxon_freq_dir <- tibble(taxon = unlist(msc), direction = rep(sig_dir, lengths(msc))) |>
+  count(taxon, direction, name = "signatures") |>
+  mutate(label = tax_label(taxon))
+
+top_taxa_dir <- taxon_freq_dir |>
+  slice_max(signatures, n = 4, by = direction, with_ties = FALSE)
+
+# histogram with increased signatures above the axis and decreased below, on a
+# symmetric log scale so that the many small bins remain visible
+mirror_bins <- function(value, direction, binwidth) {
+  tibble(value, direction) |>
+    mutate(bin = ceiling(value / binwidth)) |>
+    count(direction, bin, name = "n") |>
+    mutate(x = (bin - 0.5) * binwidth, y = ifelse(direction == "increased", n, -n))
+}
+
+mirror_hist <- function(bins, binwidth, breaks) {
+  list(
+    geom_col(data = bins, aes(x = x, y = y, fill = direction),
+             width = binwidth, color = "white", linewidth = 0.3),
+    geom_hline(yintercept = 0, linewidth = 0.3),
+    scale_fill_manual(values = pal_CD, name = "in periodontitis"),
+    scale_y_continuous(
+      transform = scales::pseudo_log_trans(base = 10),
+      breaks = c(-rev(breaks), breaks), labels = abs,
+      expand = expansion(mult = 0.05)
     )
-  ) |>
-  count(method, coverage) |>
+  )
+}
+
+taxon_bins <- mirror_bins(taxon_freq_dir$signatures, taxon_freq_dir$direction, binwidth = 4)
+
+# labels in each direction start at a common height, clear of every bar they span
+label_start <- top_taxa_dir |>
+  summarise(min_x = min(signatures) - 4, .by = direction) |>
+  left_join(taxon_bins, by = "direction", relationship = "one-to-many") |>
+  filter(x >= min_x) |>
+  summarise(label_y = 3 * max(abs(y)) * ifelse(first(direction) == "increased", 1, -1), .by = direction)
+
+# increased: vertical labels above the centre of each taxon's bar
+# decreased: several top taxa share a bar, so labels go in horizontal rows to the
+# right (log-spaced, nearest bar on top) with a thin line back to each bar's centre
+top_taxa_dir <- top_taxa_dir |>
   mutate(
-    method = fct_reorder(method, n),
-    coverage = factor(coverage, levels = c("broad", "targeted", "not reported"))
+    label = sub("^(\\w)\\w+ ", "\\1. ", label),
+    bin = ceiling(signatures / 4)
+  ) |>
+  left_join(select(taxon_bins, direction, bin, x, y), by = c("direction", "bin")) |>
+  left_join(label_start, by = "direction") |>
+  arrange(direction, desc(signatures)) |>
+  mutate(
+    x_label = ifelse(direction == "increased", x, 30),
+    label_y = ifelse(direction == "increased", label_y, -3 * 3^(row_number() - 1)),
+    .by = direction
   )
 
-pC <- ggplot(dat_method, aes(x = n, y = method, fill = coverage)) +
-  geom_col(width = 0.75) +
-  scale_fill_manual(values = pal_C) +
-  scale_x_continuous(expand = expansion(mult = c(0, 0.05))) +
-  labs(x = "number of signatures", y = NULL) +
-  theme_overview
+label_bars <- function(dat) {
+  list(
+    geom_segment(data = dat, aes(x = x, xend = x_label, y = y, yend = label_y),
+                 color = "grey50", linewidth = 0.2),
+    geom_text(data = filter(dat, direction == "increased"),
+              aes(x = x_label, y = label_y, label = label),
+              angle = 90, hjust = -0.05, size = 2.6, fontface = "italic"),
+    geom_text(data = filter(dat, direction == "decreased"),
+              aes(x = x_label, y = label_y, label = label),
+              hjust = -0.05, size = 2.6, fontface = "italic")
+  )
+}
 
-# Panel D: number of signatures per taxon, top taxa labelled
-msc <- bugsigdbr::getSignatures(dat_condition, tax.id.type = "metaphlan")
-taxon_freq <- tibble(taxon = unlist(msc)) |>
-  count(taxon, name = "signatures") |>
-  arrange(desc(signatures)) |>
-  mutate(label = sub("^[a-z]__", "", vapply(taxon, bugsigdbr:::.getTip, character(1))))
-
-top_taxa <- head(taxon_freq, 10)
-
-pD <- ggplot(taxon_freq, aes(x = signatures)) +
-  geom_histogram(bins = 20, fill = pal_DE, color = "white", linewidth = 0.3) +
-  geom_text_repel(
-    data = top_taxa, aes(x = signatures, y = 1, label = label),
-    angle = 90, hjust = 0, direction = "x", nudge_y = 40,
-    segment.color = "grey50", segment.size = 0.2,
-    size = 2.6, fontface = "italic", min.segment.length = 0
-  ) +
-  scale_y_continuous(expand = expansion(mult = c(0, 1.1))) +
+pD <- ggplot() +
+  mirror_hist(taxon_bins, binwidth = 4, breaks = c(1, 10, 100)) +
+  label_bars(top_taxa_dir) +
+  coord_cartesian(ylim = c(-500, 3000)) +
   labs(x = "number of signatures", y = "number of taxa") +
-  theme_overview
-
-# Panel E: signature size
-pE <- ggplot(tibble(size = lengths(msc)), aes(x = size)) +
-  geom_histogram(bins = 30, fill = pal_DE, color = "white", linewidth = 0.3) +
-  scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
-  labs(x = "signature size", y = "number of signatures") +
-  theme_overview
-
-# Panels F, G: smoking status of the study population
-smoke_levels <- c("non-smokers only", "smokers included", "not reported")
-
-smoking <- dat_condition |>
-  mutate(
-    max_smokers = pmax(
-      `Group 0 percent smokers`, `Group 1 percent smokers`,
-      `Group 0 num smokers`, `Group 1 num smokers`,
-      na.rm = TRUE
-    ),
-    smoking = factor(case_when(
-      max_smokers > 0 ~ "smokers included",
-      max_smokers == 0 ~ "non-smokers only",
-      .default = "not reported"
-    ), levels = smoke_levels)
-  ) |>
-  pull(smoking)
-
-smoke_counts <- tibble(smoking) |>
-  count(smoking) |>
-  mutate(pct = paste0(round(100 * n / sum(n)), "%"))
-
-pF <- ggplot(smoke_counts, aes(x = "", y = n, fill = smoking)) +
-  geom_col(color = "white", linewidth = 0.8, position = position_stack(reverse = TRUE)) +
-  geom_text(aes(label = pct), position = position_stack(vjust = 0.5, reverse = TRUE),
-            color = "white", size = 3.2, fontface = "bold") +
-  coord_polar(theta = "y", direction = -1) +
-  scale_fill_manual(values = pal_FG, drop = FALSE) +
-  theme_void(base_size = 10) +
-  theme(legend.position = "bottom", legend.title = element_blank(),
-        legend.direction = "vertical")
-
-# signatures containing each top taxon, split by smoking status
-top_taxa_smoking <- map_dfr(seq_len(nrow(top_taxa)), function(i) {
-  has_taxon <- vapply(msc, function(s) top_taxa$taxon[i] %in% s, logical(1))
-  tibble(taxon = top_taxa$label[i], smoking = smoking[has_taxon])
-}) |>
-  count(taxon, smoking) |>
-  mutate(taxon = factor(taxon, levels = rev(top_taxa$label)))
-
-pG <- ggplot(top_taxa_smoking, aes(x = n, y = taxon, fill = smoking)) +
-  geom_col(width = 0.75, color = "white", linewidth = 0.3, position = position_stack(reverse = TRUE)) +
-  scale_fill_manual(values = pal_FG, drop = FALSE) +
-  scale_x_continuous(expand = expansion(mult = c(0, 0.05))) +
-  labs(x = "number of signatures", y = NULL) +
   theme_overview +
-  theme(axis.text.y = element_text(face = "italic"), legend.position = "none")
+  theme(legend.position = "none")
 
-top_row <- (pA + tag_at(0.08) | pB + tag_at(0) | pC + tag_at(0.28)) +
-  plot_layout(widths = c(1.3, 2.6, 1.4))
+# Panel D: signature size
+pE <- ggplot() +
+  mirror_hist(mirror_bins(lengths(msc), sig_dir, binwidth = 5), binwidth = 5, breaks = c(1, 10, 50)) +
+  labs(x = "signature size", y = "number of signatures") +
+  theme_overview +
+  theme(
+    legend.title = element_text(),
+    legend.position = "inside",
+    legend.position.inside = c(0.99, 0.02),
+    legend.justification = c(1, 0),
+    legend.direction = "horizontal",
+    legend.background = element_blank()
+  )
 
-# spacer pushes the pie up towards its tag
+# Panels E, F: profiling method of each signature
+method_levels <- c("16S rRNA sequencing", "Shotgun metagenomics", "DNA-DNA hybridization",
+                   "PCR", "Other / not reported")
+
+sig_method <- dat_condition |>
+  mutate(method = case_when(
+    `Sequencing type` == "16S" ~ "16S rRNA sequencing",
+    `Sequencing type` == "WMS" ~ "Shotgun metagenomics",
+    `Sequencing type` %in% c("PCR", "16S,PCR") ~ "PCR",
+    `Sequencing platform` == "DNA-DNA Hybridization" ~ "DNA-DNA hybridization",
+    .default = "Other / not reported"
+  )) |>
+  pull(method) |>
+  factor(levels = method_levels)
+
+method_counts <- tibble(method = sig_method, direction = sig_dir) |>
+  count(direction, method) |>
+  mutate(prop = n / sum(n), pct = paste0(round(100 * prop), "%"), .by = direction) |>
+  mutate(direction = paste0(direction, "\n(n = ", sum(n), ")"), .by = direction) |>
+  mutate(direction = fct_inorder(direction))
+
+pF <- ggplot(method_counts, aes(x = "", y = prop, fill = method)) +
+  geom_col(color = "white", linewidth = 0.8, position = position_stack(reverse = TRUE)) +
+  geom_text(aes(label = ifelse(prop >= 0.05, pct, "")),
+            position = position_stack(vjust = 0.5, reverse = TRUE),
+            color = "white", size = 2.8, fontface = "bold") +
+  coord_polar(theta = "y", direction = -1) +
+  facet_wrap(~direction, ncol = 1) +
+  scale_fill_manual(values = pal_EF, drop = FALSE) +
+  theme_void(base_size = 10) +
+  theme(legend.position = "none")
+
+# top 5 taxa reported as increased, then top 5 reported as decreased, by profiling method
+top_up <- taxon_freq_dir |>
+  filter(direction == "increased") |>
+  slice_max(signatures, n = 5, with_ties = FALSE)
+top_dn <- taxon_freq_dir |>
+  filter(direction == "decreased", !taxon %in% top_up$taxon) |>
+  slice_max(signatures, n = 5, with_ties = FALSE)
+top_taxa <- bind_rows(top_up, top_dn)
+
+top_taxa_method <- map_dfr(seq_len(nrow(top_taxa)), function(i) {
+  has_taxon <- vapply(msc, function(s) top_taxa$taxon[i] %in% s, logical(1))
+  tibble(taxon = top_taxa$label[i], method = sig_method[has_taxon], direction = sig_dir[has_taxon])
+}) |>
+  count(taxon, direction, method) |>
+  mutate(
+    n = ifelse(direction == "decreased", -n, n),
+    taxon = factor(taxon, levels = rev(top_taxa$label))
+  )
+
+pG <- ggplot(top_taxa_method, aes(x = n, y = taxon, fill = method)) +
+  geom_col(width = 0.75, color = "white", linewidth = 0.3, position = position_stack(reverse = TRUE)) +
+  geom_vline(xintercept = 0, linewidth = 0.3) +
+  geom_hline(yintercept = nrow(top_dn) + 0.5, linewidth = 0.3, linetype = "dashed", color = "grey40") +
+  scale_fill_manual(values = pal_EF, drop = FALSE, name = "profiling method (E, F)") +
+  scale_x_continuous(labels = abs, breaks = seq(-80, 80, 20)) +
+  labs(x = "number of signatures\n← decreased in periodontitis | increased in periodontitis →", y = NULL) +
+  theme_overview +
+  theme(
+    axis.text.y = element_text(face = "italic"),
+    legend.title = element_text(),
+    legend.position = "inside",
+    legend.position.inside = c(0.98, 0.03),
+    legend.justification = c(1, 0),
+    legend.direction = "vertical",
+    legend.background = element_blank()
+  )
+
+top_row <- (pA + tag_at(0.08) | pB + tag_at(0)) +
+  plot_layout(widths = c(1.9, 3))
+
 col_DE <- (pD + tag_at(0.08)) / (pE + tag_at(0.08)) + plot_layout(heights = c(1.6, 1))
-col_F <- (pF + tag_at(0)) / plot_spacer() + plot_layout(heights = c(4, 1))
-bottom_row <- (col_DE | col_F | pG + tag_at(0.22)) + plot_layout(widths = c(1.2, 0.8, 1.6))
+col_F <- pF + tag_at(0)
+bottom_row <- (col_DE | col_F | pG + tag_at(0.22)) + plot_layout(widths = c(1.15, 1, 1.5))
 
 (top_row / bottom_row) +
   plot_layout(heights = c(1, 1.3)) +
