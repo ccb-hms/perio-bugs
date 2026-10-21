@@ -32,3 +32,5 @@ reports/periodontal_microbiome/report_files/*
 # corrected data (manual corrections pending confirmation by curators)
 output/overview_cleaned_corrected.rds
 output/perio_bugs_corrected.*
+reports/metadata_options/report.html
+reports/metadata_options/report_files/*

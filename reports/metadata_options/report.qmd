@@ -1,0 +1,711 @@
+---
+title: "PerioSigDB Metadata Options"
+subtitle: "Candidate figures and tables on study and participant characteristics"
+format:
+    html:
+        grid:
+            sidebar-width: 50px
+            body-width: 1100px
+            margin-width: 300px
+        toc: true
+        toc-depth: 2
+        code-fold: true
+        code-tools: true
+        theme:
+          light: [flatly, ../periodontal_microbiome/style.scss]
+          dark: [darkly, ../periodontal_microbiome/style.scss]
+        fontsize: 1.2em
+        linestretch: 2
+        highlight-style: a11y
+        embed-resources: true
+title-block-banner: "../periodontal_microbiome/images/HMS_DBMI_Logo.png"
+title-block-banner-color: "#333333"
+css: ../periodontal_microbiome/style.css
+author:
+    - name: Alex Pickering
+      orcid: 0000-0002-0002-6759
+      email: alex_pickering@hms.harvard.edu
+      affiliation:
+          - name: CCB
+            url: https://ccb.hms.harvard.edu/
+editor: source
+---
+
+This report was rendered on `r format(Sys.time(), "%B %d, %Y")`.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE, dev = "png", dpi = 150)
+```
+
+```{r load}
+library(tidyverse)
+library(patchwork)
+library(ggbeeswarm)
+library(ggrepel)
+library(kableExtra)
+
+# corrected data (manual corrections pending confirmation by curators)
+dat <- readRDS("../../output/perio_bugs_corrected.rds")
+
+# one row per study: metadata are shared by the increased and decreased signatures
+studies <- dat |>
+  distinct(Study, .keep_all = TRUE) |>
+  select(-`MetaPhlAn taxon names`, -`NCBI Taxonomy IDs`, -`Abundance in Group 1`) |>
+  mutate(Year = as.integer(Year))
+
+# colors: health/periodontitis, periodontitis classification, profiling method
+# (method colors match the overview figure of the main report; grey is always "not reported")
+pal_group <- c(Health = "#2a78d6", Periodontitis = "#eb6834")
+
+class_levels <- c(
+  "Chronic periodontitis", "Chronic and aggressive periodontitis", "Aggressive periodontitis",
+  "Periodontitis (stage/grade)", "Refractory periodontitis", "Periodontitis (type not specified)"
+)
+class_short <- c("Chronic", "Chronic + aggressive", "Aggressive", "Stage/grade", "Refractory", "Not specified")
+pal_class <- setNames(c("#1baf7a", "#6250d6", "#e87ba4", "#eda100", "#e34948", "grey65"), class_short)
+
+method_levels <- c("16S rRNA sequencing", "Shotgun metagenomics", "DNA-DNA hybridization",
+                   "PCR", "Other / not reported")
+pal_method <- setNames(c("#2a78d6", "#eb6834", "#008300", "#d55181", "grey65"), method_levels)
+
+theme_meta <- theme_bw(base_size = 11) +
+  theme(
+    panel.grid.minor = element_blank(),
+    strip.background = element_blank(),
+    strip.text = element_text(face = "bold", hjust = 0),
+    legend.position = "top",
+    legend.title = element_blank()
+  )
+theme_set(theme_meta)
+
+studies <- studies |>
+  mutate(
+    classification = factor(
+      class_short[match(`Periodontitis classification`, class_levels)], levels = class_short
+    ),
+    method = case_when(
+      `Sequencing type` == "16S" ~ "16S rRNA sequencing",
+      `Sequencing type` == "WMS" ~ "Shotgun metagenomics",
+      `Sequencing type` %in% c("PCR", "16S,PCR") ~ "PCR",
+      `Sequencing platform` == "DNA-DNA Hybridization" ~ "DNA-DNA hybridization",
+      .default = "Other / not reported"
+    ) |> factor(levels = method_levels),
+    period = cut(Year, c(-Inf, 2004, 2009, 2014, 2019, Inf),
+                 labels = c("1995–2004", "2005–2009", "2010–2014", "2015–2019", "2020–2025"))
+  )
+
+# group-level measures in long format
+features <- tribble(
+  ~feature,   ~label,                          ~mean_col,                        ~sd_col,
+  "age",      "Age (years)",                   "age mean",                       "age sd",
+  "males",    "Males (%)",                     "percent males",                  NA,
+  "smokers",  "Smokers (%)",                   "percent smokers",                NA,
+  "pd",       "Probing depth (mm)",            "pocket depth mean (mm)",         "pocket depth sd",
+  "cal",      "Clinical attachment loss (mm)", "clinical attachment loss (mm)",  "clinical attachment loss sd",
+  "bop",      "Bleeding on probing (% sites)", "bleeding on probing percent",    "bleeding on probing sd",
+  "plaque",   "Plaque (% sites)",              "plaque",                         "plaque sd",
+  "supp",     "Suppuration (% sites)",         "suppuration percent",            "suppuration sd"
+) |>
+  mutate(label = factor(label, levels = label))
+
+long <- pmap_dfr(features, function(feature, label, mean_col, sd_col) {
+  map_dfr(0:1, function(g) {
+    col <- function(x) if (is.na(x)) NA_real_ else studies[[paste("Group", g, x)]]
+    num <- if (feature %in% c("males", "smokers")) col(paste("num", feature)) else NA_real_
+    tibble(
+      Study = studies$Study, feature = feature, label = label,
+      group = c("Health", "Periodontitis")[g + 1],
+      mean = col(mean_col), sd = col(sd_col),
+      n = studies[[paste("Group", g, "sample size")]],
+      num = num
+    )
+  })
+}) |>
+  # plaque indices (e.g. Silness-Löe 0-3) are not comparable with % sites
+  left_join(select(studies, Study, `Plaque measure`), by = "Study") |>
+  filter(!is.na(mean), feature != "plaque" | `Plaque measure` %in% "% sites") |>
+  select(-`Plaque measure`)
+
+# studies with values for both groups
+paired <- long |>
+  pivot_wider(id_cols = c(Study, feature, label), names_from = group,
+              values_from = c(mean, sd, n, num)) |>
+  filter(!is.na(mean_Health), !is.na(mean_Periodontitis)) |>
+  # smokers excluded from both groups: no contrast
+  filter(!(feature == "smokers" & mean_Health == 0 & mean_Periodontitis == 0))
+
+paired_tests <- paired |>
+  summarise(
+    studies = n(),
+    p = wilcox.test(mean_Periodontitis, mean_Health, paired = TRUE, exact = FALSE)$p.value,
+    .by = c(feature, label)
+  ) |>
+  mutate(p_label = ifelse(p < 0.001, "p < 0.001", paste("p =", signif(p, 2))))
+```
+
+## About this report
+
+This report sets out candidate figures and tables on the metadata of PerioSigDB. It covers how participant and clinical characteristics differ between periodontitis and periodontally healthy groups, and how they vary across studies. Each section is one option, with a short note on what it shows and its caveats. A summary of all options with a recommendation is at the end.
+
+All analyses use the **corrected** dataset (`output/perio_bugs_corrected.rds`). Its manual corrections are pending confirmation by the curators; see `output/manual_corrections.csv`. The unit of analysis is the **study** (n = `r nrow(studies)`), because metadata are recorded once per study and shared by its increased and decreased signatures. Group 0 is the periodontally healthy group and Group 1 the periodontitis group. Health groups are not uniform:
+
+- Studies 298, 153 and 155 include gingivitis subjects in Group 0.
+- Studies 1752, 1818 and 1897 use periodontitis-resistant adults aged 65 and over.
+
+# Data availability
+
+## Option 1: Metadata completeness heatmap
+
+```{r completeness}
+#| fig-width: 13
+#| fig-height: 5.5
+#| fig-cap: "Reporting of metadata across studies. Each column is a study, ordered by publication year; each row is a field. Group-level fields are shaded by whether they are reported for both groups, one group, or neither. Plaque counts as reported only when given as % of sites. The percentage after each field is the share of studies reporting it for both groups (group-level fields) or at all (study-level fields)."
+
+study_fields <- tibble(
+  Study = studies$Study,
+  `Profiling method` = studies$method != "Other / not reported",
+  `16S variable region` = !is.na(studies$`16S variable region`),
+  `Periodontitis classification` = studies$classification != "Not specified",
+  `Systemic condition` = !is.na(studies$`Systemic condition`),
+  `Group 0 definition` = !is.na(studies$`Group 0 definition`),
+  `Group 1 definition` = !is.na(studies$`Group 1 definition`)
+) |>
+  pivot_longer(-Study, names_to = "field", values_to = "reported") |>
+  mutate(status = ifelse(reported, "Reported", "Not reported"), type = "Study")
+
+size_fields <- studies |>
+  transmute(Study, n0 = !is.na(`Group 0 sample size`), n1 = !is.na(`Group 1 sample size`)) |>
+  mutate(field = "Sample size")
+
+group_fields <- long |>
+  distinct(Study, label, group) |>
+  count(Study, field = as.character(label), name = "groups") |>
+  complete(Study = studies$Study, field = levels(features$label), fill = list(groups = 0)) |>
+  bind_rows(transmute(size_fields, Study, field, groups = n0 + n1)) |>
+  mutate(
+    status = c("Neither group", "One group", "Both groups")[groups + 1],
+    type = "Group"
+  )
+
+completeness <- bind_rows(group_fields, study_fields) |>
+  left_join(select(studies, Study, Year), by = "Study") |>
+  mutate(
+    Study = fct_reorder(Study, Year, .fun = min),
+    complete = status %in% c("Both groups", "Reported")
+  ) |>
+  mutate(field_label = paste0(field, " (", round(100 * mean(complete)), "%)"), .by = field)
+
+field_order <- completeness |>
+  summarise(pct = mean(complete), type = first(type), .by = field_label) |>
+  arrange(type == "Study", pct) |>
+  pull(field_label)
+
+pal_status <- c(
+  "Both groups" = "#2a78d6", "One group" = "#9ec5f4", "Neither group" = "#f0efec",
+  "Reported" = "#256abf", "Not reported" = "#f0efec"
+)
+
+ggplot(completeness, aes(x = Study, y = factor(field_label, levels = field_order), fill = status)) +
+  geom_tile(color = "white", linewidth = 0.3) +
+  scale_fill_manual(values = pal_status, breaks = c("Both groups", "One group", "Neither group")) +
+  scale_x_discrete(labels = NULL, breaks = NULL) +
+  labs(x = "Studies (ordered by publication year →)", y = NULL) +
+  theme(panel.grid = element_blank(), panel.border = element_blank())
+```
+
+**Shows:** how complete each field is, and whether reporting improved over time. For example, recent studies more often give a periodontitis stage/grade. This is useful as a supplementary figure in a resource paper, and it sets expectations for every other option below.
+
+**Caveat:** "Not reported" can also mean "not entered". Systemic condition was not extracted for most studies in the original overview sheet.
+
+# Health vs periodontitis
+
+## Option 2: Paired study-level comparison
+
+```{r paired-slopes}
+#| fig-width: 13
+#| fig-height: 7
+#| fig-cap: "Health vs periodontitis within each study. Grey lines join the two groups of one study; large points are medians across studies. n is the number of studies reporting the measure for both groups; p is from a paired Wilcoxon signed-rank test across studies."
+
+medians <- long |>
+  semi_join(paired, by = c("Study", "feature")) |>
+  summarise(median = median(mean), .by = c(label, group))
+
+strip_labels <- paired_tests |>
+  arrange(label) |>
+  mutate(strip = paste0(label, "\nn = ", studies, ", ", p_label)) |>
+  mutate(strip = factor(strip, levels = strip)) |>
+  select(label, strip)
+
+long |>
+  semi_join(paired, by = c("Study", "feature")) |>
+  left_join(strip_labels, by = "label") |>
+  ggplot(aes(x = group, y = mean)) +
+  geom_line(aes(group = Study), color = "grey60", alpha = 0.5, linewidth = 0.4) +
+  geom_point(aes(color = group), size = 1, alpha = 0.6) +
+  geom_line(data = left_join(medians, strip_labels, by = "label"),
+            aes(y = median, group = 1), color = "grey15", linewidth = 1) +
+  geom_point(data = left_join(medians, strip_labels, by = "label"),
+             aes(y = median, fill = group), shape = 21, color = "white", size = 4, stroke = 1) +
+  facet_wrap(~strip, scales = "free_y", nrow = 2) +
+  scale_color_manual(values = pal_group, guide = "none") +
+  scale_fill_manual(values = pal_group) +
+  labs(x = NULL, y = NULL) +
+  theme(legend.position = "none")
+```
+
+**Shows:** the size and consistency of the health–periodontitis difference for each measure, and how much individual studies vary around it. Clinical measures separate almost every study. The demographic measures show the imbalances between groups: periodontitis groups tend to be older and to smoke more.
+
+**Caveat:** each study counts equally, regardless of its sample size.
+
+## Option 3: Health vs periodontitis scatter
+
+```{r paired-scatter}
+#| fig-width: 13
+#| fig-height: 7
+#| fig-cap: "Health (x) vs periodontitis (y) group values per study, colored by profiling method. Points above the dashed identity line have a higher value in the periodontitis group."
+
+paired |>
+  # suppuration is 0 in every health group
+  filter(feature != "supp") |>
+  left_join(select(studies, Study, method), by = "Study") |>
+  ggplot(aes(x = mean_Health, y = mean_Periodontitis)) +
+  geom_abline(linetype = "dashed", color = "grey50") +
+  geom_point(aes(fill = method), shape = 21, color = "white", size = 2.6, stroke = 0.5) +
+  facet_wrap(~label, scales = "free", nrow = 2) +
+  scale_fill_manual(values = pal_method, drop = FALSE) +
+  labs(x = "Health group", y = "Periodontitis group")
+```
+
+**Shows:** the same pairs as Option 2, but against an identity line, so outlying studies are easier to spot. For example, health groups with high BOP or CAL show up clearly, as does the age inversion in the periodontitis-resistant cohorts. The data points can carry a third variable (here, profiling method).
+
+**Caveat:** free axes per panel make it harder to compare panels.
+
+## Option 4: Summary table ("Table 1")
+
+```{r table1}
+pooled <- long |>
+  semi_join(paired, by = c("Study", "feature")) |>
+  filter(!is.na(n)) |>
+  summarise(
+    subjects = sum(n),
+    pooled_mean = sum(n * mean) / sum(n),
+    .by = c(label, group)
+  )
+
+iqr_fmt <- function(x, digits) {
+  q <- quantile(x, c(0.25, 0.5, 0.75))
+  sprintf(paste0("%.", digits, "f [%.", digits, "f–%.", digits, "f]"), q[2], q[1], q[3])
+}
+
+table1 <- paired |>
+  mutate(digits = ifelse(feature %in% c("pd", "cal"), 2, 1)) |>
+  summarise(
+    Studies = n(),
+    Health = iqr_fmt(mean_Health, first(digits)),
+    Periodontitis = iqr_fmt(mean_Periodontitis, first(digits)),
+    Difference = iqr_fmt(mean_Periodontitis - mean_Health, first(digits)),
+    .by = c(feature, label)
+  ) |>
+  left_join(select(paired_tests, feature, p_label), by = "feature") |>
+  left_join(
+    pooled |>
+      mutate(pooled_mean = sprintf(ifelse(grepl("mm", label), "%.2f", "%.1f"), pooled_mean)) |>
+      pivot_wider(id_cols = label, names_from = group, values_from = c(pooled_mean, subjects)),
+    by = "label"
+  ) |>
+  arrange(label) |>
+  transmute(
+    Measure = label, Studies,
+    Health, Periodontitis, Difference, `Paired test` = p_label,
+    `Health ` = paste0(pooled_mean_Health, " (", subjects_Health, ")"),
+    `Periodontitis ` = paste0(pooled_mean_Periodontitis, " (", subjects_Periodontitis, ")")
+  )
+
+table1 |>
+  kbl(align = "lcccccccc",
+      caption = "Health and periodontitis groups across studies reporting each measure for both groups. Study-level columns give the median [IQR] of study means; the paired test is a Wilcoxon signed-rank test across studies. Pooled columns weight each study mean by its group size (number of subjects in brackets).") |>
+  add_header_above(c(" " = 2, "Study means, median [IQR]" = 3, " " = 1, "Pooled mean (subjects)" = 2)) |>
+  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = TRUE)
+```
+
+**Shows:** the conventional "Table 1" in compact form, with both the between-study spread and a subject-weighted pooled mean. It pairs naturally with Option 2 or Option 5.
+
+**Caveat:** the pooled means ignore within-study variance and differences in measurement protocol (e.g. full-mouth vs sampled sites).
+
+## Option 5: Pooled effect sizes
+
+```{r effect-sizes}
+# Hedges' g (continuous) and log odds ratios (males, smokers) per study,
+# pooled with a DerSimonian-Laird random-effects model
+hedges_g <- function(m1, s1, n1, m0, s0, n0) {
+  sp <- sqrt(((n1 - 1) * s1^2 + (n0 - 1) * s0^2) / (n1 + n0 - 2))
+  g <- (1 - 3 / (4 * (n1 + n0) - 9)) * (m1 - m0) / sp
+  tibble(yi = g, vi = (n1 + n0) / (n1 * n0) + g^2 / (2 * (n1 + n0)))
+}
+
+log_or <- function(x1, n1, x0, n0) {
+  cc <- ifelse(x1 == 0 | x0 == 0 | x1 == n1 | x0 == n0, 0.5, 0)
+  a <- x1 + cc; b <- n1 - x1 + cc; c <- x0 + cc; d <- n0 - x0 + cc
+  tibble(yi = log(a * d / (b * c)), vi = 1 / a + 1 / b + 1 / c + 1 / d)
+}
+
+dersimonian_laird <- function(yi, vi) {
+  w <- 1 / vi
+  k <- length(yi)
+  q <- sum(w * (yi - sum(w * yi) / sum(w))^2)
+  tau2 <- max(0, (q - (k - 1)) / (sum(w) - sum(w^2) / sum(w)))
+  ws <- 1 / (vi + tau2)
+  est <- sum(ws * yi) / sum(ws)
+  se <- sqrt(1 / sum(ws))
+  tibble(k = k, est = est, lo = est - 1.96 * se, hi = est + 1.96 * se,
+         i2 = ifelse(q > 0, max(0, (q - (k - 1)) / q), 0))
+}
+
+per_study <- bind_rows(
+  paired |>
+    filter(!feature %in% c("males", "smokers"),
+           !is.na(sd_Health), !is.na(sd_Periodontitis), !is.na(n_Health), !is.na(n_Periodontitis),
+           sd_Health > 0 | sd_Periodontitis > 0) |>
+    mutate(hedges_g(mean_Periodontitis, sd_Periodontitis, n_Periodontitis,
+                    mean_Health, sd_Health, n_Health), scale = "Hedges' g"),
+  paired |>
+    filter(feature %in% c("males", "smokers"), !is.na(num_Health), !is.na(num_Periodontitis),
+           # no contrast when both groups exclude smokers
+           num_Health + num_Periodontitis > 0) |>
+    mutate(log_or(num_Periodontitis, n_Periodontitis, num_Health, n_Health), scale = "Odds ratio")
+)
+
+pooled_effects <- per_study |>
+  summarise(dersimonian_laird(yi, vi), .by = c(label, scale)) |>
+  mutate(across(c(est, lo, hi), ~ ifelse(scale == "Odds ratio", exp(.x), .x)))
+```
+
+```{r effect-sizes-fig}
+#| fig-width: 12
+#| fig-height: 4.5
+#| fig-cap: "Pooled difference between periodontitis and health groups (random-effects meta-analysis across studies, 95% CI). Left: standardized mean difference (Hedges' g) for continuous measures. Right: odds ratio of being male or a smoker in the periodontitis group. k = number of studies; I² = share of variability due to between-study heterogeneity."
+
+effect_plot <- function(d, xlab, ref, log = FALSE) {
+  p <- ggplot(d, aes(x = est, y = fct_rev(label))) +
+    geom_vline(xintercept = ref, color = "grey50", linetype = "dashed") +
+    geom_errorbarh(aes(xmin = lo, xmax = hi), height = 0, linewidth = 0.8, color = pal_group[["Periodontitis"]]) +
+    geom_point(size = 3, color = pal_group[["Periodontitis"]]) +
+    geom_text(aes(x = hi, label = sprintf("k = %d, I² = %d%%", k, round(100 * i2))),
+              hjust = -0.1, size = 3, color = "grey30") +
+    labs(x = xlab, y = NULL) +
+    scale_x_continuous(expand = expansion(mult = c(0.05, 0.35)))
+  if (log) p <- p + scale_x_log10(expand = expansion(mult = c(0.05, 0.9)))
+  p
+}
+
+effect_plot(filter(pooled_effects, scale == "Hedges' g"), "Hedges' g (periodontitis − health)", 0) +
+  effect_plot(filter(pooled_effects, scale == "Odds ratio"), "Odds ratio (periodontitis vs health)", 1, log = TRUE) +
+  plot_layout(widths = c(2, 1))
+```
+
+**Shows:** one standardized number per measure, so measures on different scales can be compared directly. The I² values make the heterogeneity explicit, and the odds ratios make the age, sex and smoking confounding concrete.
+
+**Caveats:**
+
+- This only includes studies that report SDs (or counts).
+- Standardized effects of clinical measures are very large, because healthy groups are defined by low PD, CAL and BOP. The effect partly reflects case definitions rather than biology.
+- Some SDs come from SEM conversions or pooled subgroups (see `manual_corrections.csv`).
+
+## Option 6: Per-study forest plot
+
+```{r forest}
+#| fig-width: 11
+#| fig-height: 9
+#| fig-cap: "Odds ratio of smoking in the periodontitis vs health group for each study reporting smokers in both groups (95% CI, log scale), colored by periodontitis classification. Studies that excluded smokers from both groups are omitted. The diamond row is the pooled random-effects estimate."
+
+smoking <- per_study |>
+  filter(feature == "smokers") |>
+  left_join(select(studies, Study, Year, classification), by = "Study") |>
+  mutate(
+    or = exp(yi), lo = exp(yi - 1.96 * sqrt(vi)), hi = exp(yi + 1.96 * sqrt(vi)),
+    row = paste0(sub("Study ", "", Study), " (", Year, ")")
+  ) |>
+  arrange(yi)
+
+smoking_pooled <- pooled_effects |>
+  filter(scale == "Odds ratio", grepl("Smokers", label)) |>
+  mutate(row = sprintf("Pooled: OR %.1f [%.1f–%.1f]", est, lo, hi))
+
+rows <- c(smoking_pooled$row, smoking$row)
+
+ggplot(smoking, aes(x = or, y = factor(row, levels = rows))) +
+  geom_vline(xintercept = 1, color = "grey50", linetype = "dashed") +
+  geom_errorbarh(aes(xmin = lo, xmax = hi), height = 0, color = "grey55") +
+  geom_point(aes(fill = classification, size = n_Health + n_Periodontitis), shape = 21, color = "white") +
+  geom_errorbarh(data = smoking_pooled, aes(x = est, xmin = lo, xmax = hi, y = factor(row, levels = rows)),
+                 height = 0, linewidth = 0.9, color = "grey15", inherit.aes = FALSE) +
+  geom_point(data = smoking_pooled, aes(x = est, y = factor(row, levels = rows)),
+             shape = 23, size = 4.5, fill = "grey15", color = "white", inherit.aes = FALSE) +
+  scale_x_log10(breaks = c(0.1, 1, 10, 100, 1000), labels = scales::label_number(drop0trailing = TRUE)) +
+  scale_fill_manual(values = pal_class, drop = TRUE) +
+  scale_size_area(max_size = 6, guide = "none") +
+  labs(x = "Odds ratio of smoking (periodontitis vs health)", y = NULL) +
+  guides(fill = guide_legend(override.aes = list(size = 4)))
+```
+
+**Shows:** which studies drive the smoking imbalance. This matters for interpreting signatures, since smoking itself shifts the subgingival microbiome. The same template works for age (mean difference) or any clinical measure.
+
+**Caveat:** confidence intervals are wide for small studies, and a study with zero smokers in one group gets a continuity correction.
+
+# Variation within periodontitis groups
+
+## Option 7: Disease severity by periodontitis classification
+
+```{r within-perio}
+#| fig-width: 13
+#| fig-height: 5
+#| fig-cap: "Periodontitis-group values across studies, by periodontitis classification (one point per study). Bars are medians. Smokers at 0% are mostly studies that excluded smokers."
+
+within <- long |>
+  filter(group == "Periodontitis", feature %in% c("age", "smokers", "pd", "cal", "bop")) |>
+  left_join(select(studies, Study, classification), by = "Study")
+
+ggplot(within, aes(x = classification, y = mean, color = classification)) +
+  geom_quasirandom(size = 1.8, width = 0.3, alpha = 0.8) +
+  stat_summary(fun = median, geom = "crossbar", width = 0.6, linewidth = 0.4, color = "grey15") +
+  facet_wrap(~label, scales = "free_y", nrow = 1) +
+  scale_color_manual(values = pal_class) +
+  labs(x = NULL, y = NULL) +
+  theme(legend.position = "none", axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+**Shows:** whether "periodontitis" means comparable disease across studies. Aggressive-periodontitis studies are younger and have deeper pockets, while unspecified and stage/grade studies span a wide severity range.
+
+**Caveat:** some groups have few studies (e.g. refractory n = 1). PD/CAL are sometimes from sampled sites only, which inflates them.
+
+## Option 8: Trends over publication year
+
+```{r trends}
+#| fig-width: 13
+#| fig-height: 5
+#| fig-cap: "Periodontitis-group values by publication year, colored by profiling method. Grey lines are linear trends with 95% confidence bands."
+
+within |>
+  left_join(select(studies, Study, Year, method), by = "Study") |>
+  ggplot(aes(x = Year, y = mean)) +
+  geom_smooth(method = "lm", color = "grey40", fill = "grey85", linewidth = 0.6) +
+  geom_point(aes(fill = method), shape = 21, color = "white", size = 2.4, stroke = 0.4) +
+  facet_wrap(~label, scales = "free_y", nrow = 1) +
+  scale_fill_manual(values = pal_method) +
+  labs(x = "Publication year", y = NULL)
+```
+
+**Shows:** whether recruited cohorts changed as profiling moved from hybridization and PCR to sequencing. This is relevant to whether older and newer signatures are comparable.
+
+**Caveat:** method and year are confounded, so the two cannot be separated with this many studies.
+
+# Study characteristics
+
+## Option 9: Periodontitis classification over time and by method
+
+```{r classification}
+#| fig-width: 13
+#| fig-height: 5
+#| fig-cap: "(A) Periodontitis classification of studies by publication period (share of studies; counts in bars). (B) Number of studies by classification and profiling method."
+
+pA <- studies |>
+  count(period, classification) |>
+  mutate(prop = n / sum(n), .by = period) |>
+  ggplot(aes(x = prop, y = fct_rev(period), fill = classification)) +
+  geom_col(color = "white", linewidth = 0.5, position = position_stack(reverse = TRUE)) +
+  geom_text(aes(label = ifelse(prop > 0.06, n, "")), position = position_stack(vjust = 0.5, reverse = TRUE),
+            color = "white", size = 3.2, fontface = "bold") +
+  scale_fill_manual(values = pal_class) +
+  scale_x_continuous(labels = scales::percent, expand = c(0, 0)) +
+  labs(x = "Studies", y = NULL, tag = "A") +
+  guides(fill = guide_legend(nrow = 2))
+
+pB <- studies |>
+  count(classification, method) |>
+  complete(classification, method, fill = list(n = 0)) |>
+  ggplot(aes(x = method, y = fct_rev(classification), fill = n)) +
+  geom_tile(color = "white", linewidth = 1) +
+  geom_text(aes(label = ifelse(n > 0, n, ""), color = n > 12), size = 3.5) +
+  scale_fill_gradient(low = "#f0efec", high = "#1c5cab", guide = "none") +
+  scale_color_manual(values = c(`FALSE` = "grey15", `TRUE` = "white"), guide = "none") +
+  labs(x = NULL, y = NULL, tag = "B") +
+  theme(panel.grid = element_blank(), axis.text.x = element_text(angle = 30, hjust = 1))
+
+pA + pB + plot_layout(widths = c(1.2, 1))
+```
+
+**Shows:** the shift from the 1999 chronic/aggressive classification to the 2018 stage/grade system, and which diagnosis types each profiling method has studied. This is useful context for stratifying signatures.
+
+**Caveat:** "Not specified" is large. Many older studies define periodontitis only by PD/CAL thresholds.
+
+## Option 10: Systemic condition of participants
+
+```{r systemic}
+#| fig-width: 10
+#| fig-height: 3.5
+#| fig-cap: "Systemic condition of participants (number of studies). Not recorded: not extracted in the overview sheet."
+
+studies |>
+  mutate(systemic = case_when(
+    is.na(`Systemic condition`) ~ "Not recorded",
+    `Systemic condition` == "systemically healthy" ~ "Systemically healthy",
+    .default = str_to_sentence(`Systemic condition`)
+  )) |>
+  count(systemic) |>
+  mutate(
+    status = case_when(
+      systemic == "Not recorded" ~ "Not recorded",
+      systemic == "Systemically healthy" ~ "Systemically healthy",
+      .default = "Includes systemic disease"
+    ),
+    systemic = fct_reorder(systemic, n)
+  ) |>
+  ggplot(aes(x = n, y = systemic, fill = status)) +
+  geom_col(width = 0.7) +
+  geom_text(aes(label = n), hjust = -0.3, size = 3.2) +
+  scale_fill_manual(values = c("Systemically healthy" = "#2a78d6", "Includes systemic disease" = "#eb6834",
+                               "Not recorded" = "grey65")) +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.1))) +
+  labs(x = "Studies", y = NULL)
+```
+
+**Shows:** which signatures come from populations with comorbidities (rheumatoid arthritis, diabetes, COPD, HIV), so they can be flagged or excluded in sensitivity analyses.
+
+**Caveat:** this is unknown for about half the studies until the curators fill it in. It might work better as a table than a figure.
+
+## Option 11: Sample size by profiling method
+
+```{r sample-size}
+#| fig-width: 11
+#| fig-height: 5
+#| fig-cap: "Total participants per study (health + periodontitis, log scale) by publication year, colored by profiling method."
+
+studies |>
+  mutate(total = `Group 0 sample size` + `Group 1 sample size`) |>
+  filter(!is.na(total)) |>
+  ggplot(aes(x = Year, y = total)) +
+  geom_point(aes(fill = method), shape = 21, color = "white", size = 3, stroke = 0.4) +
+  scale_y_log10() +
+  scale_fill_manual(values = pal_method) +
+  labs(x = "Publication year", y = "Participants (log scale)")
+```
+
+**Shows:** sequencing studies are typically small, while checkerboard and PCR studies include hundreds of subjects. This is relevant for weighting signatures, or for reading differences between methods.
+
+**Caveat:** participants are not samples. Many studies analyse several sites per subject (pooled or not).
+
+## Option 12: Group imbalance in age and smoking
+
+```{r imbalance}
+#| fig-width: 9
+#| fig-height: 6.5
+#| fig-cap: "Difference between periodontitis and health groups in mean age (x) and % smokers (y), one point per study reporting both for both groups (studies excluding smokers from both groups omitted). Studies with the largest differences are labelled."
+
+imbalance <- paired |>
+  filter(feature %in% c("age", "smokers")) |>
+  transmute(Study, feature, diff = mean_Periodontitis - mean_Health) |>
+  pivot_wider(names_from = feature, values_from = diff) |>
+  filter(!is.na(age), !is.na(smokers)) |>
+  left_join(select(studies, Study, classification), by = "Study") |>
+  mutate(label = ifelse(abs(smokers) > 40 | abs(age) > 25 | age < -5, sub("Study ", "", Study), NA))
+
+ggplot(imbalance, aes(x = age, y = smokers)) +
+  geom_hline(yintercept = 0, color = "grey60") +
+  geom_vline(xintercept = 0, color = "grey60") +
+  geom_point(aes(fill = classification), shape = 21, color = "white", size = 3, stroke = 0.5) +
+  geom_text_repel(aes(label = label), size = 3, color = "grey25", min.segment.length = 0) +
+  scale_fill_manual(values = pal_class) +
+  labs(x = "Age difference, years (periodontitis − health)",
+       y = "Smokers difference, percentage points") +
+  guides(fill = guide_legend(nrow = 2))
+```
+
+**Shows:** age and smoking imbalances in a single view. Most studies have older periodontitis groups and many also have more smokers. (The periodontitis-resistant cohorts with older controls, 1752/1818/1897, don't report smoking for controls; they appear in Option 3.) These are the two main confounders of periodontitis signatures.
+
+**Caveat:** many studies don't report smoking for both groups, often because smokers were excluded entirely.
+
+# Metadata and signature content
+
+## Option 13: Signature content by study characteristics
+
+```{r signature-content}
+#| fig-width: 13
+#| fig-height: 5
+#| fig-cap: "(A) Number of taxa in the increased signature vs the probing-depth difference between groups (log scale), colored by profiling method. (B) Share of studies, by periodontitis classification, whose increased signature includes each red-complex species. The denominator is all studies with an increased signature, including targeted assays that may not have tested the species."
+
+sigs <- dat |>
+  filter(`Abundance in Group 1` == "increased") |>
+  mutate(
+    size = lengths(`MetaPhlAn taxon names`),
+    taxa = map_chr(`MetaPhlAn taxon names`, paste, collapse = ";")
+  ) |>
+  select(Study, size, taxa) |>
+  left_join(select(studies, Study, method, classification), by = "Study")
+
+pd_gap <- paired |>
+  filter(feature == "pd") |>
+  transmute(Study, pd_gap = mean_Periodontitis - mean_Health)
+
+pA <- sigs |>
+  inner_join(pd_gap, by = "Study") |>
+  ggplot(aes(x = pd_gap, y = size)) +
+  geom_point(aes(fill = method), shape = 21, color = "white", size = 2.8, stroke = 0.4) +
+  scale_y_log10() +
+  scale_fill_manual(values = pal_method) +
+  labs(x = "Probing depth difference, mm (periodontitis − health)",
+       y = "Taxa in increased signature", tag = "A") +
+  guides(fill = guide_legend(nrow = 2))
+
+red_complex <- c("Porphyromonas gingivalis", "Tannerella forsythia", "Treponema denticola")
+pB <- map_dfr(red_complex, function(sp) {
+  sigs |>
+    summarise(studies = n(), share = mean(grepl(sp, taxa, fixed = TRUE)), .by = classification) |>
+    mutate(species = sp)
+}) |>
+  mutate(class_n = fct_rev(fct_reorder(paste0(classification, " (n=", studies, ")"), as.integer(classification)))) |>
+  ggplot(aes(x = share, y = class_n, fill = classification)) +
+  geom_col(width = 0.7) +
+  facet_wrap(~species, nrow = 1) +
+  scale_fill_manual(values = pal_class) +
+  scale_x_continuous(labels = scales::percent, limits = c(0, 1), breaks = c(0, 0.5, 1)) +
+  labs(x = "Studies reporting species as increased", y = NULL, tag = "B") +
+  theme(legend.position = "none", strip.text = element_text(face = "bold.italic"))
+
+pA + pB + plot_layout(widths = c(1, 1.6))
+```
+
+**Shows:** the link from metadata to the microbial results. Does a larger clinical contrast give larger signatures? Do the classic pathogens appear consistently across diagnosis types? This is the most novel option and leads into stratified analyses of the signatures.
+
+**Caveats:**
+
+- This is exploratory: signature size depends mostly on the profiling method's coverage.
+- Without per-study lists of the taxa that were assessed, absence from a signature can't be told apart from "not tested".
+- The species-assessed field in the raw sheets could supply this if it were cleaned.
+
+# Summary of options
+
+```{r summary-table}
+tribble(
+  ~Option, ~Question, ~Form, ~Notes,
+  "1. Completeness heatmap", "What metadata are available?", "Heatmap (fields × studies)", "Good supplementary figure; frames all others",
+  "2. Paired comparison", "How do health and periodontitis groups differ?", "Paired slopes, small multiples", "Recommended main figure",
+  "3. Paired scatter", "Same, with outliers visible", "Scatter vs identity line", "Alternative to 2",
+  "4. Summary table", "Typical values per group", "Table", "Recommended main table; pairs with 2",
+  "5. Pooled effect sizes", "Standardized size of each difference", "Meta-analytic dot plot", "Makes heterogeneity (I²) explicit",
+  "6. Per-study forest", "Which studies drive an imbalance?", "Forest plot", "Template for any one measure",
+  "7. Severity by classification", "Is 'periodontitis' comparable across studies?", "Beeswarm, small multiples", "Recommended for within-periodontitis variation",
+  "8. Trends over time", "Have cohorts changed with method/era?", "Scatter + trend", "Method and year confounded",
+  "9. Classification", "How was periodontitis defined?", "Stacked bars + count tile", "Context for stratification",
+  "10. Systemic condition", "Are comorbid populations included?", "Bar chart", "Half not recorded yet",
+  "11. Sample size", "How large are studies by method?", "Scatter (log)", "Supports weighting decisions",
+  "12. Group imbalance", "Age and smoking confounding", "Scatter with quadrants", "Compact confounding summary",
+  "13. Signature content", "Do metadata relate to signatures?", "Scatter + bars", "Exploratory; needs taxa-assessed data"
+) |>
+  kbl(caption = "Candidate figures and tables.") |>
+  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = TRUE)
+```
+
+**Suggested combination:**
+
+- **Main text:** Option 2 (paired comparison) with Option 4 (summary table), plus Option 7 (severity by classification).
+- **Supplement:** Option 1 (completeness), with Option 5 or 12 to address confounding.
