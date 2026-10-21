@@ -138,6 +138,7 @@ group1_name <- rep('periodontitis', length(locs))
 # NOTE: Group 0 definition not present in BugSigDB
 
 group1_def <- df$`Criteria used to define periodontitis`
+group0_def <- df$`Criteria used to define periodontal health`
 
 # Group sample size ----
 
@@ -579,7 +580,10 @@ cleaned_df <- tibble::tibble(
   "Group 0 name" = group0_name,
   "Group 1 name" = group1_name,
   "Group 1 definition" = group1_def,
-  
+  "Group 0 definition" = group0_def,
+  "Periodontitis classification" = NA_character_,
+  "Systemic condition" = NA_character_,
+
   "Sequencing type" = prompt_fixes$seq_res_cleaned$seq_type,
   "16S variable region" = prompt_fixes$seq_res_cleaned$`16s_regions`,
   "Sequencing platform" = prompt_fixes$seq_res_cleaned$seq_plat,
@@ -634,7 +638,8 @@ cleaned_df <- tibble::tibble(
 # evaluate numeric columns (e.g. '139+100' --> 239)
 non_numeric_cols <- c(
   'Number', 'Study design', 'Location of subjects', 'Host species', 'Body site',
-  'Condition', 'Group 0 name', 'Group 1 name', 'Group 1 definition', 
+  'Condition', 'Group 0 name', 'Group 1 name', 'Group 1 definition', 'Group 0 definition',
+  'Periodontitis classification', 'Systemic condition',
   'Sequencing type', 'Sequencing platform'
 )
 
@@ -673,4 +678,130 @@ for (col_name in names(cleaned_df)) {
   }
 }
 
-saveRDS(cleaned_df, 'output/overview_cleaned.rds')
+# without manual corrections and new columns
+# TODO: replace with corrected version once corrections are confirmed by curators
+saveRDS(
+  select(cleaned_df, -`Group 0 definition`, -`Periodontitis classification`, -`Systemic condition`),
+  'output/overview_cleaned.rds'
+)
+
+# manual corrections ----
+
+# see scripts/manual_corrections.R
+source('scripts/manual_corrections.R')
+
+corrections <- bind_rows(corrections_raw, corrections_paper)
+
+# sequencing type/platform
+cleaned_df <- cleaned_df |>
+  mutate(
+    # HOMINGS is Illumina sequencing of 16S rRNA genes (labelled Human Intestinal Tract Chip)
+    `Sequencing type` = ifelse(Number == '538', '16S', `Sequencing type`),
+    `Sequencing platform` = ifelse(Number == '538', 'Illumina', `Sequencing platform`),
+    # micro-IDent strips are multiplex PCR with reverse hybridization (as for 137)
+    `Sequencing type` = ifelse(Number %in% c('589', '1915'), 'PCR', `Sequencing type`),
+    `Sequencing platform` = ifelse(Number %in% c('589', '1915'), 'Non-quantitative PCR', `Sequencing platform`),
+    # 16S rRNA clone libraries with Sanger sequencing (labelled 'Sequencing - pcr')
+    `Sequencing type` = ifelse(Number == '2139', '16S', `Sequencing type`)
+  )
+
+# a value should only be corrected once
+stopifnot(!anyDuplicated(corrections[, c('Number', 'column')]))
+stopifnot(all(corrections$column %in% colnames(cleaned_df)))
+stopifnot(all(corrections$Number %in% cleaned_df$Number))
+
+# record values before correction (for review)
+row_idx <- match(corrections$Number, cleaned_df$Number)
+corrections$previous_value <- mapply(
+  function(i, col) cleaned_df[[col]][i], row_idx, corrections$column)
+
+# standard errors of the mean to SDs (sample sizes corrected first)
+size_corrections <- filter(corrections, grepl('sample size', column))
+for (i in seq_len(nrow(size_corrections))) {
+  row <- cleaned_df$Number == size_corrections$Number[i]
+  cleaned_df[[size_corrections$column[i]]][row] <- size_corrections$value[i]
+}
+
+sem_sds <- sem_sds |>
+  mutate(
+    column = paste('Group', group, sapply(measure_cols[measure], `[`, 2)),
+    n_column = paste('Group', group, 'sample size')
+  ) |>
+  # values set in corrections are already SDs
+  anti_join(corrections, by = c('Number', 'column'))
+
+sem_sds$previous_value <- NA_real_
+sem_sds$value <- NA_real_
+for (i in seq_len(nrow(sem_sds))) {
+  row <- cleaned_df$Number == sem_sds$Number[i]
+  sem <- cleaned_df[[sem_sds$column[i]]][row]
+  n <- cleaned_df[[sem_sds$n_column[i]]][row]
+  sem_sds$previous_value[i] <- sem
+  sem_sds$value[i] <- sem_to_sd(sem, n)
+  cleaned_df[[sem_sds$column[i]]][row] <- sem_sds$value[i]
+}
+
+for (i in seq_len(nrow(corrections))) {
+  row <- cleaned_df$Number == corrections$Number[i]
+  cleaned_df[[corrections$column[i]]][row] <- corrections$value[i]
+}
+
+# number of males/smokers wrongly set to 0 when only a fraction was reported (e.g. '0.34')
+# then fill in number or percent from the other and the group size
+for (group in 0:1) {
+  n <- cleaned_df[[paste('Group', group, 'sample size')]]
+  for (var in c('males', 'smokers')) {
+    num_col <- paste('Group', group, 'num', var)
+    pct_col <- paste('Group', group, 'percent', var)
+    num <- cleaned_df[[num_col]]
+    pct <- cleaned_df[[pct_col]]
+
+    num[which(num == 0 & pct > 0)] <- NA
+    num <- ifelse(is.na(num), round(pct * n / 100), num)
+    pct <- ifelse(is.na(pct), round(100 * num / n, 1), pct)
+
+    cleaned_df[[num_col]] <- num
+    cleaned_df[[pct_col]] <- pct
+  }
+}
+
+# periodontitis classification and systemic condition
+classification <- stack(perio_classification)
+cleaned_df$`Periodontitis classification` <- coalesce(
+  as.character(classification$ind[match(cleaned_df$Number, classification$values)]),
+  'Periodontitis (type not specified)'
+)
+
+cleaned_df$`Systemic condition` <- case_when(
+  cleaned_df$Number %in% names(systemic_disease) ~ systemic_disease[cleaned_df$Number],
+  cleaned_df$Number %in% systemically_healthy ~ 'systemically healthy',
+  .default = NA_character_
+)
+
+# plaque is reported either as % of sites or as an index (e.g. Silness-Löe 0-3)
+max_plaque <- pmax(cleaned_df$`Group 0 plaque`, cleaned_df$`Group 1 plaque`, na.rm = TRUE)
+cleaned_df <- cleaned_df |>
+  mutate(
+    `Plaque measure` = case_when(
+      is.na(max_plaque) ~ NA_character_,
+      max_plaque > 5 ~ '% sites',
+      .default = 'index'
+    ),
+    .after = `Group 1 plaque sd`
+  )
+
+# for review by curators: corrections based on papers and SEM conversions
+review <- bind_rows(
+  filter(corrections, source == 'paper'),
+  transmute(sem_sds, Number, column, value, previous_value, reason = paste('SEM to SD;', reason), source = 'paper')
+) |>
+  # only values that changed
+  filter(xor(is.na(value), is.na(previous_value)) | abs(value - previous_value) > 1e-9) |>
+  left_join(select(df, Number, REFERENCE, Year), by = 'Number') |>
+  relocate(REFERENCE, Year, .after = Number) |>
+  mutate(across(c(value, previous_value), ~ round(.x, 2))) |>
+  arrange(Number)
+
+write.csv(review, 'output/manual_corrections.csv', row.names = FALSE)
+
+saveRDS(cleaned_df, 'output/overview_cleaned_corrected.rds')

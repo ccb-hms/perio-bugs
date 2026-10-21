@@ -6,12 +6,25 @@ source('scripts/create_metaphlan_hierarchy.R')
 
 
 # load in microbe, cleaned overview, and study pmids
-overview_cleaned <- readRDS('output/overview_cleaned.rds')
+# Rscript scripts/5-join_overview_and_microbe.R --corrected
+# uses manual corrections (see scripts/manual_corrections.R) and saves with '_corrected' suffix
+# TODO: drop once corrections are confirmed by curators
+corrected <- '--corrected' %in% commandArgs(trailingOnly = TRUE)
+suffix <- if (corrected) '_corrected' else ''
+
+overview_cleaned <- readRDS(paste0('output/overview_cleaned', suffix, '.rds'))
 diff_species <- bind_rows(
   readRDS('output/diff_species.rds'),
   readRDS('output/diff_species_new_data.rds')
 )
 study_pmids <- readRDS('output/study_pmids.rds')
+
+# drop studies entered twice (see scripts/manual_corrections.R)
+if (corrected) {
+  source('scripts/manual_corrections.R')
+  overview_cleaned <- filter(overview_cleaned, !Number %in% names(duplicate_studies))
+  diff_species <- filter(diff_species, !Number %in% names(duplicate_studies))
+}
 
 # add PMIDs to overview
 overview_cleaned <- overview_cleaned |> 
@@ -67,11 +80,11 @@ perio_bugs <- perio_bugs |>
   mutate(Experiment = 'Experiment 1') |> 
   relocate(Experiment, .before = `Location of subjects`)
 
-saveRDS(perio_bugs, 'output/perio_bugs.rds')
-write.csv(perio_bugs, 'output/perio_bugs.csv', row.names = FALSE)
+saveRDS(perio_bugs, paste0('output/perio_bugs', suffix, '.rds'))
+write.csv(perio_bugs, paste0('output/perio_bugs', suffix, '.csv'), row.names = FALSE)
 
 # just columns for development
-write.csv(perio_bugs[1, ], 'output/perio_bugs_example.csv', row.names = FALSE)
+if (!corrected) write.csv(perio_bugs[1, ], 'output/perio_bugs_example.csv', row.names = FALSE)
 
 # save Excel with data validation build in for Curators ----
 
@@ -188,8 +201,9 @@ for (col_name in validation_config$positive_decimals) {
   cat("Applied decimal validation to:", col_name, "\n")
 }
 
-saveWorkbook(wb, "output/perio_bugs.xlsx", overwrite = TRUE)
-cat("\n✓ Workbook saved: output/perio_bugs.xlsx\n")
+xlsx_file <- paste0("output/perio_bugs", suffix, ".xlsx")
+saveWorkbook(wb, xlsx_file, overwrite = TRUE)
+cat("\n✓ Workbook saved:", xlsx_file, "\n")
 
 # Other columns in BugSigDB that don't have ----
 # Statistical test

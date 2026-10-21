@@ -1,0 +1,207 @@
+"Number","REFERENCE","Year","column","value","reason","source","previous_value"
+"116","Lu, C., Chu, Y., Liu, J. R., Liu, W. Y., & Ouyang, X. Y. (2021). Subgingival Microbial Profiles of Young Chinese Adults with Stage I/II Periodontitis, Gingivitis and Periodontal Health Status. Chinese Journal of Dental Research, 24(3):167–175. https://doi.org/10.3290/j.cjdr.b1965003",2021,"Group 1 age sd",NA,"Table 1: median [IQR] 19.0 [0.0] entered as '19 ± 0'","paper",0
+"123","Zhou J., Yao Y., Jiao K., Zhang J., Zheng X., Wu F., Hu X., Li J., Yu Z., Zhang G., Jiang N., Li Z.",2017,"Group 0 plaque",NA,"plaque not reported in Table S1 (1.69 matches 131)","paper",1.69
+"123","Zhou J., Yao Y., Jiao K., Zhang J., Zheng X., Wu F., Hu X., Li J., Yu Z., Zhang G., Jiang N., Li Z.",2017,"Group 0 plaque sd",NA,"plaque not reported in Table S1 (1.69 matches 131)","paper",0.73
+"131","Medikeri R.S., Lele S.V., Jain P.M., Mali P., Medikeri M.R.",2015,"Group 0 pocket depth mean (mm)",NA,"Table: healthy PD 0.00 ± 0.000 implausible","paper",0
+"131","Medikeri R.S., Lele S.V., Jain P.M., Mali P., Medikeri M.R.",2015,"Group 0 pocket depth sd",NA,"Table: healthy PD 0.00 ± 0.000 implausible","paper",0
+"131","Medikeri R.S., Lele S.V., Jain P.M., Mali P., Medikeri M.R.",2015,"Group 0 clinical attachment loss (mm)",NA,"Table: healthy CAL 0.00 ± 0.000 implausible","paper",0
+"131","Medikeri R.S., Lele S.V., Jain P.M., Mali P., Medikeri M.R.",2015,"Group 0 clinical attachment loss sd",NA,"Table: healthy CAL 0.00 ± 0.000 implausible","paper",0
+"131","Medikeri R.S., Lele S.V., Jain P.M., Mali P., Medikeri M.R.",2015,"Group 0 plaque",1.69,"Table: healthy plaque index not entered","paper",NA
+"131","Medikeri R.S., Lele S.V., Jain P.M., Mali P., Medikeri M.R.",2015,"Group 0 plaque sd",0.72,"Table: healthy plaque index not entered","paper",NA
+"131","Medikeri R.S., Lele S.V., Jain P.M., Mali P., Medikeri M.R.",2015,"Group 1 plaque",2.76,"Table: pooled non-smokers and smokers (entered non-smokers only)","paper",2.61
+"131","Medikeri R.S., Lele S.V., Jain P.M., Mali P., Medikeri M.R.",2015,"Group 1 plaque sd",0.58,"Table: pooled non-smokers and smokers (entered non-smokers only)","paper",0.55
+"132","Cortelli S.C., Cortelli J.R., Romeiro R.L., Costa F.O., Aquino D.R., Orzechowski P.R., Araújo V.C., Duarte P.M.",2012,"Group 1 num males",13,"inferred: 13/50 = 26% (full text not available)","paper",0
+"137","Schulz S., Hierse L., Altermann W., Klapproth J., Zimmermann U., Reichert Y., Gläser C., Kluttig A., Stein J.M., Schaller H.-G., Reichert S.",2010,"Group 1 num males",52,"Table 1: CP males 22 (34.9%)","paper",54
+"137","Schulz S., Hierse L., Altermann W., Klapproth J., Zimmermann U., Reichert Y., Gläser C., Kluttig A., Stein J.M., Schaller H.-G., Reichert S.",2010,"Group 1 percent males",36.88,"Table 1: CP males 22 (34.9%)","paper",38.5
+"137","Schulz S., Hierse L., Altermann W., Klapproth J., Zimmermann U., Reichert Y., Gläser C., Kluttig A., Stein J.M., Schaller H.-G., Reichert S.",2010,"Group 1 pocket depth mean (mm)",5.48,"Table 1: pooled AgP and CP (entered PD SD averaged)","paper",5.45
+"137","Schulz S., Hierse L., Altermann W., Klapproth J., Zimmermann U., Reichert Y., Gläser C., Kluttig A., Stein J.M., Schaller H.-G., Reichert S.",2010,"Group 1 pocket depth sd",1.29,"Table 1: pooled AgP and CP (entered PD SD averaged)","paper",1.25
+"137","Schulz S., Hierse L., Altermann W., Klapproth J., Zimmermann U., Reichert Y., Gläser C., Kluttig A., Stein J.M., Schaller H.-G., Reichert S.",2010,"Group 1 plaque",55.96,"Table 1: pooled AgP and CP (entered AgP only)","paper",52.3
+"137","Schulz S., Hierse L., Altermann W., Klapproth J., Zimmermann U., Reichert Y., Gläser C., Kluttig A., Stein J.M., Schaller H.-G., Reichert S.",2010,"Group 1 plaque sd",27.45,"Table 1: pooled AgP and CP (entered AgP only)","paper",28.5
+"137","Schulz S., Hierse L., Altermann W., Klapproth J., Zimmermann U., Reichert Y., Gläser C., Kluttig A., Stein J.M., Schaller H.-G., Reichert S.",2010,"Group 0 bleeding on probing percent",45.7,"Table 1: not entered","paper",NA
+"137","Schulz S., Hierse L., Altermann W., Klapproth J., Zimmermann U., Reichert Y., Gläser C., Kluttig A., Stein J.M., Schaller H.-G., Reichert S.",2010,"Group 0 bleeding on probing sd",23.7,"Table 1: not entered","paper",NA
+"137","Schulz S., Hierse L., Altermann W., Klapproth J., Zimmermann U., Reichert Y., Gläser C., Kluttig A., Stein J.M., Schaller H.-G., Reichert S.",2010,"Group 0 clinical attachment loss sd",0.8,"Table 1: not entered","paper",NA
+"137","Schulz S., Hierse L., Altermann W., Klapproth J., Zimmermann U., Reichert Y., Gläser C., Kluttig A., Stein J.M., Schaller H.-G., Reichert S.",2010,"Group 0 plaque",47.5,"Table 1: not entered","paper",NA
+"137","Schulz S., Hierse L., Altermann W., Klapproth J., Zimmermann U., Reichert Y., Gläser C., Kluttig A., Stein J.M., Schaller H.-G., Reichert S.",2010,"Group 0 plaque sd",21.5,"Table 1: not entered","paper",NA
+"1411","Zhou M., Rong R., Munro D., Zhu C., Gao X., Zhang Q., Dong Q.",2013,"Group 0 pocket depth mean (mm)",1.5,"computed from Table S1","paper",NA
+"1411","Zhou M., Rong R., Munro D., Zhu C., Gao X., Zhang Q., Dong Q.",2013,"Group 0 pocket depth sd",0.5,"computed from Table S1","paper",NA
+"1411","Zhou M., Rong R., Munro D., Zhu C., Gao X., Zhang Q., Dong Q.",2013,"Group 1 pocket depth mean (mm)",6,"computed from Table S1","paper",NA
+"1411","Zhou M., Rong R., Munro D., Zhu C., Gao X., Zhang Q., Dong Q.",2013,"Group 1 pocket depth sd",1.1,"computed from Table S1","paper",NA
+"1411","Zhou M., Rong R., Munro D., Zhu C., Gao X., Zhang Q., Dong Q.",2013,"Group 0 clinical attachment loss (mm)",0,"computed from Table S1","paper",NA
+"1411","Zhou M., Rong R., Munro D., Zhu C., Gao X., Zhang Q., Dong Q.",2013,"Group 0 clinical attachment loss sd",0,"computed from Table S1","paper",NA
+"1411","Zhou M., Rong R., Munro D., Zhu C., Gao X., Zhang Q., Dong Q.",2013,"Group 1 clinical attachment loss (mm)",1.92,"computed from Table S1","paper",NA
+"1411","Zhou M., Rong R., Munro D., Zhu C., Gao X., Zhang Q., Dong Q.",2013,"Group 1 clinical attachment loss sd",1.02,"computed from Table S1","paper",NA
+"1496","Ebadian A.R., Kadkhodazadeh M., Zarnegarnia P., Dahlén G.",2012,"Group 0 percent males",38.1,"Table 1: 8/21 males (printed 48% sums to 110%)","paper",48
+"153","Tanner A, et al.",1998,"Group 0 sample size",31,"Table 1: health 13, gingivitis 18 (size not entered)","paper",NA
+"1667","Matarazzo et al.",2011,"Group 1 sample size",30,"Table 2: GAgP n = 30 (entered 10; 14 males > 10)","paper",10
+"1687","da Silva et.al.",2011,"Group 1 sample size",309,"Table 1: CP n = 219, AP n = 90 (entered '60.67' is % females)","paper",127
+"1687","da Silva et.al.",2011,"Group 0 age sd",10.71,"Table 1: SEM","paper",1.5
+"1687","da Silva et.al.",2011,"Group 1 age mean",41.32,"Table 1: pooled CP and AP, SEM","paper",NA
+"1687","da Silva et.al.",2011,"Group 1 age sd",11.22,"Table 1: pooled CP and AP, SEM","paper",NA
+"1687","da Silva et.al.",2011,"Group 1 num males",NA,"Table 1: pooled CP and AP","paper",40
+"1687","da Silva et.al.",2011,"Group 1 percent males",37.96,"Table 1: pooled CP and AP","paper",33
+"1687","da Silva et.al.",2011,"Group 1 num smokers",NA,"Table 1: AP smokers 9.1% (entered '4,1')","paper",0
+"1687","da Silva et.al.",2011,"Group 1 percent smokers",34.33,"Table 1: AP smokers 9.1% (entered '4,1')","paper",0
+"1687","da Silva et.al.",2011,"Group 0 pocket depth mean (mm)",1.8,"Table 1: SEM (LLM also used wrong value 2.4)","paper",2.4
+"1687","da Silva et.al.",2011,"Group 0 pocket depth sd",0.29,"Table 1: SEM (LLM also used wrong value 2.4)","paper",NA
+"1687","da Silva et.al.",2011,"Group 1 pocket depth mean (mm)",3.19,"Table 1: pooled CP and AP, SEM","paper",NA
+"1687","da Silva et.al.",2011,"Group 1 pocket depth sd",0.99,"Table 1: pooled CP and AP, SEM","paper",NA
+"1687","da Silva et.al.",2011,"Group 0 clinical attachment loss sd",0.43,"Table 1: SEM","paper",0.06
+"1687","da Silva et.al.",2011,"Group 1 clinical attachment loss (mm)",3.73,"Table 1: pooled CP and AP, SEM","paper",NA
+"1687","da Silva et.al.",2011,"Group 1 clinical attachment loss sd",1.22,"Table 1: pooled CP and AP, SEM","paper",NA
+"1687","da Silva et.al.",2011,"Group 0 bleeding on probing sd",3.57,"Table 1: SEM","paper",0.5
+"1687","da Silva et.al.",2011,"Group 1 bleeding on probing percent",47.77,"Table 1: pooled CP and AP, SEM","paper",NA
+"1687","da Silva et.al.",2011,"Group 1 bleeding on probing sd",27.61,"Table 1: pooled CP and AP, SEM","paper",NA
+"1687","da Silva et.al.",2011,"Group 0 plaque",13.1,"Table 1: supragingival biofilm not entered, SEM","paper",NA
+"1687","da Silva et.al.",2011,"Group 0 plaque sd",19.28,"Table 1: supragingival biofilm not entered, SEM","paper",NA
+"1687","da Silva et.al.",2011,"Group 1 plaque",65.69,"Table 1: supragingival biofilm not entered, SEM","paper",NA
+"1687","da Silva et.al.",2011,"Group 1 plaque sd",25.95,"Table 1: supragingival biofilm not entered, SEM","paper",NA
+"1746","Nibali et al",2011,"Group 0 pocket depth mean (mm)",NA,"PD 0.1 (health) and 38.5 (periodontitis) are not mm; not verifiable","paper",0.1
+"1746","Nibali et al",2011,"Group 0 pocket depth sd",NA,"PD 0.1 (health) and 38.5 (periodontitis) are not mm; not verifiable","paper",0.4
+"1746","Nibali et al",2011,"Group 1 pocket depth mean (mm)",NA,"PD 0.1 (health) and 38.5 (periodontitis) are not mm; not verifiable","paper",38.5
+"1746","Nibali et al",2011,"Group 1 pocket depth sd",NA,"PD 0.1 (health) and 38.5 (periodontitis) are not mm; not verifiable","paper",17.4
+"1746","Nibali et al",2011,"Group 0 clinical attachment loss (mm)",NA,"CAL 0.1 (health) and 39.5 (periodontitis) are not mm; not verifiable","paper",0.1
+"1746","Nibali et al",2011,"Group 0 clinical attachment loss sd",NA,"CAL 0.1 (health) and 39.5 (periodontitis) are not mm; not verifiable","paper",0.6
+"1746","Nibali et al",2011,"Group 1 clinical attachment loss (mm)",NA,"CAL 0.1 (health) and 39.5 (periodontitis) are not mm; not verifiable","paper",39.5
+"1746","Nibali et al",2011,"Group 1 clinical attachment loss sd",NA,"CAL 0.1 (health) and 39.5 (periodontitis) are not mm; not verifiable","paper",16.3
+"1818","Schlafer et al",2010,"Group 1 pocket depth mean (mm)",7.1,"Table 2: PD of samples not entered","paper",NA
+"1818","Schlafer et al",2010,"Group 1 pocket depth sd",1.4,"Table 2: PD of samples not entered","paper",NA
+"1874"," Souza Gonçalves et.al.",2009,"Group 0 pocket depth sd",NA,"Table 1: healthy PD SEM printed as 0.5, unreliable","paper",0.5
+"1874"," Souza Gonçalves et.al.",2009,"Group 1 num smokers",0,"smokers excluded (both groups)","paper",NA
+"1874"," Souza Gonçalves et.al.",2009,"Group 1 percent smokers",0,"smokers excluded (both groups)","paper",NA
+"1874"," Souza Gonçalves et.al.",2009,"Group 0 clinical attachment loss sd",0.37,"SEM to SD; Table 1: PD and CAL mean (± SEM)","paper",0.1
+"1874"," Souza Gonçalves et.al.",2009,"Group 1 pocket depth sd",0.54,"SEM to SD; Table 1: PD and CAL mean (± SEM)","paper",0.13
+"1874"," Souza Gonçalves et.al.",2009,"Group 1 clinical attachment loss sd",0.66,"SEM to SD; Table 1: PD and CAL mean (± SEM)","paper",0.16
+"1897","Riep et.al.",2009,"Group 1 pocket depth mean (mm)",7.5,"Table 2: PD of samples not entered","paper",NA
+"1897","Riep et.al.",2009,"Group 1 pocket depth sd",2.9,"Table 2: PD of samples not entered","paper",NA
+"1910","Carvalho et.al",2009,"Group 1 num smokers",0,"smokers excluded (both groups)","paper",NA
+"1910","Carvalho et.al",2009,"Group 1 percent smokers",0,"smokers excluded (both groups)","paper",NA
+"1910","Carvalho et.al",2009,"Group 0 plaque",33.8,"Table 2: supragingival biofilm not entered, SEM","paper",NA
+"1910","Carvalho et.al",2009,"Group 0 plaque sd",16.58,"Table 2: supragingival biofilm not entered, SEM","paper",NA
+"1910","Carvalho et.al",2009,"Group 1 plaque",71,"Table 2: supragingival biofilm not entered, SEM","paper",NA
+"1910","Carvalho et.al",2009,"Group 1 plaque sd",18.67,"Table 2: supragingival biofilm not entered, SEM","paper",NA
+"1910","Carvalho et.al",2009,"Group 0 pocket depth sd",0.13,"SEM to SD; Table 2: mean ± SEM (age labelled SD)","paper",0.04
+"1910","Carvalho et.al",2009,"Group 0 clinical attachment loss sd",0.13,"SEM to SD; Table 2: mean ± SEM (age labelled SD)","paper",0.04
+"1910","Carvalho et.al",2009,"Group 0 bleeding on probing sd",5.64,"SEM to SD; Table 2: mean ± SEM (age labelled SD)","paper",1.7
+"1910","Carvalho et.al",2009,"Group 1 pocket depth sd",0.93,"SEM to SD; Table 2: mean ± SEM (age labelled SD)","paper",0.22
+"1910","Carvalho et.al",2009,"Group 1 clinical attachment loss sd",0.81,"SEM to SD; Table 2: mean ± SEM (age labelled SD)","paper",0.19
+"1910","Carvalho et.al",2009,"Group 1 bleeding on probing sd",21.21,"SEM to SD; Table 2: mean ± SEM (age labelled SD)","paper",5
+"1915","Surna et.al.",2009,"Group 1 num smokers",0,"all participants non-smokers","paper",NA
+"1915","Surna et.al.",2009,"Group 1 percent smokers",0,"all participants non-smokers","paper",NA
+"1915","Surna et.al.",2009,"Group 0 pocket depth mean (mm)",NA,"healthy PD 0.20 ± 0.01 mm in paper is implausible (misprint)","paper",0.2
+"1915","Surna et.al.",2009,"Group 0 pocket depth sd",NA,"healthy PD 0.20 ± 0.01 mm in paper is implausible (misprint)","paper",0.01
+"1915","Surna et.al.",2009,"Group 0 bleeding on probing percent",0,"Table 1: BOP not entered (0.00 ± 0.00 fraction of sites)","paper",NA
+"1915","Surna et.al.",2009,"Group 0 bleeding on probing sd",0,"Table 1: BOP not entered (0.00 ± 0.00 fraction of sites)","paper",NA
+"1915","Surna et.al.",2009,"Group 1 bleeding on probing percent",78,"Table 1: BOP not entered (0.78 ± 0.11 fraction of sites)","paper",NA
+"1915","Surna et.al.",2009,"Group 1 bleeding on probing sd",11,"Table 1: BOP not entered (0.78 ± 0.11 fraction of sites)","paper",NA
+"1915","Surna et.al.",2009,"Group 0 plaque",0.26,"Table 1: OHI-S not entered","paper",NA
+"1915","Surna et.al.",2009,"Group 0 plaque sd",0.03,"Table 1: OHI-S not entered","paper",NA
+"1915","Surna et.al.",2009,"Group 1 plaque",2.84,"Table 1: OHI-S not entered","paper",NA
+"1915","Surna et.al.",2009,"Group 1 plaque sd",0.58,"Table 1: OHI-S not entered","paper",NA
+"1986","Stingu et al.",2008,"Group 0 percent smokers",NA,"Table 1: 37.65 ± 10.88 is healthy age; smokers by group not reported","paper",37.65
+"1986","Stingu et al.",2008,"Group 0 age mean",37.65,"Table 1: healthy age","paper",NA
+"1986","Stingu et al.",2008,"Group 0 age sd",10.88,"Table 1: healthy age","paper",NA
+"1986","Stingu et al.",2008,"Group 0 plaque",15.77,"Table 1: approximal plaque index (% sites) not entered","paper",NA
+"1986","Stingu et al.",2008,"Group 0 plaque sd",12.56,"Table 1: approximal plaque index (% sites) not entered","paper",NA
+"1986","Stingu et al.",2008,"Group 1 plaque",41.35,"Table 1: approximal plaque index (% sites) not entered","paper",NA
+"1986","Stingu et al.",2008,"Group 1 plaque sd",30.58,"Table 1: approximal plaque index (% sites) not entered","paper",NA
+"2010","Ferraro et al",2007,"Group 1 num smokers",0,"smokers excluded (both groups)","paper",NA
+"2010","Ferraro et al",2007,"Group 1 percent smokers",0,"smokers excluded (both groups)","paper",NA
+"2010","Ferraro et al",2007,"Group 0 num males",NA,"Table 1: 41 is % males","paper",41
+"2010","Ferraro et al",2007,"Group 0 percent males",41,"Table 1: 41 is % males","paper",NA
+"2010","Ferraro et al",2007,"Group 1 num males",NA,"Table 1: 29 is % males","paper",29
+"2010","Ferraro et al",2007,"Group 1 percent males",29,"Table 1: 29 is % males","paper",NA
+"2025-144","He J., Liu Y., Xu H., Wei X., Chen M.",2024,"Group 0 bleeding on probing percent",NA,"healthy BOP 0.05 ambiguous: fraction or % (full text not available)","paper",0.05
+"2025-234","Xu et al.",2023,"Group 0 bleeding on probing percent",NA,"healthy BOP 0.05 ambiguous: fraction or % (full text not available)","paper",0.05
+"2025-246","Lafaurie et al.",2023,"Group 1 num smokers",27,"Table 1: 13 (43%) with 17 non-smokers, so 27/120","paper",13
+"2025-246","Lafaurie et al.",2023,"Group 1 percent smokers",NA,"Table 1: 13 (43%) with 17 non-smokers, so 27/120","paper",22.5
+"2025-Embase-55","Jiang L, et al.",2022,"Group 0 bleeding on probing percent",NA,"Table 1: bleeding index (BI), not % sites","paper",0.82
+"2025-Embase-55","Jiang L, et al.",2022,"Group 0 bleeding on probing sd",NA,"Table 1: bleeding index (BI), not % sites","paper",0.25
+"2025-Embase-55","Jiang L, et al.",2022,"Group 1 bleeding on probing percent",NA,"Table 1: bleeding index (BI), not % sites","paper",3.1
+"2025-Embase-55","Jiang L, et al.",2022,"Group 1 bleeding on probing sd",NA,"Table 1: bleeding index (BI), not % sites","paper",0.39
+"2025-Embase-55","Jiang L, et al.",2022,"Group 1 pocket depth sd",1.33,"SEM to SD; Table 1: mean ± S.E.M. (age not converted: implausible as SEM)","paper",0.42
+"2025-Embase-55","Jiang L, et al.",2022,"Group 1 clinical attachment loss sd",1.93,"SEM to SD; Table 1: mean ± S.E.M. (age not converted: implausible as SEM)","paper",0.61
+"2025-PubMed-14","Iniesta, M.",2023,"Group 0 bleeding on probing percent",4,"0.04 (0.03) read as fraction of sites (not verifiable)","paper",0.04
+"2025-PubMed-14","Iniesta, M.",2023,"Group 0 bleeding on probing sd",3,"0.04 (0.03) read as fraction of sites (not verifiable)","paper",0.03
+"2025-PubMed-14","Iniesta, M.",2023,"Group 1 bleeding on probing percent",47.27,"pooled stages, read as fractions of sites (not verifiable)","paper",NA
+"2025-PubMed-14","Iniesta, M.",2023,"Group 1 bleeding on probing sd",38.03,"pooled stages, read as fractions of sites (not verifiable)","paper",NA
+"2061"," Gonçalves",2007,"Group 1 percent smokers",28.6,"Table 2: periodontitis smokers 28.6%","paper",43.1
+"2061"," Gonçalves",2007,"Group 0 pocket depth sd",0.5,"SEM to SD; Table 2: PD and CAL mean ± SE","paper",0.07
+"2061"," Gonçalves",2007,"Group 0 clinical attachment loss sd",0.5,"SEM to SD; Table 2: PD and CAL mean ± SE","paper",0.07
+"2061"," Gonçalves",2007,"Group 1 pocket depth sd",0.84,"SEM to SD; Table 2: PD and CAL mean ± SE","paper",0.12
+"2061"," Gonçalves",2007,"Group 1 clinical attachment loss sd",1.12,"SEM to SD; Table 2: PD and CAL mean ± SE","paper",0.16
+"2066","Ximenez",2006,"Group 1 num smokers",0,"all subjects non-smokers","paper",NA
+"2066","Ximenez",2006,"Group 1 percent smokers",0,"all subjects non-smokers","paper",NA
+"2066","Ximenez",2006,"Group 0 age sd",6.1,"SEM to SD; Table 1: mean ± SEM","paper",1.4
+"2066","Ximenez",2006,"Group 0 bleeding on probing sd",5.23,"SEM to SD; Table 1: mean ± SEM","paper",1.2
+"2066","Ximenez",2006,"Group 0 pocket depth sd",0.13,"SEM to SD; Table 1: mean ± SEM","paper",0.03
+"2066","Ximenez",2006,"Group 0 clinical attachment loss sd",0.13,"SEM to SD; Table 1: mean ± SEM","paper",0.03
+"2066","Ximenez",2006,"Group 0 plaque sd",16.56,"SEM to SD; Table 1: mean ± SEM","paper",3.8
+"2066","Ximenez",2006,"Group 1 age sd",10.62,"SEM to SD; Table 1: mean ± SEM","paper",1.7
+"2066","Ximenez",2006,"Group 1 bleeding on probing sd",23.11,"SEM to SD; Table 1: mean ± SEM","paper",3.7
+"2066","Ximenez",2006,"Group 1 suppuration sd",9.37,"SEM to SD; Table 1: mean ± SEM","paper",1.5
+"2066","Ximenez",2006,"Group 1 pocket depth sd",1.25,"SEM to SD; Table 1: mean ± SEM","paper",0.2
+"2066","Ximenez",2006,"Group 1 clinical attachment loss sd",1.25,"SEM to SD; Table 1: mean ± SEM","paper",0.2
+"2066","Ximenez",2006,"Group 1 plaque sd",34.97,"SEM to SD; Table 1: mean ± SEM","paper",5.6
+"2095","Airila",2006,"Group 0 plaque",0.18,"Table 1: calculus index was entered as plaque","paper",0.06
+"2095","Airila",2006,"Group 0 plaque sd",0.16,"Table 1: calculus index was entered as plaque","paper",0.05
+"2095","Airila",2006,"Group 1 plaque",0.66,"Table 1: calculus index was entered as plaque","paper",0.3
+"2095","Airila",2006,"Group 1 plaque sd",0.66,"Table 1: calculus index was entered as plaque","paper",0.49
+"2104","Tanner",2006,"Group 0 age sd",5.45,"SEM to SD; Table 1: mean ± SEM","paper",1.03
+"2104","Tanner",2006,"Group 0 bleeding on probing sd",5.29,"SEM to SD; Table 1: mean ± SEM","paper",1
+"2104","Tanner",2006,"Group 0 pocket depth sd",0.16,"SEM to SD; Table 1: mean ± SEM","paper",0.03
+"2104","Tanner",2006,"Group 0 clinical attachment loss sd",0.11,"SEM to SD; Table 1: mean ± SEM","paper",0.02
+"2104","Tanner",2006,"Group 0 plaque sd",0.37,"SEM to SD; Table 1: mean ± SEM","paper",0.07
+"2104","Tanner",2006,"Group 1 age sd",6.74,"SEM to SD; Table 1: mean ± SEM","paper",1.04
+"2104","Tanner",2006,"Group 1 bleeding on probing sd",25.92,"SEM to SD; Table 1: mean ± SEM","paper",4
+"2104","Tanner",2006,"Group 1 pocket depth sd",0.26,"SEM to SD; Table 1: mean ± SEM","paper",0.04
+"2104","Tanner",2006,"Group 1 clinical attachment loss sd",0.13,"SEM to SD; Table 1: mean ± SEM","paper",0.02
+"2104","Tanner",2006,"Group 1 plaque sd",0.65,"SEM to SD; Table 1: mean ± SEM","paper",0.1
+"2108","Ximenez",2006,"Group 1 num smokers",0,"all subjects non-smokers","paper",NA
+"2108","Ximenez",2006,"Group 1 percent smokers",0,"all subjects non-smokers","paper",NA
+"2108","Ximenez",2006,"Group 0 age sd",5.81,"SEM to SD; Table 1: mean ± SEM","paper",1.3
+"2108","Ximenez",2006,"Group 0 bleeding on probing sd",4.92,"SEM to SD; Table 1: mean ± SEM","paper",1.1
+"2108","Ximenez",2006,"Group 0 pocket depth sd",0.13,"SEM to SD; Table 1: mean ± SEM","paper",0.03
+"2108","Ximenez",2006,"Group 0 clinical attachment loss sd",0.13,"SEM to SD; Table 1: mean ± SEM","paper",0.03
+"2108","Ximenez",2006,"Group 0 plaque sd",16.55,"SEM to SD; Table 1: mean ± SEM","paper",3.7
+"2108","Ximenez",2006,"Group 1 age sd",11.28,"SEM to SD; Table 1: mean ± SEM","paper",1.7
+"2108","Ximenez",2006,"Group 1 bleeding on probing sd",25.87,"SEM to SD; Table 1: mean ± SEM","paper",3.9
+"2108","Ximenez",2006,"Group 1 suppuration sd",8.62,"SEM to SD; Table 1: mean ± SEM","paper",1.3
+"2108","Ximenez",2006,"Group 1 pocket depth sd",1.33,"SEM to SD; Table 1: mean ± SEM","paper",0.2
+"2108","Ximenez",2006,"Group 1 clinical attachment loss sd",1.33,"SEM to SD; Table 1: mean ± SEM","paper",0.2
+"2108","Ximenez",2006,"Group 1 plaque sd",37.81,"SEM to SD; Table 1: mean ± SEM","paper",5.7
+"2139","Kumar",2005,"Group 1 num males",NA,"Text: periodontitis group 73% male","paper",73
+"2139","Kumar",2005,"Group 1 percent males",73,"Text: periodontitis group 73% male","paper",NA
+"2139","Kumar",2005,"Group 1 num smokers",0,"history of smoking excluded","paper",NA
+"2139","Kumar",2005,"Group 1 percent smokers",0,"history of smoking excluded","paper",NA
+"2260","Colombo et al",2002,"Group 0 age sd",2.24,"SEM to SD; Table 2: mean (± SEM); age in text unlabelled","paper",0.6
+"2260","Colombo et al",2002,"Group 0 bleeding on probing sd",26.19,"SEM to SD; Table 2: mean (± SEM); age in text unlabelled","paper",7
+"2260","Colombo et al",2002,"Group 0 pocket depth sd",0.75,"SEM to SD; Table 2: mean (± SEM); age in text unlabelled","paper",0.2
+"2260","Colombo et al",2002,"Group 0 clinical attachment loss sd",0.37,"SEM to SD; Table 2: mean (± SEM); age in text unlabelled","paper",0.1
+"2260","Colombo et al",2002,"Group 0 plaque sd",31.8,"SEM to SD; Table 2: mean (± SEM); age in text unlabelled","paper",8.5
+"2260","Colombo et al",2002,"Group 1 age sd",10,"SEM to SD; Table 2: mean (± SEM); age in text unlabelled","paper",2
+"2260","Colombo et al",2002,"Group 1 bleeding on probing sd",15,"SEM to SD; Table 2: mean (± SEM); age in text unlabelled","paper",3
+"2260","Colombo et al",2002,"Group 1 suppuration sd",15,"SEM to SD; Table 2: mean (± SEM); age in text unlabelled","paper",3
+"2260","Colombo et al",2002,"Group 1 pocket depth sd",1,"SEM to SD; Table 2: mean (± SEM); age in text unlabelled","paper",0.2
+"2260","Colombo et al",2002,"Group 1 clinical attachment loss sd",1,"SEM to SD; Table 2: mean (± SEM); age in text unlabelled","paper",0.2
+"2260","Colombo et al",2002,"Group 1 plaque sd",20,"SEM to SD; Table 2: mean (± SEM); age in text unlabelled","paper",4
+"2323","Macuch et al",2000,"Group 0 bleeding on probing sd",0,"Table 2","paper",NA
+"2323","Macuch et al",2000,"Group 1 bleeding on probing sd",30,"Table 2: SD on proportion scale","paper",0.3
+"2323","Macuch et al",2000,"Group 0 plaque sd",30,"Table 2: SD on proportion scale","paper",0.3
+"2323","Macuch et al",2000,"Group 1 plaque sd",20,"Table 2: SD on proportion scale","paper",0.2
+"304","Arenas Rodrigues V.A., Dorigatti de Avila E., Nakano V., Avila-Campos M.J.",2018,"Group 1 percent males",50.67,"Table 1: 38 males of 75 (entered 56%)","paper",56
+"428","Amado et al.",2020,"Group 0 sample size",7,"Table 1: n = 7 (28 is number of samples)","paper",28
+"428","Amado et al.",2020,"Group 1 sample size",7,"Table 1: n = 7 (28 is number of samples)","paper",28
+"448","Wei et al.",2020,"Group 1 age mean",55.94,"pooled subgroups (sizes from abstract; order inferred)","paper",NA
+"448","Wei et al.",2020,"Group 1 age sd",12.57,"pooled subgroups (sizes from abstract; order inferred)","paper",NA
+"534","Aldakheel et al.",2020,"Group 0 pocket depth mean (mm)",NA,"healthy PD 11.1 mm implausible (full text not available)","paper",11.1
+"534","Aldakheel et al.",2020,"Group 0 pocket depth sd",NA,"healthy PD 11.1 mm implausible (full text not available)","paper",0.3
+"549","Lu et al.",2020,"Group 0 bleeding on probing percent",NA,"bleeding index (BI), not % sites (abstract)","paper",0.79
+"549","Lu et al.",2020,"Group 0 bleeding on probing sd",NA,"bleeding index (BI), not % sites (abstract)","paper",0.47
+"734","Shi B., Lux R., Klokkevold P., Chang M,. Barnard E., Haake S., Li H.",2020,"Group 0 age sd",13.01,"SEM to SD; Table 1: mean ± s.e.m","paper",4.6
+"734","Shi B., Lux R., Klokkevold P., Chang M,. Barnard E., Haake S., Li H.",2020,"Group 0 bleeding on probing sd",1.13,"SEM to SD; Table 1: mean ± s.e.m","paper",0.4
+"734","Shi B., Lux R., Klokkevold P., Chang M,. Barnard E., Haake S., Li H.",2020,"Group 0 pocket depth sd",0.57,"SEM to SD; Table 1: mean ± s.e.m","paper",0.2
+"734","Shi B., Lux R., Klokkevold P., Chang M,. Barnard E., Haake S., Li H.",2020,"Group 1 age sd",13.58,"SEM to SD; Table 1: mean ± s.e.m","paper",4.8
+"734","Shi B., Lux R., Klokkevold P., Chang M,. Barnard E., Haake S., Li H.",2020,"Group 1 bleeding on probing sd",22.63,"SEM to SD; Table 1: mean ± s.e.m","paper",8
+"734","Shi B., Lux R., Klokkevold P., Chang M,. Barnard E., Haake S., Li H.",2020,"Group 1 pocket depth sd",0.85,"SEM to SD; Table 1: mean ± s.e.m","paper",0.3
+"970","Collins J.R., Arredondo A., Roa A., Valdez Y., León R., Blanc V.",2016,"Group 1 num males",20,"Table 1: AgP males 7 (26.92%), entered 11","paper",24
+"970","Collins J.R., Arredondo A., Roa A., Valdez Y., León R., Blanc V.",2016,"Group 1 percent males",35.71,"Table 1: AgP males 7 (26.92%), entered 11","paper",33.87

@@ -28,3 +28,7 @@ reports/periodontal_microbiome/rsconnect/*
 reports/periodontal_microbiome/report_cache/*
 reports/periodontal_microbiome/report_files/*
 .positai
+
+# corrected data (manual corrections pending confirmation by curators)
+output/overview_cleaned_corrected.rds
+output/perio_bugs_corrected.*
