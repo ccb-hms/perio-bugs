@@ -682,6 +682,393 @@ pA + pB + plot_layout(widths = c(1, 1.6))
 - Without per-study lists of the taxa that were assessed, absence from a signature can't be told apart from "not tested".
 - The species-assessed field in the raw sheets could supply this if it were cleaned.
 
+# Comparison with BugSigDB
+
+```{r bugsigdb-load}
+# BugSigDB export (cached by bugsigdbr; version date from its message)
+bsdb_version <- NA_character_
+bsdb <- withCallingHandlers(
+  bugsigdbr::importBugSigDB(),
+  warning = function(w) {
+    bsdb_version <<- sub(".*from ", "", conditionMessage(w))
+    invokeRestart("muffleWarning")
+  }
+)
+if (is.na(bsdb_version)) bsdb_version <- format(Sys.Date())
+
+bsdb <- bsdb |> mutate(Year = as.integer(Year))
+oral_sites <- "plaque|saliva|mouth|oral|tongue|gingiv|throat|oroph|tonsil|buccal|cheek"
+bsdb_perio <- filter(bsdb, grepl("periodont", Condition, ignore.case = TRUE))
+# periodontitis vs periodontal health comparisons (as in PerioSigDB)
+bsdb_perio_health <- bsdb_perio |>
+  filter(grepl("health|no periodontitis", `Group 0 name`, ignore.case = TRUE))
+
+db_levels <- c("PerioSigDB", "BugSigDB periodontitis", "BugSigDB (all)")
+pal_db <- setNames(c("#1baf7a", "#6250d6", "#eda100"), db_levels)
+
+# taxa of each signature: tip names (species or higher) and genera
+tip_name <- function(x) sub("^[a-z]__", "", sub(".*[|]", "", x))
+genera <- function(x) unique(sub("^.*g__([^|]+).*$", "\\1", x[grepl("g__", x)]))
+
+sig_taxa <- function(d, db, fun) {
+  tibble(
+    db = db, sig = seq_len(nrow(d)), PMID = d$PMID, Condition = d$Condition,
+    `Body site` = d$`Body site`, direction = d$`Abundance in Group 1`,
+    taxon = map(d$`MetaPhlAn taxon names`, fun)
+  ) |>
+    unnest(taxon)
+}
+
+overlap_pmids <- intersect(unique(dat$PMID), unique(bsdb$PMID))
+```
+
+PerioSigDB uses BugSigDB's format, so the two can be compared directly. These options use the BugSigDB export of `r bsdb_version`. BugSigDB contains `r n_distinct(bsdb$PMID)` studies and `r nrow(bsdb)` signatures. Of these, `r n_distinct(bsdb_perio$PMID)` studies (`r nrow(bsdb_perio)` signatures) concern periodontitis, and `r n_distinct(bsdb_perio_health$PMID)` of them compare periodontitis with periodontal health. Only `r length(overlap_pmids)` PerioSigDB papers are also in BugSigDB (PMIDs `r paste(overlap_pmids, collapse = ", ")`).
+
+## Option 14: Coverage of periodontitis studies
+
+```{r bsdb-coverage}
+#| fig-width: 11
+#| fig-height: 4.5
+#| fig-cap: "Periodontitis studies by publication period in PerioSigDB and BugSigDB. Studies in both databases are counted in each."
+
+coverage <- bind_rows(
+  studies |> transmute(db = "PerioSigDB", PMID, Year),
+  bsdb_perio |> distinct(PMID, Year) |> mutate(db = "BugSigDB periodontitis")
+) |>
+  distinct() |>
+  mutate(
+    db = factor(db, levels = db_levels[1:2]),
+    period = cut(Year, c(-Inf, 2004, 2009, 2014, 2019, Inf),
+                 labels = c("1995–2004", "2005–2009", "2010–2014", "2015–2019", "2020–2025"))
+  ) |>
+  count(db, period, .drop = FALSE)
+
+ggplot(coverage, aes(x = period, y = n, fill = db)) +
+  geom_col(position = position_dodge(0.8), width = 0.75) +
+  geom_text(aes(label = n), position = position_dodge(0.8), vjust = -0.4, size = 3.2) +
+  scale_fill_manual(values = pal_db) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+  labs(x = "Publication period", y = "Studies")
+```
+
+```{r bsdb-not-in-perio}
+bsdb_perio_health |>
+  filter(!PMID %in% dat$PMID) |>
+  summarise(
+    signatures = n(),
+    `Body site` = paste(unique(`Body site`), collapse = "; "),
+    Comparisons = paste(unique(paste(`Group 0 name`, "vs", `Group 1 name`)), collapse = "; "),
+    .by = c(PMID, Year, Title)
+  ) |>
+  arrange(Year) |>
+  kbl(caption = "BugSigDB periodontitis vs health studies not in PerioSigDB: candidates to review against the PerioSigDB inclusion criteria (most sample saliva or feces rather than subgingival plaque).") |>
+  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = TRUE, font_size = 12)
+```
+
+**Shows:** PerioSigDB has roughly 14 times more periodontitis studies than BugSigDB, much of it from before 2015, which BugSigDB barely covers. The table lists studies the curators could check against their inclusion criteria.
+
+**Caveat:** the BugSigDB export is a snapshot, and curation in BugSigDB is ongoing.
+
+## Option 15: Profiling methods and taxonomic resolution
+
+```{r bsdb-methods}
+#| fig-width: 13
+#| fig-height: 4.5
+#| fig-cap: "(A) Profiling method of signatures. (B) Taxonomic rank of the taxa in signatures. BugSigDB (all) is every signature in BugSigDB, across all conditions and body sites."
+
+method_of <- function(type, platform) {
+  case_when(
+    type == "16S" ~ "16S rRNA sequencing",
+    type == "WMS" ~ "Shotgun metagenomics",
+    type %in% c("PCR", "16S,PCR") ~ "PCR",
+    platform == "DNA-DNA Hybridization" ~ "DNA-DNA hybridization",
+    .default = "Other / not reported"
+  ) |>
+    factor(levels = method_levels)
+}
+
+methods_db <- bind_rows(
+  dat |> transmute(db = "PerioSigDB", method = method_of(`Sequencing type`, `Sequencing platform`)),
+  bsdb_perio |> transmute(db = "BugSigDB periodontitis", method = method_of(`Sequencing type`, `Sequencing platform`)),
+  bsdb |> transmute(db = "BugSigDB (all)", method = method_of(`Sequencing type`, `Sequencing platform`))
+) |>
+  count(db, method) |>
+  mutate(prop = n / sum(n), db = factor(db, levels = rev(db_levels)), .by = db)
+
+rank_names <- c(s = "Species", g = "Genus", f = "Family", o = "Order", c = "Class", p = "Phylum", k = "Kingdom")
+pal_rank <- c(Species = "#184f95", Genus = "#3987e5", Family = "#86b6ef", Higher = "#cde2fb")
+
+ranks_db <- bind_rows(
+  tibble(db = "PerioSigDB", taxon = unlist(dat$`MetaPhlAn taxon names`)),
+  tibble(db = "BugSigDB periodontitis", taxon = unlist(bsdb_perio$`MetaPhlAn taxon names`)),
+  tibble(db = "BugSigDB (all)", taxon = unlist(bsdb$`MetaPhlAn taxon names`))
+) |>
+  mutate(
+    rank = rank_names[substr(sub(".*[|]", "", taxon), 1, 1)],
+    rank = factor(ifelse(rank %in% c("Species", "Genus", "Family"), rank, "Higher"), levels = names(pal_rank))
+  ) |>
+  count(db, rank) |>
+  mutate(prop = n / sum(n), db = factor(db, levels = rev(db_levels)), .by = db)
+
+stack_bar <- function(d, fill, pal, tag) {
+  ggplot(d, aes(x = prop, y = db, fill = {{ fill }})) +
+    geom_col(color = "white", linewidth = 0.5, position = position_stack(reverse = TRUE), width = 0.7) +
+    geom_text(aes(label = ifelse(prop >= 0.06, scales::percent(prop, 1), "")),
+              position = position_stack(vjust = 0.5, reverse = TRUE), color = "white", size = 3, fontface = "bold") +
+    scale_fill_manual(values = pal) +
+    scale_x_continuous(labels = scales::percent, expand = c(0, 0)) +
+    labs(x = NULL, y = NULL, tag = tag) +
+    guides(fill = guide_legend(nrow = 2))
+}
+
+stack_bar(methods_db, method, pal_method, "A") +
+  stack_bar(ranks_db, rank, pal_rank, "B") +
+  plot_layout(widths = c(1.3, 1))
+```
+
+**Shows:** PerioSigDB is dominated by targeted assays (checkerboard DNA–DNA hybridization and PCR) that report named species, whereas BugSigDB is mostly 16S and shotgun sequencing at genus level. This is the main structural difference between the two databases. It explains why signatures should be compared at genus level, or restricted to broad methods.
+
+**Caveat:** BugSigDB (all) mixes all body sites, but restricting it to oral sites gives a similar picture.
+
+## Option 16: Metadata captured by each database
+
+```{r bsdb-fields}
+#| fig-width: 11
+#| fig-height: 7
+#| fig-cap: "Share of signatures with each field filled in, by database. BugSigDB records statistical methods and diversity; PerioSigDB records participant and clinical characteristics."
+
+filled <- function(x) {
+  if (is.list(x)) return(lengths(x) > 0)
+  !is.na(x) & !(as.character(x) %in% c("", "NA"))
+}
+field_share <- function(d, db, fields) {
+  tibble(
+    db = db, field = fields,
+    share = map_dbl(fields, \(f) if (f %in% names(d)) mean(filled(d[[f]])) else NA_real_)
+  )
+}
+
+shared_fields <- c("Group 1 definition", "Group 0 sample size", "Group 1 sample size",
+                   "Sequencing type", "16S variable region", "Sequencing platform", "Location of subjects")
+bsdb_fields <- c("Statistical test", "Significance threshold", "MHT correction", "LDA Score above",
+                 "Matched on", "Confounders controlled for", "Antibiotics exclusion", "Shannon", "Richness")
+perio_fields <- c("Group 0 definition", "Periodontitis classification", "Systemic condition",
+                  "Group 1 age mean", "Group 1 percent males", "Group 1 percent smokers",
+                  "Group 1 pocket depth mean (mm)", "Group 1 clinical attachment loss (mm)",
+                  "Group 1 bleeding on probing percent", "Group 1 plaque")
+all_fields <- c(shared_fields, bsdb_fields, perio_fields)
+
+fields_db <- bind_rows(
+  field_share(dat, "PerioSigDB", all_fields),
+  field_share(bsdb_perio, "BugSigDB periodontitis", all_fields),
+  field_share(bsdb, "BugSigDB (all)", all_fields)
+) |>
+  mutate(
+    # classification "not specified" counts as missing
+    share = ifelse(db == "PerioSigDB" & field == "Periodontitis classification",
+                   mean(dat$`Periodontitis classification` != "Periodontitis (type not specified)"), share),
+    field_type = case_when(
+      field %in% shared_fields ~ "Both databases",
+      field %in% bsdb_fields ~ "BugSigDB only",
+      .default = "PerioSigDB only"
+    ),
+    field = factor(sub("^Group 0 ", "Health ", sub("^Group 1 ", "Periodontitis ", field)),
+                   levels = rev(sub("^Group 0 ", "Health ", sub("^Group 1 ", "Periodontitis ", all_fields)))),
+    db = factor(db, levels = db_levels)
+  )
+
+ggplot(fields_db, aes(x = db, y = field)) +
+  geom_point(aes(size = share, fill = db), shape = 21, color = "white", na.rm = TRUE) +
+  geom_text(aes(label = ifelse(is.na(share), "–", scales::percent(share, 1))),
+            nudge_x = 0.28, hjust = 0, size = 3, color = "grey30") +
+  facet_grid(field_type ~ ., scales = "free_y", space = "free_y") +
+  scale_size_area(max_size = 7, guide = "none") +
+  scale_fill_manual(values = pal_db, guide = "none") +
+  scale_x_discrete(expand = expansion(add = c(0.4, 0.8))) +
+  labs(x = NULL, y = NULL) +
+  theme(strip.text.y = element_text(angle = 0, hjust = 0))
+```
+
+**Shows:** the two databases record complementary metadata. PerioSigDB adds participant and clinical characteristics that BugSigDB has no fields for. BugSigDB records the statistical test, significance threshold, multiple-testing correction and matching, which PerioSigDB lacks. Adding those fields to PerioSigDB would make it fully importable into BugSigDB.
+
+**Caveats:**
+
+- A filled field is not necessarily a complete one (e.g. "Matched on" can list only some of the variables).
+- PerioSigDB's lower sequencing type completeness is mostly checkerboard hybridization, which has no sequencing type in BugSigDB's vocabulary.
+
+## Option 17: Taxon concordance between databases
+
+```{r bsdb-concordance}
+#| fig-width: 13
+#| fig-height: 6
+#| fig-cap: "Share of periodontitis vs health signatures that include each genus, in PerioSigDB (x) and BugSigDB (y), for taxa increased (left) and decreased (right) in periodontitis. Genera in at least 20% of signatures in either database are labelled. Spearman correlation across all genera in either database."
+
+genus_share <- function(d, db) {
+  n_dir <- count(d, `Abundance in Group 1`, name = "n_sigs")
+  sig_taxa(d, db, genera) |>
+    count(direction, taxon, name = "n") |>
+    left_join(n_dir, by = c("direction" = "Abundance in Group 1")) |>
+    mutate(share = n / n_sigs) |>
+    select(direction, taxon, share)
+}
+
+concordance <- full_join(
+  genus_share(dat, "PerioSigDB"), genus_share(bsdb_perio_health, "BugSigDB"),
+  by = c("direction", "taxon"), suffix = c("_perio", "_bsdb")
+) |>
+  mutate(across(starts_with("share"), ~ coalesce(.x, 0)))
+
+concordance_cor <- concordance |>
+  summarise(rho = cor(share_perio, share_bsdb, method = "spearman"), genera = n(), .by = direction) |>
+  mutate(strip = sprintf("%s in periodontitis (%d genera, Spearman ρ = %.2f)",
+                         str_to_sentence(direction), genera, rho))
+
+concordance |>
+  left_join(concordance_cor, by = "direction") |>
+  mutate(strip = factor(strip, levels = concordance_cor$strip[order(concordance_cor$direction != "increased")])) |>
+  ggplot(aes(x = share_perio, y = share_bsdb)) +
+  geom_abline(linetype = "dashed", color = "grey50") +
+  geom_point(aes(fill = direction), shape = 21, color = "white", size = 2.6, stroke = 0.4, alpha = 0.9) +
+  geom_text_repel(aes(label = ifelse(pmax(share_perio, share_bsdb) >= 0.2, taxon, NA)),
+                  size = 3, fontface = "italic", color = "grey20", min.segment.length = 0, max.overlaps = 30) +
+  facet_wrap(~strip) +
+  scale_fill_manual(values = c(increased = "#eb6834", decreased = "#2a78d6"), guide = "none") +
+  scale_x_continuous(labels = scales::percent, limits = c(0, NA)) +
+  scale_y_continuous(labels = scales::percent, limits = c(0, NA)) +
+  coord_equal() +
+  labs(x = "PerioSigDB signatures", y = "BugSigDB periodontitis vs health signatures")
+```
+
+**Shows:** whether the larger, older PerioSigDB literature agrees with the newer sequencing studies in BugSigDB:
+
+- The classic periodontitis genera (*Porphyromonas*, *Tannerella*, *Treponema*, *Prevotella*) are frequent in both.
+- Genera below the line (e.g. *Porphyromonas*, *Campylobacter*, *Selenomonas*) are favoured by PerioSigDB's targeted species assays.
+- Genera above the line are seen mostly by sequencing. Examples are *Alloprevotella* among increased taxa, and health-associated commensals among decreased taxa (*Rothia*, *Gemella*, *Neisseria*, *Haemophilus*), which checkerboard panels rarely include.
+
+**Caveats:**
+
+- BugSigDB has few periodontitis vs health signatures, so its shares are coarse.
+- Genus names differ between taxonomy versions (e.g. *Prevotella* split into *Segatella* and *Hoylesella*).
+
+## Option 18: Periodontitis taxa across other conditions
+
+```{r bsdb-conditions}
+#| fig-width: 13
+#| fig-height: 6.5
+#| fig-cap: "Share of BugSigDB signatures of taxa increased in each condition (columns) that include each of the 12 genera most often increased in periodontitis in PerioSigDB (rows). Conditions shown are the 15 with the most PerioSigDB core genera per signature, among those with at least 10 increased signatures. The bar above each column is the share of its signatures from oral body sites."
+
+core_genera <- sig_taxa(filter(dat, `Abundance in Group 1` == "increased"), "PerioSigDB", genera) |>
+  count(taxon, sort = TRUE) |>
+  slice_head(n = 12) |>
+  pull(taxon)
+
+bsdb_inc <- filter(bsdb, `Abundance in Group 1` == "increased")
+inc_genera <- sig_taxa(bsdb_inc, "BugSigDB", genera)
+
+condition_summary <- tibble(
+  sig = seq_len(nrow(bsdb_inc)), Condition = bsdb_inc$Condition,
+  oral = grepl(oral_sites, bsdb_inc$`Body site`, ignore.case = TRUE)
+) |>
+  left_join(
+    inc_genera |> filter(taxon %in% core_genera) |> count(sig, name = "core"),
+    by = "sig"
+  ) |>
+  mutate(core = coalesce(core, 0L)) |>
+  summarise(signatures = n(), mean_core = mean(core), oral = mean(oral), .by = Condition) |>
+  filter(signatures >= 10) |>
+  slice_max(mean_core, n = 15) |>
+  mutate(col = paste0(Condition, " (", signatures, ")"))
+
+condition_heat <- inc_genera |>
+  filter(taxon %in% core_genera, Condition %in% condition_summary$Condition) |>
+  distinct(sig, Condition, taxon) |>
+  count(Condition, taxon) |>
+  right_join(tidyr::expand_grid(Condition = condition_summary$Condition, taxon = core_genera),
+             by = c("Condition", "taxon")) |>
+  left_join(condition_summary, by = "Condition") |>
+  mutate(
+    share = coalesce(n, 0L) / signatures,
+    col = factor(col, levels = condition_summary$col),
+    taxon = factor(taxon, levels = rev(core_genera))
+  )
+
+p_heat <- ggplot(condition_heat, aes(x = col, y = taxon, fill = share)) +
+  geom_tile(color = "white", linewidth = 0.6) +
+  geom_text(aes(label = ifelse(share >= 0.1, round(100 * share), ""), color = share > 0.45), size = 2.8) +
+  scale_fill_gradient(low = "#f0efec", high = "#c2410c", labels = scales::percent, name = "Signatures") +
+  scale_color_manual(values = c(`FALSE` = "grey20", `TRUE` = "white"), guide = "none") +
+  labs(x = NULL, y = NULL) +
+  theme(panel.grid = element_blank(), axis.text.x = element_text(angle = 40, hjust = 1),
+        axis.text.y = element_text(face = "italic"), legend.position = "right",
+        legend.title = element_text())
+
+p_oral <- ggplot(condition_summary, aes(x = factor(col, levels = col), y = oral)) +
+  geom_col(fill = "grey60", width = 0.7) +
+  scale_y_continuous(labels = scales::percent, breaks = c(0, 1), limits = c(0, 1)) +
+  labs(x = NULL, y = "Oral") +
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), panel.grid = element_blank())
+
+p_oral / p_heat + plot_layout(heights = c(1, 6))
+```
+
+**Shows:** where the periodontitis-associated genera turn up elsewhere in the microbiome literature:
+
+- Oral conditions with a known periodontal link (rheumatoid arthritis, oral cancer, smoking).
+- Gut and oesophageal cancers. For colorectal cancer this is largely *Fusobacterium*, *Parvimonas* and *Porphyromonas* in feces, consistent with oral–gut translocation.
+
+This positions PerioSigDB as a reference for "oral pathobiont" signatures in BugSigDB.
+
+**Caveats:**
+
+- Common genera such as *Prevotella* appear in many signatures regardless of condition.
+- This is co-occurrence of taxa, not a test of enrichment against a background.
+- A formal version would use BugSigDB's enrichment tools, with PerioSigDB's consensus signature as the gene set.
+
+## Option 19: Concordance for studies in both databases
+
+```{r bsdb-overlap}
+#| fig-width: 12
+#| fig-height: 7
+#| fig-cap: "Taxa reported by PerioSigDB and BugSigDB for the two periodontitis vs health studies curated in both, for the matching comparison in BugSigDB (Zhou 2013: non-diabetic subjects; Sanchez-Orozco 2025: subgingival plaque at baseline). Taxa are shown at the reported rank."
+
+overlap_pairs <- tribble(
+  ~PMID,      ~bsdb_group0,                                                   ~bsdb_site,
+  "23613868", "No Periodontitis within negative diabetic background only",   "Subgingival dental plaque",
+  "39788958", "Healthy controls",                                             "Subgingival dental plaque"
+)
+
+overlap_taxa <- pmap_dfr(overlap_pairs, function(PMID, bsdb_group0, bsdb_site) {
+  p <- dat[dat$PMID == as.numeric(PMID), ]
+  b <- bsdb[bsdb$PMID == PMID & bsdb$`Group 0 name` == bsdb_group0 & bsdb$`Body site` == bsdb_site &
+              grepl("eriodontitis", bsdb$`Group 1 name`) & !grepl("D70", bsdb$`Group 1 name`), ]
+  bind_rows(sig_taxa(p, "PerioSigDB", tip_name), sig_taxa(b, "BugSigDB", tip_name)) |>
+    distinct(db, direction, taxon) |>
+    mutate(study = paste0(first(p$`Authors list`) |> str_extract("^[^ ,]+"), " ", first(p$Year),
+                          " (PMID ", PMID, ")"))
+}) |>
+  mutate(present = TRUE) |>
+  pivot_wider(names_from = db, values_from = present, values_fill = FALSE) |>
+  mutate(
+    status = case_when(PerioSigDB & BugSigDB ~ "Both", PerioSigDB ~ "PerioSigDB only", .default = "BugSigDB only"),
+    status = factor(status, levels = c("Both", "PerioSigDB only", "BugSigDB only"))
+  )
+
+overlap_taxa |>
+  mutate(taxon = fct_reorder(taxon, as.integer(status), .desc = TRUE)) |>
+  ggplot(aes(x = direction, y = taxon, fill = status)) +
+  geom_tile(color = "white", linewidth = 0.8, width = 0.9) +
+  facet_wrap(~study, scales = "free_y") +
+  scale_fill_manual(values = c(Both = "#1c5cab", `PerioSigDB only` = "#1baf7a", `BugSigDB only` = "#6250d6")) +
+  labs(x = "Abundance in periodontitis", y = NULL) +
+  theme(panel.grid = element_blank(), axis.text.y = element_text(size = 7, face = "italic"))
+```
+
+**Shows:** a direct quality check of curation for the papers in both databases. Disagreements come from three sources: different choices of table or comparison, different taxonomic rank (e.g. genus vs family), or curation errors. Each can be resolved with the curators of either database.
+
+For Zhou 2013 (PerioSigDB study 1411), PerioSigDB has no increased signature. BugSigDB lists *Selenomonas sputigena* (which the curators' first extraction also had), *Streptococcus gordonii* and Prevotellaceae as increased. For Sanchez-Orozco 2025, BugSigDB lists several taxa at both genus and species rank.
+
+**Caveat:** only two studies overlap, so this works as a quality check rather than a figure for a paper. With more overlap (e.g. if PerioSigDB is imported into BugSigDB), it could become an agreement statistic.
+
 # Summary of options
 
 ```{r summary-table}
@@ -699,7 +1086,13 @@ tribble(
   "10. Systemic condition", "Are comorbid populations included?", "Bar chart", "Half not recorded yet",
   "11. Sample size", "How large are studies by method?", "Scatter (log)", "Supports weighting decisions",
   "12. Group imbalance", "Age and smoking confounding", "Scatter with quadrants", "Compact confounding summary",
-  "13. Signature content", "Do metadata relate to signatures?", "Scatter + bars", "Exploratory; needs taxa-assessed data"
+  "13. Signature content", "Do metadata relate to signatures?", "Scatter + bars", "Exploratory; needs taxa-assessed data",
+  "14. BugSigDB coverage", "How much does PerioSigDB add?", "Dodged bars + table", "Recommended for a resource paper",
+  "15. Methods and resolution", "How do the databases differ structurally?", "Stacked bars", "Explains species vs genus mismatch",
+  "16. Metadata fields", "What does each database record?", "Dot matrix", "Shows complementary fields and gaps",
+  "17. Taxon concordance", "Do the databases agree on taxa?", "Scatter vs identity line", "Recommended; genus level",
+  "18. Other conditions", "Where do periodontitis taxa appear elsewhere?", "Heatmap", "Most novel; descriptive only",
+  "19. Overlapping studies", "Is shared curation consistent?", "Tile chart", "QC rather than a paper figure"
 ) |>
   kbl(caption = "Candidate figures and tables.") |>
   kable_styling(bootstrap_options = c("striped", "condensed"), full_width = TRUE)
@@ -709,3 +1102,4 @@ tribble(
 
 - **Main text:** Option 2 (paired comparison) with Option 4 (summary table), plus Option 7 (severity by classification).
 - **Supplement:** Option 1 (completeness), with Option 5 or 12 to address confounding.
+- **Positioning against BugSigDB:** Option 14 (coverage) and Option 17 (taxon concordance), with Option 18 as an outlook.
