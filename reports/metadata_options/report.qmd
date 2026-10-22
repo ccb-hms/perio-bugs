@@ -808,10 +808,25 @@ perio_genera <- perio_tests |>
 
 bsdb_genera <- sig_genera(bsdb_other)
 
+# body site group of each signature (signatures listing sites in several groups are "mixed")
+gi_sites <- paste0("feces|colon|colorectal|intestin|caecum|cecum|rectum|ileum|jejunum|duoden|stomach|",
+                   "gastric|esophag|meconium|digestive|bile|rumen|cloaca|midgut|proventriculus")
+site_group <- function(sites) {
+  map_chr(strsplit(sites, ","), function(x) {
+    groups <- unique(case_when(
+      grepl(oral_sites, x, ignore.case = TRUE) ~ "oral",
+      grepl(gi_sites, x, ignore.case = TRUE) ~ "gastrointestinal",
+      .default = "other"
+    ))
+    if (length(groups) == 1) groups else "mixed"
+  })
+}
+
 bsdb_sigs <- tibble(
   sig = seq_len(nrow(bsdb_other)), Condition = bsdb_other$Condition,
   direction = bsdb_other$`Abundance in Group 1`,
-  oral = grepl(oral_sites, bsdb_other$`Body site`, ignore.case = TRUE)
+  oral = grepl(oral_sites, bsdb_other$`Body site`, ignore.case = TRUE),
+  site_group = site_group(bsdb_other$`Body site`)
 )
 
 # left panel: PerioSigDB signatures with the genus increased (right) and decreased (left)
@@ -850,7 +865,29 @@ oral_panel <- function(columns) {
     theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), panel.grid = element_blank())
 }
 
-condition_heatmap <- function(dir, n_conditions = 15, min_sigs = 10) {
+# one-sided test of a genus being in a condition's signatures more often than in other conditions'
+# signatures from the same body site group; strata without both are uninformative and dropped
+site_matched_p <- function(condition, genus, sigs, hits) {
+  d <- sigs |>
+    mutate(in_condition = Condition == condition, has_genus = sig %in% hits$sig[hits$taxon == genus])
+  informative <- d |>
+    summarise(ok = any(in_condition) & any(!in_condition), .by = site_group) |>
+    filter(ok) |>
+    pull(site_group)
+  if (!length(informative)) return(NA_real_)
+  d <- filter(d, site_group %in% informative)
+  tab <- table(factor(d$in_condition, c(TRUE, FALSE)), factor(d$has_genus, c(TRUE, FALSE)),
+               factor(d$site_group))
+  if (dim(tab)[3] == 1) {
+    fisher.test(tab[, , 1], alternative = "greater")$p.value
+  } else {
+    mantelhaen.test(tab, exact = TRUE, alternative = "greater")$p.value
+  }
+}
+
+# match_site = TRUE compares each condition with other signatures from the same body site group
+# (exact Cochran-Mantel-Haenszel test stratified by site group) instead of all other signatures
+condition_heatmap <- function(dir, n_conditions = 15, min_sigs = 10, match_site = FALSE) {
   top <- filter(perio_genera, direction == dir)
   sigs <- filter(bsdb_sigs, direction == dir)
   hits <- bsdb_genera |>
@@ -875,16 +912,21 @@ condition_heatmap <- function(dir, n_conditions = 15, min_sigs = 10) {
     mutate(
       n = coalesce(n, 0L), with_genus = coalesce(with_genus, 0L),
       share = n / signatures,
-      p = pmap_dbl(list(n, signatures, with_genus), function(a, n_cond, n_genus) {
-        fisher.test(matrix(c(a, n_cond - a, n_genus - a, nrow(sigs) - n_cond - n_genus + a), 2),
-                    alternative = "greater")$p.value
-      }),
+      p = if (match_site) {
+        map2_dbl(Condition, taxon, site_matched_p, sigs = sigs, hits = hits)
+      } else {
+        pmap_dbl(list(n, signatures, with_genus), function(a, n_cond, n_genus) {
+          fisher.test(matrix(c(a, n_cond - a, n_genus - a, nrow(sigs) - n_cond - n_genus + a), 2),
+                      alternative = "greater")$p.value
+        })
+      },
       fdr = p.adjust(p, method = "BH")
     )
 
   # conditions with the most significantly enriched genera (ties: smallest combined p-value)
   conditions <- enrichment |>
-    summarise(n_enriched = sum(fdr < 0.05), score = sum(-log10(p)), .by = c(Condition, signatures, oral)) |>
+    summarise(n_enriched = sum(fdr < 0.05, na.rm = TRUE), score = sum(-log10(p), na.rm = TRUE),
+              .by = c(Condition, signatures, oral)) |>
     arrange(desc(n_enriched), desc(score)) |>
     slice_head(n = n_conditions)
 
@@ -916,7 +958,12 @@ condition_heatmap <- function(dir, n_conditions = 15, min_sigs = 10) {
     scale_fill_gradient(low = "#f0efec", high = high, labels = scales::percent, limits = c(0, NA),
                         name = "BugSigDB\nsignatures") +
     scale_color_manual(values = c(`FALSE` = "grey20", `TRUE` = "white"), guide = "none") +
-    labs(x = NULL, y = NULL, caption = "Outlined, bold: enriched vs all other BugSigDB signatures (Fisher's exact test, FDR < 0.05)") +
+    labs(x = NULL, y = NULL,
+         caption = if (match_site) {
+           "Outlined, bold: enriched vs other signatures from the same body site group (exact CMH test, FDR < 0.05)"
+         } else {
+           "Outlined, bold: enriched vs all other BugSigDB signatures (Fisher's exact test, FDR < 0.05)"
+         }) +
     theme(panel.grid = element_blank(), axis.text.x = element_text(angle = 40, hjust = 1),
           axis.text.y = element_blank(), axis.ticks.y = element_blank(),
           legend.position = "right", legend.title = element_text(size = 9),
@@ -1022,7 +1069,7 @@ direction_heatmap <- function(dir, n_conditions = 15, min_sigs = 10) {
 }
 ```
 
-These figures ask: **the taxa that PerioSigDB most consistently links to periodontitis, where else do they turn up in the microbiome literature?** Each figure uses either taxa increased in periodontitis or taxa decreased (health-associated). Two versions answer the question with different tests, so you can compare them. Both versions share two parts:
+These figures ask: **the taxa that PerioSigDB most consistently links to periodontitis, where else do they turn up in the microbiome literature?** Each figure uses either taxa increased in periodontitis or taxa decreased (health-associated). Three versions answer the question with different tests, so you can compare them. All versions share two parts:
 
 - **Rows (left panel):** the 20 genera with the most consistent direction in PerioSigDB, ordered by p-value.
     - For each genus, an exact binomial test compares the number of PerioSigDB signatures reporting it as increased with the number reporting it as decreased, against an even 50/50 split. This is the same test the main report uses for taxa.
@@ -1068,6 +1115,39 @@ condition_heatmap("decreased")
 
 This positions PerioSigDB as a reference set of "oral pathobiont" and "oral commensal" signatures for the rest of BugSigDB.
 
+### Version A2: enrichment compared with other conditions from the same body sites
+
+Asks the same question as Version A, but compares each condition only with other conditions' signatures **from the same body site group**. Oral genera are far more common in oral samples than in feces, and most of BugSigDB is fecal. Version A therefore favours conditions sampled in the mouth and understates oral genera in gut conditions; A2 removes that bias.
+
+- Each BugSigDB signature is assigned a body site group from its body sites:
+    - **Oral:** mouth, saliva, dental plaque, tongue, mucosa, oropharynx and so on (as for the grey top bar).
+    - **Gastrointestinal:** feces, colon, intestine, stomach, oesophagus and so on.
+    - **Other:** all remaining sites, e.g. vagina, skin, nasopharynx, lung.
+    - **Mixed:** signatures listing sites in more than one group form their own group.
+- Each cell is tested with a one-sided exact Cochran–Mantel–Haenszel test stratified by body site group, i.e. a Fisher's exact test within each group, combined across groups. A condition with 70% oral and 30% fecal signatures is therefore compared with an oral background for its oral signatures and a fecal background for its fecal ones. Groups where no other condition has signatures add no information and are dropped.
+- Everything else (cell colours and numbers, outlines, FDR correction, choice of conditions, the "All BugSigDB" column) is as in Version A. The "All BugSigDB" column is still unmatched and is only a rough reference.
+
+```{r bsdb-site-increased}
+#| fig-width: 13
+#| fig-height: 8
+#| fig-cap: "As Version A (taxa increased in periodontitis), but each condition is compared with other conditions' signatures from the same body site group."
+condition_heatmap("increased", match_site = TRUE)
+```
+
+```{r bsdb-site-decreased}
+#| fig-width: 13
+#| fig-height: 8
+#| fig-cap: "As Version A (taxa decreased in periodontitis), but each condition is compared with other conditions' signatures from the same body site group."
+condition_heatmap("decreased", match_site = TRUE)
+```
+
+**Shows (Version A2):**
+
+- **Increased:** colorectal cancer is the clearest result. Compared only with other gastrointestinal signatures, *Porphyromonas*, *Prevotella*, *Parvimonas*, *Peptostreptococcus* and *Fusobacterium* are all significantly enriched. Gastric cancer (*Fusobacterium*), oesophageal adenocarcinoma (*Prevotella*) and gastro-oesophageal reflux (*Filifactor*) show single enrichments.
+- **Oral conditions mostly lose significance:** oral cancer and smoking have no significantly enriched genera once compared with other oral conditions, and rheumatoid arthritis keeps only *Selenomonas*. Their high shares in Version A largely reflect that they are sampled in the mouth, where these genera are common in any condition.
+- **Decreased:** no condition stands out. The remaining significant cells are scattered single genera (e.g. *Cardiobacterium* and *Capnocytophaga* in phenylketonuria), with no consistent pattern across health-associated commensals.
+
+
 ### Version B: direction within each condition
 
 Asks: *within this condition, is the genus reported in the same direction as in periodontitis more often than in the opposite direction?* This measures how **consistent** the genus's direction is, using the same test as for PerioSigDB in the left panel.
@@ -1098,11 +1178,13 @@ direction_heatmap("decreased")
 - **Increased:** within a single condition, only colorectal cancer has enough signatures to reach significance. There, the oral pathobionts are reported as increased almost without exception: *Parvimonas* in 48 of 49 signatures that report it, *Peptostreptococcus* 50/51, *Porphyromonas* 35/38 and *Fusobacterium* 50/57. Other conditions mostly agree in direction (orange cells) but have too few signatures for a significant test.
 - **Decreased:** no single condition reaches significance. Across all BugSigDB, *Haemophilus*, *Neisseria* and *Cardiobacterium* are significantly more often decreased than increased, matching periodontitis. *Streptococcus* is significantly more often *increased*, the opposite of its (non-significant) trend in PerioSigDB.
 
-### Comparing the two versions
+### Comparing the versions
 
-- **Version A** finds more significant cells and more conditions, because it pools across the whole database. However, it depends on which genera each field tends to measure and report, and it ignores signatures reporting the genus in the opposite direction.
-- **Version B** compares like with like (the same test as for PerioSigDB) and is not affected by how often a genus is studied. However, it needs many signatures per condition containing the genus, so most conditions are underpowered.
-- Where they agree (colorectal cancer, and to a lesser extent oral cancer and rheumatoid arthritis), the finding is robust. Version B could be made more powerful by pooling related conditions (e.g. all oral or all gastrointestinal cancers).
+- **Version A** finds the most significant cells because it pools the whole database, but it is confounded by body site. Conditions sampled in the mouth look enriched for oral genera partly just because they are oral samples.
+- **Version A2** removes that confounding by comparing each condition with others from the same body site group. It is the fairer test of whether a condition is unusual. Most oral conditions drop out, and colorectal cancer remains.
+- **Version B** compares like with like (the same test as for PerioSigDB) and is not affected by how often a genus is studied or where. However, most conditions have too few signatures to reach significance.
+- All three versions single out colorectal cancer: the oral pathobionts are enriched in its fecal and tissue signatures, and almost always in the same direction as in periodontitis. That is the most robust cross-condition finding. The oral-condition links in Version A should not be reported without the body site adjustment.
+- If one version is used, A2 is the most defensible for enrichment, with B as support for colorectal cancer.
 
 **Caveats:**
 
@@ -1130,7 +1212,7 @@ tribble(
   "11. Signature content", "Do metadata relate to signatures?", "Scatter + bars", "Exploratory; needs taxa-assessed data",
   "12. Methods and resolution", "How do PerioSigDB and BugSigDB differ structurally?", "Stacked bars", "Explains species vs genus mismatch",
   "13. Metadata fields", "What does each database record?", "Dot matrix", "Shows complementary fields and gaps",
-  "14. Taxa across conditions", "Where do periodontitis-linked genera appear elsewhere?", "Heatmaps: A enrichment, B direction", "Most novel; A more sensitive, B more like-for-like"
+  "14. Taxa across conditions", "Where do periodontitis-linked genera appear elsewhere?", "Heatmaps: A enrichment, A2 site-matched, B direction", "Most novel; A2 most defensible"
 ) |>
   kbl(caption = "Candidate figures and tables.") |>
   kable_styling(bootstrap_options = c("striped", "condensed"), full_width = TRUE)
