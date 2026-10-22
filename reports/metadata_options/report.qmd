@@ -843,13 +843,33 @@ ggplot(fields_db, aes(x = db, y = field)) +
 ## Option 16: PerioSigDB taxa across other conditions
 
 ```{r bsdb-conditions-data}
-# the 20 genera most often increased (or decreased) in periodontitis in PerioSigDB, and how often
-# they appear in BugSigDB signatures of the same direction for each other condition
-perio_genera <- sig_genera(dat) |>
-  count(direction, taxon, name = "n_perio") |>
-  left_join(count(dat, direction = `Abundance in Group 1`, name = "sigs_perio"), by = "direction") |>
-  mutate(share_perio = n_perio / sigs_perio) |>
-  slice_max(n_perio, n = 20, with_ties = FALSE, by = direction)
+# genera with the most consistent direction in PerioSigDB: exact binomial test of increased vs
+# decreased signatures against 50% (as for taxa in the main report), then how often the top 20
+# in each direction appear in BugSigDB signatures of the same direction for each other condition
+n_sig_dir <- table(dat$`Abundance in Group 1`)
+
+perio_tests <- sig_genera(dat) |>
+  count(taxon, direction) |>
+  pivot_wider(names_from = direction, values_from = n, values_fill = 0) |>
+  mutate(
+    signatures = increased + decreased,
+    p = map2_dbl(increased, signatures, \(k, n) binom.test(k, n, p = 0.5)$p.value),
+    fdr = p.adjust(p, method = "BH"),
+    direction = case_when(increased > decreased ~ "increased", decreased > increased ~ "decreased")
+  )
+
+perio_genera <- perio_tests |>
+  filter(!is.na(direction)) |>
+  arrange(p, desc(signatures)) |>
+  slice_head(n = 20, by = direction) |>
+  mutate(
+    significance = case_when(
+      fdr < 0.05 ~ "FDR < 0.05",
+      p < 0.05 ~ "p < 0.05 (not FDR)",
+      .default = "Not significant"
+    ) |>
+      factor(levels = c("FDR < 0.05", "p < 0.05 (not FDR)", "Not significant"))
+  )
 
 bsdb_genera <- sig_genera(bsdb_other)
 
@@ -905,11 +925,30 @@ condition_heatmap <- function(dir, n_conditions = 15, min_sigs = 10) {
           axis.text.y = element_blank(), axis.ticks.y = element_blank(),
           legend.position = "right", legend.title = element_text(size = 9))
 
-  p_perio <- ggplot(top, aes(x = share_perio, y = factor(taxon, levels = genus_levels))) +
-    geom_col(fill = pal_db[["PerioSigDB"]], width = 0.7) +
-    scale_x_reverse(labels = scales::percent, expand = expansion(mult = c(0.05, 0))) +
-    labs(x = "PerioSigDB\nsignatures", y = NULL) +
-    theme(panel.grid = element_blank(), axis.text.y = element_text(face = "italic"))
+  # PerioSigDB: signatures with the genus increased (right) and decreased (left) in periodontitis
+  perio_counts <- top |>
+    select(taxon, increased, decreased, significance) |>
+    pivot_longer(c(increased, decreased), names_to = "sig_direction", values_to = "n") |>
+    mutate(n = ifelse(sig_direction == "decreased", -n, n))
+
+  max_n <- max(abs(perio_counts$n))
+  p_perio <- ggplot(perio_counts, aes(x = n, y = factor(taxon, levels = genus_levels))) +
+    geom_col(aes(fill = sig_direction, alpha = significance), width = 0.7) +
+    geom_vline(xintercept = 0, color = "grey30", linewidth = 0.3) +
+    geom_text(data = distinct(top, taxon, fdr),
+              aes(x = -max_n * 1.05, label = ifelse(fdr < 0.001, "<0.001", sprintf("%.3f", fdr))),
+              hjust = 1, size = 2.5, color = "grey30") +
+    scale_fill_manual(values = c(increased = "#eb6834", decreased = "#2a78d6"),
+                      labels = c(increased = "Increased", decreased = "Decreased"), name = NULL) +
+    scale_alpha_manual(values = c("FDR < 0.05" = 1, "p < 0.05 (not FDR)" = 0.6, "Not significant" = 0.25),
+                       drop = FALSE, name = NULL) +
+    scale_x_continuous(labels = abs, breaks = scales::breaks_extended()(c(-max_n, max_n)),
+                       expand = expansion(mult = c(0.35, 0.05))) +
+    labs(x = "PerioSigDB signatures\n(left: FDR)", y = NULL) +
+    guides(fill = guide_legend(order = 1, ncol = 1), alpha = guide_legend(order = 2, ncol = 1)) +
+    theme(panel.grid = element_blank(), axis.text.y = element_text(face = "italic"),
+          legend.position = "bottom", legend.direction = "vertical", legend.text = element_text(size = 8),
+          legend.key.size = unit(0.35, "cm"))
 
   p_oral <- ggplot(columns, aes(x = col, y = oral)) +
     geom_col(fill = "grey60", width = 0.7) +
@@ -918,13 +957,17 @@ condition_heatmap <- function(dir, n_conditions = 15, min_sigs = 10) {
     theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), panel.grid = element_blank())
 
   (plot_spacer() + p_oral + p_perio + p_heat) +
-    plot_layout(ncol = 2, widths = c(1, 6), heights = c(1, 7))
+    plot_layout(ncol = 2, widths = c(1.8, 6), heights = c(1, 7))
 }
 ```
 
 These two figures ask: **the taxa that PerioSigDB most consistently links to periodontitis, where else do they turn up in the microbiome literature?** The first figure uses taxa increased in periodontitis, the second taxa decreased (health-associated). The parts of each figure are:
 
-- **Rows (left bar, green):** the 20 genera found most often in PerioSigDB signatures of that direction. The bar gives the share of PerioSigDB signatures that include the genus (e.g. *Porphyromonas* is in about two-thirds of increased signatures). PerioSigDB taxa are mostly species, so they are aggregated to genus to match BugSigDB, where genus is the most common rank (Option 14).
+- **Rows (left panel):** the 20 genera with the most consistent direction in PerioSigDB, ordered by p-value.
+    - For each genus, an exact binomial test compares the number of PerioSigDB signatures reporting it as increased with the number reporting it as decreased, against an even 50/50 split. This is the same test the main report uses for taxa.
+    - The bars show those two counts (orange: increased in periodontitis, to the right; blue: decreased, to the left).
+    - Bar opacity marks significance after Benjamini–Hochberg correction across all genera, and the number on the far left is the FDR. Genera that are not significant are still shown to make up 20 per direction.
+    - PerioSigDB taxa are mostly species, so they are aggregated to genus to match BugSigDB, where genus is the most common rank (Option 14).
 - **First column, "All BugSigDB" (left of the black line):** the share of *all* BugSigDB signatures of the same direction (any condition, excluding periodontitis) that include each genus. This is the baseline, i.e. how common the genus is in microbiome signatures in general.
 - **Other columns:** BugSigDB conditions, each with its number of signatures of that direction in brackets. Each cell is the share of that condition's signatures that include the genus. Numbers are shown for cells of 10% or more. Comparing a cell with the baseline column shows whether the genus is unusually frequent for that condition.
 - **Which conditions are shown:** the 15 conditions with the highest average number of these 20 genera per signature, among conditions with at least 10 signatures of that direction.
@@ -946,10 +989,10 @@ condition_heatmap("decreased")
 
 **Shows:**
 
-- **Increased:** the periodontitis-associated genera (*Porphyromonas*, *Treponema*, *Tannerella*, *Fusobacterium*, *Parvimonas*) are rare across BugSigDB as a whole (baseline column) but frequent in two kinds of condition:
+- **Increased:** `r sum(perio_tests$direction == "increased" & perio_tests$fdr < 0.05, na.rm = TRUE)` genera are significantly more often increased than decreased in PerioSigDB (FDR < 0.05). They include the red complex (*Tannerella*, *Treponema*, *Porphyromonas*) and newer periodontal pathogens such as *Filifactor*, *Desulfobulbus* and *Fretibacterium*. These genera are rare across BugSigDB as a whole (baseline column) but frequent in two kinds of condition:
     - Oral conditions with a known periodontal link: oral cancer, rheumatoid arthritis and smoking.
     - Colorectal cancer, which is sampled almost entirely outside the mouth. *Fusobacterium*, *Parvimonas*, *Peptostreptococcus* and *Porphyromonas* appear in about a third of its signatures, consistent with oral–gut translocation.
-- **Decreased:** health-associated oral commensals (*Rothia*, *Neisseria*, *Haemophilus*, *Actinomyces*, *Capnocytophaga*) are depleted mainly in oral conditions: smoking, HIV, oral and head-and-neck cancers. So the loss of commensals seen in periodontitis is a shared feature of oral dysbiosis.
+- **Decreased:** fewer genera are consistently decreased. Only `r sum(perio_tests$direction == "decreased" & perio_tests$fdr < 0.05, na.rm = TRUE)` reach FDR < 0.05 (*Rothia*, *Corynebacterium*, *Haemophilus*, *Gemella*, *Lautropia*), partly because PerioSigDB has fewer decreased signatures and targeted panels rarely include commensals. These health-associated commensals are depleted mainly in other oral conditions: smoking, HIV, and oral and head-and-neck cancers. So the loss of commensals seen in periodontitis looks like a shared feature of oral dysbiosis.
 
 This positions PerioSigDB as a reference set of "oral pathobiont" and "oral commensal" signatures for the rest of BugSigDB.
 
@@ -957,6 +1000,7 @@ This positions PerioSigDB as a reference set of "oral pathobiont" and "oral comm
 
 - This is descriptive co-occurrence, not a test of enrichment. A formal version would test PerioSigDB's consensus signatures against each BugSigDB signature with BugSigDB's enrichment tools.
 - Ubiquitous genera (*Prevotella*, *Streptococcus*) appear in many signatures regardless of condition. The baseline column helps calibrate.
+- The binomial test treats signatures as independent and ignores that PerioSigDB has more increased (`r n_sig_dir[["increased"]]`) than decreased (`r n_sig_dir[["decreased"]]`) signatures. Testing against the observed share of increased signatures instead of 50% would make increased genera slightly less significant and decreased genera slightly more.
 - Aggregating PerioSigDB species to genus loses species-level specificity. For example, *Porphyromonas* and *Fusobacterium* appear in both the increased and decreased lists, because different species of each genus move in opposite directions (e.g. *P. gingivalis* up, *P. catoniae* down).
 
 # Summary of options
