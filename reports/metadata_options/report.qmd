@@ -833,8 +833,8 @@ bsdb_cc <- bsdb_other |>
 # count each study once per condition, direction and body site group: the units below are
 # study-level, and a genus is in a unit if it is in any of the study's signatures in that unit
 bsdb_cc_sigs <- tibble(
-  sig = seq_len(nrow(bsdb_cc)), Study = bsdb_cc$Study, Condition = bsdb_cc$Condition,
-  direction = bsdb_cc$`Abundance in Group 1`,
+  sig = seq_len(nrow(bsdb_cc)), bsdb_id = bsdb_cc$`BSDB ID`, Study = bsdb_cc$Study,
+  Condition = bsdb_cc$Condition, direction = bsdb_cc$`Abundance in Group 1`,
   oral = grepl(oral_sites, bsdb_cc$`Body site`, ignore.case = TRUE),
   site_group = site_group(bsdb_cc$`Body site`)
 ) |>
@@ -1088,14 +1088,14 @@ direction_heatmap <- function(dir, n_conditions = 15, min_sigs = 5) {
 }
 ```
 
-These figures ask: **the taxa that PerioSigDB most consistently links to periodontitis, where else do they turn up in the microbiome literature?** Each figure uses either taxa increased in periodontitis or taxa decreased (health-associated). Three versions answer the question with different tests, so you can compare them.
+These figures ask: **the taxa that PerioSigDB most consistently links to periodontitis, where else do they turn up in the microbiome literature?** Each figure uses either taxa increased in periodontitis or taxa decreased (health-associated). Four versions answer the question with different tests, so you can compare them.
 
 **BugSigDB data used (all versions):**
 
 - **Disease (or exposure) vs control comparisons only.** A signature is kept if its Group 0 name looks like a control (e.g. "healthy", "control", "normal", "non-…", "without …", adjacent or benign tissue) and its Group 1 name does not. BugSigDB files every comparison in a study under the study's condition, including body site comparisons, time points, treatment arms, diet groups and comparisons with the groups reversed. These would otherwise show up as condition effects; phenylketonuria and cognitive impairment did so in earlier versions of this figure. This keeps `r nrow(bsdb_cc)` of `r nrow(bsdb_other)` non-periodontitis signatures, from `r n_distinct(bsdb_cc$Study)` studies.
 - **Each study counted once.** The unit is a study's signatures for one condition, direction and body site group (see Version A2), and a genus counts as present if it is in any of them. A study with several near-identical signatures (e.g. for subgroups) therefore counts once. All numbers in brackets and percentages below are numbers of such **studies**.
 
-All versions share two parts:
+Versions A, A2 and B are heatmaps that share two parts:
 
 - **Rows (left panel):** the 20 genera with the most consistent direction in PerioSigDB, ordered by p-value.
     - For each genus, an exact binomial test compares the number of PerioSigDB signatures reporting it as increased with the number reporting it as decreased, against an even 50/50 split. This is the same test the main report uses for taxa.
@@ -1200,6 +1200,86 @@ direction_heatmap("decreased")
 - **Increased:** within a single condition, only colorectal cancer reaches significance. There the oral pathobionts are reported as increased almost without exception: *Peptostreptococcus* in 27 of 27 studies that report it, *Parvimonas* 24/24, *Porphyromonas* 22/23 and *Fusobacterium* 32/37. Other conditions mostly agree in direction (orange cells) but have too few studies per genus for a significant test.
 - **Decreased:** no single condition reaches significance. Across all BugSigDB, *Haemophilus* is significantly more often decreased than increased, matching periodontitis. *Gemella*, *Actinomyces* and *Streptococcus* are significantly more often *increased*, the opposite of periodontitis, so their depletion in periodontitis is not a general pattern.
 
+### Version C: semantic similarity of whole signatures
+
+Versions A–B work with genera. Version C instead compares **whole signatures at the taxa's reported rank**, using semantic similarity on the NCBI taxonomy (as in BugSigDB's own tools), so nothing is collapsed to genus.
+
+```{r bsdb-semantic}
+# precomputed by scripts/bugsigdb_semantic_similarity.R (takes ~20 minutes)
+semsim <- readRDS("../../output/bugsigdb_semantic_similarity.rds")
+
+semsim_units <- bsdb_cc_sigs |>
+  inner_join(semsim$similarity, by = c("bsdb_id" = "BSDB ID")) |>
+  mutate(
+    same = ifelse(direction == "increased", sim_increased, sim_decreased),
+    opposite = ifelse(direction == "increased", sim_decreased, sim_increased),
+    direction_score = same - opposite
+  ) |>
+  summarise(same = mean(same), direction_score = mean(direction_score), oral = any(oral),
+            .by = c(unit, Study, Condition, direction, site_group)) |>
+  # percentile among studies of the same direction and body site group
+  mutate(sim_pct = (rank(same) - 0.5) / n(), dir_pct = (rank(direction_score) - 0.5) / n(),
+         .by = c(direction, site_group))
+
+semsim_conditions <- semsim_units |>
+  filter(n() >= 5, .by = Condition) |>
+  summarise(
+    studies = n(), oral = mean(oral),
+    sim_pct_mean = mean(sim_pct),
+    p_sim = wilcox.test(sim_pct, mu = 0.5, alternative = "greater", exact = FALSE)$p.value,
+    dir_pct_mean = mean(dir_pct),
+    p_dir = wilcox.test(dir_pct, mu = 0.5, alternative = "greater", exact = FALSE)$p.value,
+    .by = Condition
+  ) |>
+  mutate(
+    fdr_sim = p.adjust(p_sim, method = "BH"),
+    fdr_dir = p.adjust(p_dir, method = "BH"),
+    significance = case_when(
+      fdr_sim < 0.05 | fdr_dir < 0.05 ~ "FDR < 0.05",
+      p_sim < 0.05 | p_dir < 0.05 ~ "p < 0.05 (not FDR)",
+      .default = "Not significant"
+    ) |>
+      factor(levels = c("FDR < 0.05", "p < 0.05 (not FDR)", "Not significant"))
+  )
+```
+
+- **PerioSigDB consensus signatures:** the taxa, at their reported rank, that PerioSigDB reports significantly more often in one direction than the other (exact binomial test, p < 0.05). That gives `r length(semsim$consensus$increased)` taxa increased and `r length(semsim$consensus$decreased)` decreased in periodontitis, mostly species (e.g. *Porphyromonas gingivalis*, *Tannerella forsythia*; *Streptococcus sanguinis*, *Rothia dentocariosa*).
+- **Similarity of a BugSigDB signature to a consensus signature:** each taxon in one is matched with its most similar taxon in the other, and the matches are averaged both ways (best-match average). Taxa are compared by Lin similarity, which is 1 for the same taxon and decreases the further back their closest common ancestor is. So a BugSigDB *Porphyromonas* scores highly against *P. gingivalis*, and a gut *Bacteroides* scores moderately (same order).
+- **Each condition is tested twice**, using the same disease-vs-control studies as the other versions:
+    - **Similarity (x axis):** a study's signatures are compared with the PerioSigDB consensus of the same direction, and the study is ranked among all studies of the same direction and body site group (0–1; 0.5 is the middle). The x value is the condition's mean rank, tested against 0.5 (one-sided Wilcoxon test). This is the analogue of Version A2.
+    - **Direction (y axis):** the same, but ranking similarity to the same-direction consensus *minus* similarity to the opposite one. High values mean the condition's increased taxa look like periodontitis-increased taxa and its decreased taxa look like periodontitis-decreased taxa. This is the analogue of Version B.
+- Each point is a condition with at least 5 study units. Point size is the number of study units, fill is the share from oral sites, and the outline marks significance (Benjamini–Hochberg across conditions, separately for each axis). Conditions with p < 0.05 on either axis are labelled.
+
+```{r bsdb-semantic-fig}
+#| fig-width: 11
+#| fig-height: 8
+#| fig-cap: "Semantic similarity of BugSigDB conditions to the PerioSigDB consensus signatures. x: how similar a condition's signatures are to periodontitis signatures of the same direction; y: how much more similar they are to the same-direction than to the opposite-direction periodontitis signature. Both are mean ranks among studies of the same direction and body site group (0.5 = typical)."
+
+ggplot(semsim_conditions, aes(x = sim_pct_mean, y = dir_pct_mean)) +
+  geom_hline(yintercept = 0.5, color = "grey60", linetype = "dashed") +
+  geom_vline(xintercept = 0.5, color = "grey60", linetype = "dashed") +
+  geom_point(aes(size = studies, fill = oral, color = significance, stroke = ifelse(significance == "Not significant", 0.3, 1)),
+             shape = 21) +
+  geom_text_repel(aes(label = ifelse(significance != "Not significant", Condition, NA),
+                      fontface = ifelse(significance == "FDR < 0.05", "bold", "plain")),
+                  size = 3.2, color = "grey15", min.segment.length = 0, max.overlaps = 30, seed = 1) +
+  scale_fill_gradient(low = "#f0efec", high = "#184f95", labels = scales::percent, name = "Oral sites") +
+  scale_color_manual(values = c("FDR < 0.05" = "grey5", "p < 0.05 (not FDR)" = "grey35", "Not significant" = "grey75"),
+                     name = NULL) +
+  scale_size_area(max_size = 10, name = "Study units") +
+  labs(x = "Similarity to periodontitis signatures (mean rank)",
+       y = "Same vs opposite direction (mean rank)") +
+  theme(legend.position = "right")
+```
+
+**Shows (Version C):**
+
+- **Colorectal cancer** is the only condition significant after FDR correction, on both axes. Its signatures resemble the periodontitis signatures more than other gut conditions do, and in the same direction. The method doesn't collapse to genus and uses a different statistic, so this independently confirms Versions A–B.
+- **Suggestive (nominal p < 0.05):** gastric, oesophageal and squamous cell cancers, and "colorectal carcinoma" (filed in BugSigDB separately from colorectal cancer). Oral squamous cell carcinoma just misses (p = 0.05). Together with the gastric cancer *Fusobacterium* signal (see "Suggestive results" below), this hints at an oral-pathobiont pattern across gastrointestinal and oral cancers that is too small to confirm per condition.
+- **Probably not oral signals:** constipation, schizophrenia, autism and depression are also nominally significant but are sampled only in feces. Semantic similarity rewards matches at higher taxonomic ranks, and the periodontitis-increased taxa are mostly anaerobic Bacteroidota and Bacillota, like most gut taxa. So a gut signature can resemble them without sharing oral taxa.
+
+**Caveat:** raw semantic similarity mostly reflects broad taxonomy. For example, in fecal studies BugSigDB's *decreased* signatures are more similar to the periodontitis-*increased* consensus than to the decreased one, because gut taxa are mostly anaerobes like the periodontal pathogens, whereas the periodontitis-decreased taxa are oral aerobes. Ranking within body site group and direction removes most of this, but not all.
+
 ### Comparing the versions
 
 - **Version A** finds the most significant cells because it pools the whole database, but it is confounded by body site. Conditions sampled in the mouth look enriched for oral genera partly just because they are oral samples.
@@ -1207,7 +1287,94 @@ direction_heatmap("decreased")
 - **Version B** compares like with like (the same test as for PerioSigDB) and is not affected by how often a genus is studied or where. However, most conditions have too few studies per genus to reach significance.
 - **All three versions single out colorectal cancer, and only colorectal cancer.** *Porphyromonas*, *Parvimonas*, *Peptostreptococcus* and *Fusobacterium* are enriched in its (mostly fecal) studies compared with other gut conditions, and almost always in the same direction as in periodontitis. That is the robust cross-condition finding.
 - The apparent links to oral conditions (oral cancer, smoking, rheumatoid arthritis) and to phenylketonuria and cognitive impairment did not survive the body site adjustment or the restriction to disease-vs-control comparisons counted once per study.
-- If one version is used, A2 is the most defensible for enrichment, with B as support for colorectal cancer.
+- **Version C** compares whole signatures at the reported rank (species where available), so it uses all the information, but semantic similarity also rewards broad taxonomic resemblance (e.g. any gut anaerobe).
+- All four versions single out colorectal cancer, and only colorectal cancer, after FDR correction.
+- If one version is used, A2 is the most defensible for enrichment, with B and C as support for colorectal cancer.
+
+### Suggestive results (not significant)
+
+These results do not survive FDR correction but are biologically coherent and consistent across versions. They were picked after looking at the results, from several hundred tests, so they are hypotheses rather than findings.
+
+```{r bsdb-suggestive}
+# selected genus x condition cells: enrichment (Version A2) and direction (Version B)
+cell_stats <- function(cond, genus, dir) {
+  sigs <- filter(bsdb_sigs, direction == dir)
+  hits <- bsdb_genera |> filter(direction == dir, taxon == genus) |> distinct(sig, taxon)
+  in_condition <- sigs$Condition == cond
+  has_genus <- sigs$sig %in% hits$sig
+  reported <- bsdb_genera |>
+    filter(taxon == genus) |>
+    distinct(sig, direction) |>
+    left_join(select(bsdb_sigs, sig, Condition), by = "sig") |>
+    filter(Condition == cond)
+  tibble(
+    Condition = cond, Genus = genus, `In periodontitis` = dir,
+    `Condition studies with genus` = sprintf("%d / %d (%.0f%%)", sum(in_condition & has_genus),
+                                             sum(in_condition), 100 * mean(has_genus[in_condition])),
+    `All BugSigDB` = sprintf("%.0f%%", 100 * mean(has_genus)),
+    `Site-matched p (A2)` = signif(site_matched_p(cond, genus, sigs, hits), 2),
+    `Same direction (B)` = sprintf("%d / %d", sum(reported$direction == dir), nrow(reported))
+  )
+}
+
+tribble(
+  ~cond, ~genus, ~dir,
+  "Gastric cancer", "Fusobacterium", "increased",
+  "Gastric cancer", "Selenomonas", "increased",
+  "Colorectal cancer", "Campylobacter", "increased",
+  "Colorectal cancer", "Selenomonas", "increased",
+  "Colorectal cancer", "Prevotella", "increased",
+  "Colorectal cancer", "Dialister", "increased",
+  "Rheumatoid arthritis", "Treponema", "increased",
+  "Rheumatoid arthritis", "Selenomonas", "increased",
+  "Smoking behavior", "Fusobacterium", "increased",
+  "Smoking behavior", "Gemella", "decreased",
+  "COVID-19", "Neisseria", "decreased"
+) |>
+  pmap_dfr(cell_stats) |>
+  kbl(caption = "Selected genus x condition results. Condition studies with genus: studies of the condition reporting the genus in the same direction as periodontitis. Same direction (B): studies reporting the genus in the same direction as periodontitis, out of all studies of the condition reporting it.") |>
+  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = TRUE, font_size = 12)
+```
+
+- **Gastric cancer:** *Fusobacterium* is in nearly half of gastric cancer studies, about three times the BugSigDB rate, and almost always increased. This mirrors colorectal cancer on a smaller scale, and fits the semantic similarity result (Version C).
+- **Colorectal cancer beyond the core four genera:** *Campylobacter*, *Selenomonas*, *Prevotella* and *Dialister* are also more common than in other gut conditions and consistently increased. This broadens the oral-pathobiont pattern.
+- **Rheumatoid arthritis:** *Treponema* and *Selenomonas* are enriched and consistently increased, in line with the periodontitis–rheumatoid arthritis link. *Porphyromonas*, the usual candidate, is not singled out.
+- **Smoking:** loss of health-associated commensals (*Gemella*, and *Corynebacterium*, *Granulicatella*, *Lautropia* and *Oribacterium* in most studies reporting them) with more *Fusobacterium*. This mirrors periodontitis, for which smoking is a risk factor.
+- **COVID-19:** *Neisseria* is consistently decreased, along with other commensals, though mostly in nasopharyngeal and respiratory samples.
+
+**A general disease pattern.** Several PerioSigDB genera have the same direction as in periodontitis in most other conditions, not just a few. The table counts, for each genus, the conditions where most studies report it in the same direction as periodontitis versus the opposite (excluding colorectal cancer; conditions with at least 2 studies reporting the genus).
+
+```{r bsdb-cross-condition}
+bsdb_genera |>
+  filter(taxon %in% perio_genera$taxon) |>
+  distinct(sig, taxon, direction) |>
+  left_join(select(bsdb_sigs, sig, Condition), by = "sig") |>
+  filter(Condition != "Colorectal cancer") |>
+  count(Condition, taxon, direction) |>
+  pivot_wider(names_from = direction, values_from = n, values_fill = 0) |>
+  left_join(select(perio_genera, taxon, perio_direction = direction), by = "taxon") |>
+  mutate(
+    same = ifelse(perio_direction == "increased", increased, decreased),
+    opposite = ifelse(perio_direction == "increased", decreased, increased)
+  ) |>
+  filter(same + opposite >= 2) |>
+  summarise(conditions = n(), mostly_same = sum(same > opposite), mostly_opposite = sum(opposite > same),
+            .by = c(perio_direction, taxon)) |>
+  mutate(p = map2_dbl(mostly_same, mostly_same + mostly_opposite,
+                      \(k, n) if (n > 0) binom.test(k, n)$p.value else NA_real_)) |>
+  filter(p < 0.1) |>
+  arrange(p) |>
+  transmute(
+    Genus = taxon, `In periodontitis` = perio_direction, Conditions = conditions,
+    `Mostly same direction` = mostly_same, `Mostly opposite` = mostly_opposite,
+    `Sign test p` = signif(p, 2)
+  ) |>
+  kbl(caption = "Genera with a consistent direction across BugSigDB conditions (sign test p < 0.1).") |>
+  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = FALSE, font_size = 12)
+```
+
+*Fusobacterium*, *Peptostreptococcus* and *Parvimonas* tend to be increased, and *Haemophilus* and *Neisseria* decreased, across many unrelated conditions. So part of the periodontitis signature may reflect a generic disease-vs-health (dysbiosis) pattern rather than anything specifically periodontal. *Streptococcus*, by contrast, is mostly increased elsewhere, the opposite of periodontitis. The sign test treats conditions as independent, although many share studies or populations.
+
 
 **Caveats:**
 
@@ -1236,7 +1403,7 @@ tribble(
   "11. Signature content", "Do metadata relate to signatures?", "Scatter + bars", "Exploratory; needs taxa-assessed data",
   "12. Methods and resolution", "How do PerioSigDB and BugSigDB differ structurally?", "Stacked bars", "Explains species vs genus mismatch",
   "13. Metadata fields", "What does each database record?", "Dot matrix", "Shows complementary fields and gaps",
-  "14. Taxa across conditions", "Where do periodontitis-linked genera appear elsewhere?", "Heatmaps: A enrichment, A2 site-matched, B direction", "Most novel; A2 most defensible"
+  "14. Taxa across conditions", "Where do periodontitis-linked genera appear elsewhere?", "Heatmaps (A, A2, B) + scatter (C)", "Most novel; A2 most defensible"
 ) |>
   kbl(caption = "Candidate figures and tables.") |>
   kable_styling(bootstrap_options = c("striped", "condensed"), full_width = TRUE)
