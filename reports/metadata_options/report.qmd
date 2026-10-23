@@ -1280,6 +1280,73 @@ ggplot(semsim_conditions, aes(x = sim_pct_mean, y = dir_pct_mean)) +
 
 **Caveat:** raw semantic similarity mostly reflects broad taxonomy. For example, in fecal studies BugSigDB's *decreased* signatures are more similar to the periodontitis-*increased* consensus than to the decreased one, because gut taxa are mostly anaerobes like the periodontal pathogens, whereas the periodontitis-decreased taxa are oral aerobes. Ranking within body site group and direction removes most of this, but not all.
 
+### Version C2: similarity to each periodontitis signature separately
+
+The same similarities as Version C, but without combining them into "same" and "same − opposite". Each BugSigDB signature is ranked twice among signatures of the same direction and body site group: once by its similarity to the periodontitis-increased consensus (x) and once by its similarity to the periodontitis-decreased consensus (y). BugSigDB increased and decreased signatures are shown in separate panels.
+
+- **Increased panel:** agreement with periodontitis is **bottom right** (disease-increased taxa resemble periodontitis-increased taxa, not periodontitis-decreased ones).
+- **Decreased panel:** agreement is **top left**.
+- **Along the diagonal:** the signature resembles both (or neither) equally, e.g. generically oral or generically unrelated, with no direction.
+- Each point is a condition with at least 5 study units in that direction. Labelled conditions differ between the two ranks in the agreeing direction at p < 0.05 (paired one-sided Wilcoxon test); bold if FDR < 0.05 within the panel.
+
+```{r bsdb-semantic-c2}
+semsim_c2 <- bsdb_cc_sigs |>
+  inner_join(semsim$similarity, by = c("bsdb_id" = "BSDB ID")) |>
+  summarise(sim_increased = mean(sim_increased), sim_decreased = mean(sim_decreased),
+            .by = c(unit, Condition, direction, site_group)) |>
+  mutate(rank_up = (rank(sim_increased) - 0.5) / n(), rank_down = (rank(sim_decreased) - 0.5) / n(),
+         .by = c(direction, site_group)) |>
+  filter(n() >= 5, .by = c(Condition, direction)) |>
+  summarise(
+    studies = n(),
+    x = mean(rank_up),
+    y = mean(rank_down),
+    p = wilcox.test(rank_up, rank_down, paired = TRUE, exact = FALSE,
+                    alternative = ifelse(first(direction) == "increased", "greater", "less"))$p.value,
+    .by = c(Condition, direction)
+  ) |>
+  mutate(fdr = p.adjust(p, method = "BH"), .by = direction) |>
+  mutate(panel = factor(paste("BugSigDB", direction, "signatures"),
+                        levels = paste("BugSigDB", c("increased", "decreased"), "signatures")))
+```
+
+```{r bsdb-semantic-c2-fig}
+#| fig-width: 12
+#| fig-height: 6.5
+#| fig-cap: "Similarity of BugSigDB signatures to the periodontitis-increased (x) and periodontitis-decreased (y) consensus signatures, as mean ranks among signatures of the same direction and body site group (0.5 = typical). Agreement with periodontitis is bottom right for increased signatures and top left for decreased signatures."
+
+ggplot(semsim_c2, aes(x = x, y = y)) +
+  geom_abline(color = "grey80") +
+  geom_hline(yintercept = 0.5, color = "grey60", linetype = "dashed") +
+  geom_vline(xintercept = 0.5, color = "grey60", linetype = "dashed") +
+  geom_point(aes(size = studies), shape = 21, fill = "grey80", color = "grey30", stroke = 0.4) +
+  geom_text_repel(aes(label = ifelse(p < 0.05, Condition, NA), fontface = ifelse(fdr < 0.05, "bold", "plain")),
+                  size = 3.2, color = "grey15", min.segment.length = 0, max.overlaps = 30, seed = 1) +
+  scale_size_area(max_size = 9, name = "Study units") +
+  coord_equal(xlim = c(0.1, 0.9), ylim = c(0.1, 0.9)) +
+  facet_wrap(~panel) +
+  labs(x = "Similarity to periodontitis-increased signature (mean rank)",
+       y = "Similarity to periodontitis-decreased signature (mean rank)")
+```
+
+```{r bsdb-semantic-c2-crc}
+semsim_c2 |>
+  filter(p < 0.05) |>
+  arrange(direction, p) |>
+  transmute(Direction = direction, Condition, `Study units` = studies,
+            `Rank vs perio up` = round(x, 2), `Rank vs perio down` = round(y, 2),
+            p = signif(p, 2), FDR = signif(fdr, 2)) |>
+  kbl(caption = "Conditions with p < 0.05 in Version C2.") |>
+  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = FALSE)
+```
+
+**Shows (Version C2):**
+
+- **Colorectal cancer** (increased panel) is the only condition significant after FDR correction. Its increased signatures rank high against the periodontitis-increased consensus (0.75) and average against the decreased one (0.49), so the resemblance is direction-specific, not generically oral.
+- **Chronic constipation** sits in the same corner (nominal p only), consistent with the gut-anaerobe caveat above.
+- **Decreased signatures** show no clear signal. Atopic eczema and schizophrenia are nominal only. Few BugSigDB decreased signatures contain the oral commensals (*Streptococcus*, *Rothia*, *Haemophilus*) that make up the periodontitis-decreased consensus.
+- Unlike Version C, the two axes are measured separately (neither is derived from the other), so a point's distance from the diagonal directly shows direction specificity.
+
 ### Comparing the versions
 
 - **Version A** finds the most significant cells because it pools the whole database, but it is confounded by body site. Conditions sampled in the mouth look enriched for oral genera partly just because they are oral samples.
