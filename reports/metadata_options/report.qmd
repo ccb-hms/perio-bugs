@@ -1226,9 +1226,9 @@ semsim_conditions <- semsim_units |>
   summarise(
     studies = n(), oral = mean(oral),
     sim_pct_mean = mean(sim_pct),
-    p_sim = wilcox.test(sim_pct, mu = 0.5, alternative = "greater", exact = FALSE)$p.value,
+    p_sim = wilcox.test(sim_pct, mu = 0.5, exact = FALSE)$p.value,
     dir_pct_mean = mean(dir_pct),
-    p_dir = wilcox.test(dir_pct, mu = 0.5, alternative = "greater", exact = FALSE)$p.value,
+    p_dir = wilcox.test(dir_pct, mu = 0.5, exact = FALSE)$p.value,
     .by = Condition
   ) |>
   mutate(
@@ -1239,7 +1239,17 @@ semsim_conditions <- semsim_units |>
       p_sim < 0.05 | p_dir < 0.05 ~ "p < 0.05 (not FDR)",
       .default = "Not significant"
     ) |>
-      factor(levels = c("FDR < 0.05", "p < 0.05 (not FDR)", "Not significant"))
+      factor(levels = c("FDR < 0.05", "p < 0.05 (not FDR)", "Not significant")),
+    # which side of 0.5 the significant axes are on
+    above = (p_sim < 0.05 & sim_pct_mean > 0.5) | (p_dir < 0.05 & dir_pct_mean > 0.5),
+    below = (p_sim < 0.05 & sim_pct_mean < 0.5) | (p_dir < 0.05 & dir_pct_mean < 0.5),
+    deviation = case_when(
+      above & below ~ "Mixed",
+      above ~ "Above typical",
+      below ~ "Below typical",
+      .default = "Not significant"
+    ) |>
+      factor(levels = c("Above typical", "Below typical", "Mixed", "Not significant"))
   )
 ```
 
@@ -1248,24 +1258,30 @@ semsim_conditions <- semsim_units |>
 - **Each condition is tested twice**, using the same disease-vs-control studies as the other versions:
     - **Similarity (x axis):** a study's signatures are compared with the PerioSigDB consensus of the same direction, and the study is ranked among all studies of the same direction and body site group (0–1; 0.5 is the middle). The x value is the condition's mean rank, tested against 0.5 (one-sided Wilcoxon test). This is the analogue of Version A2.
     - **Direction (y axis):** the same, but ranking similarity to the same-direction consensus *minus* similarity to the opposite one. High values mean the condition's increased taxa look like periodontitis-increased taxa and its decreased taxa look like periodontitis-decreased taxa. This is the analogue of Version B.
-- Each point is a condition with at least 5 study units. Point size is the number of study units, fill is the share from oral sites, and the outline marks significance (Benjamini–Hochberg across conditions, separately for each axis). Conditions with p < 0.05 on either axis are labelled.
+- **Both directions are tested** (two-sided Wilcoxon test against 0.5). Below 0.5 on x means less similar to periodontitis than typical for those body sites. Below 0.5 on y means reversed: the condition's increased taxa look more like periodontitis-decreased taxa (or its decreased taxa like periodontitis-increased ones) than is typical.
+- Each point is a condition with at least 5 study units. Point size is the number of study units. Fill shows which side of 0.5 the significant axis is on (p < 0.05), and the outline and bold labels mark FDR < 0.05 (Benjamini–Hochberg across conditions, separately for each axis). Conditions with p < 0.05 on either axis are labelled.
 
 ```{r bsdb-semantic-fig}
 #| fig-width: 11
 #| fig-height: 8
 #| fig-cap: "Semantic similarity of BugSigDB conditions to the PerioSigDB consensus signatures. x: how similar a condition's signatures are to periodontitis signatures of the same direction; y: how much more similar they are to the same-direction than to the opposite-direction periodontitis signature. Both are mean ranks among studies of the same direction and body site group (0.5 = typical)."
 
+deviation_colors <- c("Above typical" = "#1baf7a", "Below typical" = "#6250d6", "Mixed" = "#eda100",
+                      "Not significant" = "grey88",
+                      "Agrees with periodontitis" = "#1baf7a", "Reversed" = "#6250d6")
+
 ggplot(semsim_conditions, aes(x = sim_pct_mean, y = dir_pct_mean)) +
   geom_hline(yintercept = 0.5, color = "grey60", linetype = "dashed") +
   geom_vline(xintercept = 0.5, color = "grey60", linetype = "dashed") +
-  geom_point(aes(size = studies, fill = oral, color = significance, stroke = ifelse(significance == "Not significant", 0.3, 1)),
+  geom_point(aes(size = studies, fill = deviation, color = significance, stroke = ifelse(significance == "FDR < 0.05", 1, 0.3)),
              shape = 21) +
   geom_text_repel(aes(label = ifelse(significance != "Not significant", Condition, NA),
                       fontface = ifelse(significance == "FDR < 0.05", "bold", "plain")),
                   size = 3.2, color = "grey15", min.segment.length = 0, max.overlaps = 30, seed = 1) +
-  scale_fill_gradient(low = "#f0efec", high = "#184f95", labels = scales::percent, name = "Oral sites") +
-  scale_color_manual(values = c("FDR < 0.05" = "grey5", "p < 0.05 (not FDR)" = "grey35", "Not significant" = "grey75"),
+  scale_fill_manual(values = deviation_colors, name = NULL) +
+  scale_color_manual(values = c("FDR < 0.05" = "grey5", "p < 0.05 (not FDR)" = "grey45", "Not significant" = "grey60"),
                      name = NULL) +
+  guides(fill = guide_legend(override.aes = list(size = 4)), color = "none") +
   scale_size_area(max_size = 10, name = "Study units") +
   labs(x = "Similarity to periodontitis signatures (mean rank)",
        y = "Same vs opposite direction (mean rank)") +
@@ -1276,6 +1292,7 @@ ggplot(semsim_conditions, aes(x = sim_pct_mean, y = dir_pct_mean)) +
 
 - **Colorectal cancer** is the only condition significant after FDR correction, on both axes. Its signatures resemble the periodontitis signatures more than other gut conditions do, and in the same direction. The method doesn't collapse to genus and uses a different statistic, so this independently confirms Versions A–B.
 - **Suggestive (nominal p < 0.05):** gastric, oesophageal and squamous cell cancers, and "colorectal carcinoma" (filed in BugSigDB separately from colorectal cancer). Oral squamous cell carcinoma just misses (p = 0.05). Together with the gastric cancer *Fusobacterium* signal (see "Suggestive results" below), this hints at an oral-pathobiont pattern across gastrointestinal and oral cancers that is too small to confirm per condition.
+- **Below typical:** obesity and Parkinson's disease are significantly *less* similar to the periodontitis signatures than other gut studies after FDR correction (x ≈ 0.4), and nominally reversed in direction (y < 0.5). Type II diabetes is nominally less similar (x) only; ulcerative colitis, endometriosis and COVID-19 are nominally reversed (y) only. Their disease-associated shifts tend to run against the periodontitis pattern, e.g. loss rather than gain of anaerobes.
 - **Probably not oral signals:** constipation, schizophrenia, autism and depression are also nominally significant but are sampled only in feces. Semantic similarity rewards matches at higher taxonomic ranks, and the periodontitis-increased taxa are mostly anaerobic Bacteroidota and Bacillota, like most gut taxa. So a gut signature can resemble them without sharing oral taxa.
 
 **Caveat:** raw semantic similarity mostly reflects broad taxonomy. For example, in fecal studies BugSigDB's *decreased* signatures are more similar to the periodontitis-*increased* consensus than to the decreased one, because gut taxa are mostly anaerobes like the periodontal pathogens, whereas the periodontitis-decreased taxa are oral aerobes. Ranking within body site group and direction removes most of this, but not all.
@@ -1287,7 +1304,8 @@ The same similarities as Version C, but without combining them into "same" and "
 - **Increased panel:** agreement with periodontitis is **bottom right** (disease-increased taxa resemble periodontitis-increased taxa, not periodontitis-decreased ones).
 - **Decreased panel:** agreement is **top left**.
 - **Along the diagonal:** the signature resembles both (or neither) equally, e.g. generically oral or generically unrelated, with no direction.
-- Each point is a condition with at least 5 study units in that direction. Labelled conditions differ between the two ranks in the agreeing direction at p < 0.05 (paired one-sided Wilcoxon test); bold if FDR < 0.05 within the panel.
+- **Reversed:** the opposite corners (top left in the increased panel, bottom right in the decreased panel). The condition's taxa resemble the periodontitis signature of the opposite direction more than is typical.
+- Each point is a condition with at least 5 study units in that direction. The two ranks are compared with a paired two-sided Wilcoxon test. Fill shows whether a difference at p < 0.05 agrees with periodontitis or is reversed. Labelled conditions have p < 0.05; bold labels and dark outlines mark FDR < 0.05 within the panel.
 
 ```{r bsdb-semantic-c2}
 semsim_c2 <- bsdb_cc_sigs |>
@@ -1301,13 +1319,22 @@ semsim_c2 <- bsdb_cc_sigs |>
     studies = n(),
     x = mean(rank_up),
     y = mean(rank_down),
-    p = wilcox.test(rank_up, rank_down, paired = TRUE, exact = FALSE,
-                    alternative = ifelse(first(direction) == "increased", "greater", "less"))$p.value,
+    p = wilcox.test(rank_up, rank_down, paired = TRUE, exact = FALSE)$p.value,
     .by = c(Condition, direction)
   ) |>
   mutate(fdr = p.adjust(p, method = "BH"), .by = direction) |>
-  mutate(panel = factor(paste("BugSigDB", direction, "signatures"),
-                        levels = paste("BugSigDB", c("increased", "decreased"), "signatures")))
+  mutate(
+    panel = factor(paste("BugSigDB", direction, "signatures"),
+                   levels = paste("BugSigDB", c("increased", "decreased"), "signatures")),
+    # agreement: increased signatures closer to perio up, decreased closer to perio down
+    agrees = ifelse(direction == "increased", x > y, y > x),
+    deviation = case_when(
+      p >= 0.05 ~ "Not significant",
+      agrees ~ "Agrees with periodontitis",
+      .default = "Reversed"
+    ) |>
+      factor(levels = c("Agrees with periodontitis", "Reversed", "Not significant"))
+  )
 ```
 
 ```{r bsdb-semantic-c2-fig}
@@ -1319,9 +1346,13 @@ ggplot(semsim_c2, aes(x = x, y = y)) +
   geom_abline(color = "grey80") +
   geom_hline(yintercept = 0.5, color = "grey60", linetype = "dashed") +
   geom_vline(xintercept = 0.5, color = "grey60", linetype = "dashed") +
-  geom_point(aes(size = studies), shape = 21, fill = "grey80", color = "grey30", stroke = 0.4) +
+  geom_point(aes(size = studies, fill = deviation, color = fdr < 0.05, stroke = ifelse(fdr < 0.05, 1, 0.3)),
+             shape = 21) +
   geom_text_repel(aes(label = ifelse(p < 0.05, Condition, NA), fontface = ifelse(fdr < 0.05, "bold", "plain")),
                   size = 3.2, color = "grey15", min.segment.length = 0, max.overlaps = 30, seed = 1) +
+  scale_fill_manual(values = deviation_colors, name = NULL) +
+  scale_color_manual(values = c(`TRUE` = "grey5", `FALSE` = "grey50"), guide = "none") +
+  guides(fill = guide_legend(override.aes = list(size = 4))) +
   scale_size_area(max_size = 9, name = "Study units") +
   coord_equal(xlim = c(0.1, 0.9), ylim = c(0.1, 0.9)) +
   facet_wrap(~panel) +
@@ -1344,7 +1375,8 @@ semsim_c2 |>
 
 - **Colorectal cancer** (increased panel) is the only condition significant after FDR correction. Its increased signatures rank high against the periodontitis-increased consensus (0.75) and average against the decreased one (0.49), so the resemblance is direction-specific, not generically oral.
 - **Chronic constipation** sits in the same corner (nominal p only), consistent with the gut-anaerobe caveat above.
-- **Decreased signatures** show no clear signal. Atopic eczema and schizophrenia are nominal only. Few BugSigDB decreased signatures contain the oral commensals (*Streptococcus*, *Rothia*, *Haemophilus*) that make up the periodontitis-decreased consensus.
+- **Reversed (nominal p < 0.05, FDR ≈ 0.07–0.09):** obesity's decreased signatures are less like periodontitis-decreased taxa than typical; Parkinson's disease, COVID-19, dry eye syndrome and Crohn's disease have increased signatures that lean towards the periodontitis-*decreased* taxa. These match the "below typical" conditions in Version C, but none passes FDR.
+- **Decreased signatures** show no clear agreement. Atopic eczema is nominal only. Few BugSigDB decreased signatures contain the oral commensals (*Streptococcus*, *Rothia*, *Haemophilus*) that make up the periodontitis-decreased consensus.
 - Unlike Version C, the two axes are measured separately (neither is derived from the other), so a point's distance from the diagonal directly shows direction specificity.
 
 ### Comparing the versions
