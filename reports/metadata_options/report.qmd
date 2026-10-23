@@ -282,81 +282,7 @@ ggplot(within, aes(x = classification, y = mean, color = classification)) +
 
 **Caveat:** some groups have few studies (e.g. refractory n = 1). PD/CAL are sometimes from sampled sites only, which inflates them.
 
-## Option 4: Chronic vs aggressive periodontitis signatures
-
-```{r chronic-aggressive}
-#| fig-width: 12
-#| fig-height: 10
-#| fig-cap: "Share of chronic-only and aggressive-only studies reporting each taxon as increased (right) or decreased (left) in periodontitis, for the 25 taxa reported by the most of these studies. Left: all studies; right: studies recorded as DNA–DNA hybridization only, which mostly test the same checkerboard species panel. Numbers of studies in the panel titles."
-
-ca_studies <- studies |>
-  filter(classification %in% c("Chronic", "Aggressive")) |>
-  mutate(classification = droplevels(classification)) |>
-  select(Study, classification, method)
-
-ca_taxa <- dat |>
-  filter(Study %in% ca_studies$Study) |>
-  transmute(Study, direction = `Abundance in Group 1`,
-            taxon = map(`MetaPhlAn taxon names`, \(x) sub("^.*[|][a-z]__", "", x))) |>
-  unnest(taxon) |>
-  distinct() |>
-  left_join(ca_studies, by = "Study")
-
-ca_share <- function(d) {
-  n <- d |> distinct(Study, classification) |> count(classification, name = "studies")
-  d |>
-    count(classification, taxon, direction) |>
-    left_join(n, by = "classification") |>
-    mutate(share = n / studies)
-}
-
-ca_top <- ca_taxa |> distinct(Study, taxon) |> count(taxon, sort = TRUE) |> slice_head(n = 25) |> pull(taxon)
-
-ca_panel <- function(d, title) {
-  n <- d |> distinct(Study, classification) |> count(classification)
-  ca_share(filter(d, taxon %in% ca_top)) |>
-    complete(classification, taxon = ca_top, direction = c("increased", "decreased"), fill = list(share = 0)) |>
-    mutate(x = ifelse(direction == "increased", share, -share),
-           taxon = factor(taxon, levels = rev(ca_top))) |>
-    ggplot(aes(x = x, y = taxon, fill = classification)) +
-    geom_vline(xintercept = 0, color = "grey40") +
-    geom_col(position = position_dodge(width = 0.85), width = 0.85) +
-    scale_fill_manual(values = pal_class[c("Chronic", "Aggressive")], name = NULL) +
-    scale_x_continuous(labels = \(x) scales::percent(abs(x)), limits = c(-0.6, 0.85)) +
-    annotate("text", x = c(-0.58, 0.83), y = length(ca_top) + 1, label = c("← decreased", "increased →"),
-             hjust = c(0, 1), size = 3.2, color = "grey35") +
-    coord_cartesian(clip = "off") +
-    labs(title = sprintf("%s (chronic %d, aggressive %d)", title,
-                         n$n[n$classification == "Chronic"], n$n[n$classification == "Aggressive"]),
-         x = "Share of studies", y = NULL) +
-    theme(axis.text.y = element_text(face = "italic"), plot.title = element_text(size = 11, face = "bold"))
-}
-
-(ca_panel(ca_taxa, "All studies") |
-  ca_panel(filter(ca_taxa, method == "DNA-DNA hybridization"), "Checkerboard only") + theme(axis.text.y = element_blank())) +
-  plot_layout(guides = "collect") & theme(legend.position = "top")
-```
-
-```{r chronic-aggressive-tests}
-# Fisher's exact test per taxon and direction (chronic vs aggressive), all studies
-ca_n <- ca_studies |> filter(Study %in% ca_taxa$Study) |> count(classification)
-ca_tests <- ca_taxa |>
-  filter(taxon %in% ca_top) |>
-  count(taxon, direction, classification) |>
-  complete(taxon, direction, classification, fill = list(n = 0)) |>
-  pivot_wider(names_from = classification, values_from = n) |>
-  mutate(
-    p = pmap_dbl(list(Chronic, Aggressive), \(c, a) fisher.test(matrix(
-      c(c, ca_n$n[ca_n$classification == "Chronic"] - c, a, ca_n$n[ca_n$classification == "Aggressive"] - a), 2))$p.value),
-    fdr = p.adjust(p, method = "BH")
-  )
-```
-
-**Shows:** the two types share the same core pathogens: *P. gingivalis*, *T. forsythia*, *T. denticola* and *P. intermedia* are increased in both. With 9 aggressive studies, each one is 11% of its bars, so single studies stand out: the decreased *Filifactor alocis*, *F. nucleatum* and *Campylobacter rectus* all come from one Sudanese aggressive periodontitis study (1085), which found the classical periodontal pathogens infrequent in its patients and several of them more common in controls. No taxon differs significantly between them after FDR correction (smallest FDR = `r signif(min(ca_tests$fdr), 2)`; Fisher's exact test per taxon and direction). In the checkerboard studies, which test the same species, the red complex (*P. gingivalis*, *T. forsythia*) is increased at least as often in aggressive as in chronic studies. The clearest (nominal) difference is *Actinomyces gerencseriae*, decreased in 3 of 9 aggressive vs 3 of 46 chronic studies (p = 0.05).
-
-**Caveats:** only `r ca_n$n[ca_n$classification == "Aggressive"]` aggressive-only studies, so only large differences could be detected. Methods differ between the groups (most aggressive studies use checkerboard hybridization, chronic studies mostly PCR), and a taxon can only appear if the method tests for it; the hybridization-only panel largely controls for this but has only 5 aggressive studies, and one of them (1085) also used a 272-taxon microarray (HOMIM), so their panels are not identical. *Aggregatibacter actinomycetemcomitans*, classically linked to aggressive periodontitis, is reported increased in 2 of 9 aggressive and 6 of 46 chronic studies.
-
-## Option 5: Trends over publication year
+## Option 4: Trends over publication year
 
 ```{r trends}
 #| fig-width: 13
@@ -378,7 +304,7 @@ within |>
 
 # Study characteristics
 
-## Option 6: Periodontitis classification over time and by method
+## Option 5: Periodontitis classification over time and by method
 
 ```{r classification}
 #| fig-width: 13
@@ -415,7 +341,7 @@ pA + pB + plot_layout(widths = c(1.2, 1))
 
 **Caveat:** "Not specified" is large. Many older studies define periodontitis only by PD/CAL thresholds.
 
-## Option 7: Systemic condition of participants
+## Option 6: Systemic condition of participants
 
 ```{r systemic}
 #| fig-width: 10
@@ -486,7 +412,7 @@ sig_genera <- function(d) {
 
 PerioSigDB uses BugSigDB's format, so its signatures can be set against the rest of the microbiome literature. These options use the BugSigDB export of `r bsdb_version`, with `r n_distinct(bsdb$PMID)` studies and `r nrow(bsdb)` signatures across all conditions and body sites. BugSigDB's own periodontitis signatures (`r nrow(bsdb) - nrow(bsdb_other)`) are excluded throughout.
 
-## Option 8: Profiling methods and taxonomic resolution
+## Option 7: Profiling methods and taxonomic resolution
 
 ```{r bsdb-methods}
 #| fig-width: 13
@@ -541,9 +467,9 @@ stack_bar(methods_db, method, pal_method, "A") +
   plot_layout(widths = c(1.3, 1))
 ```
 
-**Shows:** PerioSigDB is dominated by targeted assays (checkerboard DNA–DNA hybridization and PCR) that report named species, whereas BugSigDB is mostly 16S and shotgun sequencing reported at genus level. This is the main structural difference between the two databases. It is why Option 10 compares them at genus level.
+**Shows:** PerioSigDB is dominated by targeted assays (checkerboard DNA–DNA hybridization and PCR) that report named species, whereas BugSigDB is mostly 16S and shotgun sequencing reported at genus level. This is the main structural difference between the two databases. It is why Option 9 compares them at genus level.
 
-## Option 9: Metadata captured by each database
+## Option 8: Metadata captured by each database
 
 ```{r bsdb-fields}
 #| fig-width: 10
@@ -608,7 +534,7 @@ ggplot(fields_db, aes(x = db, y = field)) +
 - A filled field is not necessarily a complete one (e.g. "Matched on" can list only some of the variables).
 - PerioSigDB's lower sequencing type completeness is mostly checkerboard hybridization, which has no sequencing type in BugSigDB's vocabulary.
 
-## Option 10: PerioSigDB taxa across other conditions
+## Option 9: PerioSigDB taxa across other conditions
 
 ```{r bsdb-conditions-data}
 # genera with the most consistent direction in PerioSigDB: exact binomial test of increased vs
@@ -1133,13 +1059,12 @@ tribble(
   "1. Completeness heatmap", "What metadata are available?", "Heatmap (fields × studies)", "Good supplementary figure; frames all others",
   "2. Paired comparison", "How do health and periodontitis groups differ?", "Paired slopes, small multiples", "Recommended main figure",
   "3. Severity by classification", "Is 'periodontitis' comparable across studies?", "Beeswarm, small multiples", "Recommended for within-periodontitis variation",
-  "4. Chronic vs aggressive", "Do signatures differ by periodontitis type?", "Diverging bars, two panels", "Underpowered; method confounded",
-  "5. Trends over time", "Have cohorts changed over time?", "Scatter + trend", "Year confounded with method",
-  "6. Classification", "How was periodontitis defined?", "Stacked bars + count tile", "Context for stratification",
-  "7. Systemic condition", "Are comorbid populations included?", "Bar chart", "Half not recorded yet",
-  "8. Methods and resolution", "How do PerioSigDB and BugSigDB differ structurally?", "Stacked bars", "Explains species vs genus mismatch",
-  "9. Metadata fields", "What does each database record?", "Dot matrix", "Shows complementary fields and gaps",
-  "10. Taxa across conditions", "Where do periodontitis-linked genera appear elsewhere?", "Genus heatmaps, similarity dot plots, colorectal cancer heatmap", "Most novel; site-matched enrichment most defensible"
+  "4. Trends over time", "Have cohorts changed over time?", "Scatter + trend", "Year confounded with method",
+  "5. Classification", "How was periodontitis defined?", "Stacked bars + count tile", "Context for stratification",
+  "6. Systemic condition", "Are comorbid populations included?", "Bar chart", "Half not recorded yet",
+  "7. Methods and resolution", "How do PerioSigDB and BugSigDB differ structurally?", "Stacked bars", "Explains species vs genus mismatch",
+  "8. Metadata fields", "What does each database record?", "Dot matrix", "Shows complementary fields and gaps",
+  "9. Taxa across conditions", "Where do periodontitis-linked genera appear elsewhere?", "Genus heatmaps, similarity dot plots, colorectal cancer heatmap", "Most novel; site-matched enrichment most defensible"
 ) |>
   kbl(caption = "Candidate figures and tables.") |>
   kable_styling(bootstrap_options = c("striped", "condensed"), full_width = TRUE)
@@ -1149,4 +1074,4 @@ tribble(
 
 - **Main text:** Option 2 (paired comparison), plus Option 3 (severity by classification).
 - **Supplement:** Option 1 (completeness).
-- **Positioning against BugSigDB:** Option 9 (complementary metadata) and Option 10 (taxa across conditions).
+- **Positioning against BugSigDB:** Option 8 (complementary metadata) and Option 9 (taxa across conditions).
