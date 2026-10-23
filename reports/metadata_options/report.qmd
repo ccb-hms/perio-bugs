@@ -1211,94 +1211,97 @@ Versions A–B work with genera. Versions C and C2 instead compare **whole signa
 
 - **PerioSigDB consensus signatures:** the taxa, at their reported rank, that PerioSigDB reports significantly more often in one direction than the other (exact binomial test, p < 0.05). That gives `r length(semsim$consensus$increased)` taxa increased ("perio up") and `r length(semsim$consensus$decreased)` decreased ("perio down") in periodontitis, mostly species (e.g. *Porphyromonas gingivalis*, *Tannerella forsythia*; *Streptococcus sanguinis*, *Rothia dentocariosa*).
 - **Similarity of a BugSigDB signature to a consensus signature:** each taxon in one is matched with its most similar taxon in the other, and the matches are averaged both ways (best-match average). Taxa are compared by Lin similarity, which is 1 for the same taxon and decreases the further back their closest common ancestor is. So a BugSigDB *Porphyromonas* scores highly against *P. gingivalis*, and a gut *Bacteroides* scores moderately (same order).
-- **Direction score:** similarity to the consensus of the **same** direction minus similarity to the **opposite** one. For a BugSigDB increased signature that is (similarity to perio up) − (similarity to perio down); for a decreased signature, (similarity to perio down) − (similarity to perio up). Positive means the signature moves like periodontitis; negative means it looks more like the opposite periodontitis signature.
-- **Rank:** each study (disease-vs-control signatures, counted once per study as in the other versions) is ranked by its direction score among all studies of the same direction and body site group, from 0 (lowest) to 1 (highest). This removes the body site and direction effects (e.g. gut decreased signatures generally look more like perio up). A condition's value is the mean rank of its studies; 0.5 is typical for those body sites.
-- **Test:** separately for BugSigDB increased and decreased signatures, each condition's mean rank against 0.5 (two-sided Wilcoxon test), with Benjamini–Hochberg correction across conditions with at least 5 study units in that direction. For each direction, the figure shows the 5 most significant conditions on each side of 0.5 (same as and opposite to periodontitis), with every study unit and the 95% confidence interval; filled points have FDR < 0.05.
+- **Rank:** each BugSigDB signature (disease-vs-control studies, counted once per study as in the other versions) is ranked twice among all signatures of the same direction and body site group, from 0 (least similar) to 1 (most similar): once by its similarity to perio up and once by its similarity to perio down. This removes body site and direction effects (e.g. gut signatures generally look more like perio up, because both are mostly anaerobes). A condition's value is the mean rank of its studies; 0.5 is typical for those body sites.
+- **Four comparisons:** BugSigDB increased signatures vs perio up and vs perio down, and BugSigDB decreased signatures vs perio down and vs perio up. The first of each pair is the same direction as periodontitis; the second is the opposite direction (e.g. taxa increased in a condition that are decreased in periodontitis).
+- **Test:** is the condition **more** similar than typical? One-sided Wilcoxon test of mean rank > 0.5, with Benjamini–Hochberg correction across conditions (at least 5 study units in that direction) within each comparison. Lower-than-typical similarity is not of interest and is not tested.
+- **Figure:** for each comparison, the 5 most significant conditions, most significant at the top, with every study unit and the mean with 95% confidence interval; filled points have FDR < 0.05.
 
 ```{r bsdb-semantic-c}
-semsim_dir_units <- bsdb_cc_sigs |>
+semsim_sim_units <- bsdb_cc_sigs |>
   inner_join(semsim$similarity, by = c("bsdb_id" = "BSDB ID")) |>
-  mutate(score = ifelse(direction == "increased", sim_increased - sim_decreased, sim_decreased - sim_increased)) |>
-  summarise(score = mean(score), .by = c(unit, Condition, direction, site_group)) |>
-  mutate(rank = (rank(score) - 0.5) / n(), .by = c(direction, site_group)) |>
-  filter(n() >= 5, .by = c(Condition, direction))
+  summarise(up = mean(sim_increased), down = mean(sim_decreased),
+            .by = c(unit, Condition, direction, site_group)) |>
+  mutate(up = (rank(up) - 0.5) / n(), down = (rank(down) - 0.5) / n(), .by = c(direction, site_group)) |>
+  filter(n() >= 5, .by = c(Condition, direction)) |>
+  pivot_longer(c(up, down), names_to = "perio", values_to = "rank") |>
+  mutate(perio = ifelse(perio == "up", "increased", "decreased"))
 
-# tested separately for BugSigDB increased and decreased signatures
-semsim_dir <- semsim_dir_units |>
+# one-sided: more similar than typical, within each BugSigDB direction x periodontitis signature
+semsim_sim <- semsim_sim_units |>
   summarise(
     studies = n(),
     mean_rank = mean(rank),
     ci = 1.96 * sd(rank) / sqrt(n()),
-    p = wilcox.test(rank, mu = 0.5, exact = FALSE)$p.value,
-    .by = c(Condition, direction)
+    p = wilcox.test(rank, mu = 0.5, alternative = "greater", exact = FALSE)$p.value,
+    .by = c(Condition, direction, perio)
   ) |>
-  mutate(fdr = p.adjust(p, method = "BH"), .by = direction)
+  mutate(fdr = p.adjust(p, method = "BH"), .by = c(direction, perio))
 ```
 
 ```{r bsdb-semantic-c-fig}
-#| fig-width: 10
-#| fig-height: 12
-#| fig-cap: "Direction score of BugSigDB increased (top) and decreased (bottom) signatures: how much more they resemble the periodontitis signature of the same direction than the opposite one, ranked among signatures of the same direction and body site group (0.5 = typical). For each, the 5 most significant conditions on each side of 0.5 are shown, most significant at the top, with the number of study units in brackets. Small points: study units; large point and bar: mean and 95% confidence interval (filled: FDR < 0.05)."
-direction_score_plot <- function(dir) {
-  # 5 most significant conditions on each side, ordered by p-value
-  shown <- semsim_dir |>
-    filter(direction == dir) |>
-    mutate(side = factor(ifelse(mean_rank > 0.5, "Same as\nperiodontitis", "Opposite to\nperiodontitis"),
-                         levels = c("Same as\nperiodontitis", "Opposite to\nperiodontitis"))) |>
-    slice_min(p, n = 5, by = side) |>
+#| fig-width: 14
+#| fig-height: 9
+#| fig-cap: "Similarity of BugSigDB signatures to the PerioSigDB consensus signatures, ranked among signatures of the same direction and body site group (0.5 = typical). Left: same direction as periodontitis; right: opposite direction. For each comparison, the 5 conditions most significantly more similar than typical are shown, with the number of study units in brackets. Small points: study units; large point and bar: mean and 95% confidence interval (filled: FDR < 0.05)."
+similarity_plot <- function(dir, perio_dir) {
+  shown <- semsim_sim |>
+    filter(direction == dir, perio == perio_dir) |>
+    slice_min(p, n = 5, with_ties = FALSE) |>
     mutate(label = paste0(Condition, " (", studies, ")\np = ", signif(p, 2), ", FDR = ", signif(fdr, 2)),
            label = fct_reorder(label, -p))
-  points <- inner_join(semsim_dir_units, select(shown, Condition, direction, side, label),
-                       by = c("Condition", "direction"))
-  color <- c(increased = "#eb6834", decreased = "#2a78d6")[[dir]]
+  points <- inner_join(semsim_sim_units, select(shown, Condition, direction, perio, label),
+                       by = c("Condition", "direction", "perio"))
+  same <- dir == perio_dir
 
   ggplot(shown, aes(y = label)) +
     geom_vline(xintercept = 0.5, color = "grey50", linetype = "dashed") +
     geom_quasirandom(data = points, aes(x = rank), orientation = "y", width = 0.3, size = 1.1,
-                     color = color, alpha = 0.7) +
+                     color = c(increased = "#eb6834", decreased = "#2a78d6")[[dir]], alpha = 0.7) +
     geom_errorbarh(aes(xmin = mean_rank - ci, xmax = mean_rank + ci), height = 0, linewidth = 0.8, color = "grey10") +
     geom_point(aes(x = mean_rank, fill = fdr < 0.05), shape = 21, size = 3.5, color = "grey10", stroke = 0.8) +
     scale_fill_manual(values = c(`TRUE` = "grey10", `FALSE` = "white"), guide = "none") +
     scale_x_continuous(limits = c(0, 1)) +
-    facet_grid(side ~ ., scales = "free_y", space = "free_y") +
-    labs(title = paste("BugSigDB", dir, "signatures"), y = NULL,
-         x = "Direction score (rank among signatures of the same direction and body site group; 0.5 = typical)") +
-    theme(strip.text.y = element_text(angle = 0, face = "bold", hjust = 0),
-          plot.title = element_text(face = "bold", size = 12))
+    labs(title = sprintf("BugSigDB %s vs periodontitis %s", dir, perio_dir),
+         subtitle = if (same) "Same direction as periodontitis" else "Opposite direction",
+         x = "Similarity (rank; 0.5 = typical)", y = NULL) +
+    theme(plot.title = element_text(face = "bold", size = 11), plot.subtitle = element_text(size = 10, color = "grey35"))
 }
 
-direction_score_plot("increased") / direction_score_plot("decreased")
+(similarity_plot("increased", "increased") | similarity_plot("increased", "decreased")) /
+  (similarity_plot("decreased", "decreased") | similarity_plot("decreased", "increased"))
 ```
 
 ```{r bsdb-semantic-c-table}
-semsim_dir |>
+semsim_sim |>
   filter(p < 0.05) |>
-  arrange(desc(direction), p) |>
-  transmute(Signatures = direction, Condition, `Study units` = studies, `Mean rank` = round(mean_rank, 2),
+  arrange(desc(direction), desc(direction == perio), p) |>
+  transmute(`BugSigDB signatures` = direction, `vs periodontitis` = perio,
+            Comparison = ifelse(direction == perio, "same direction", "opposite direction"),
+            Condition, `Study units` = studies, `Mean rank` = round(mean_rank, 2),
             p = signif(p, 2), FDR = signif(fdr, 2)) |>
-  kbl(caption = "Conditions with p < 0.05 in Version C (FDR within each direction).") |>
+  kbl(caption = "Conditions more similar than typical at p < 0.05 in Version C (FDR within each comparison).") |>
   kable_styling(bootstrap_options = c("striped", "condensed"), full_width = FALSE)
 ```
 
 **Shows (Version C):**
 
-- **Increased signatures:** colorectal cancer is the only condition significant after FDR correction (mean rank 0.71 over 57 study units, FDR = 0.0003). Most of its studies' increased taxa look more like periodontitis-increased than periodontitis-decreased taxa, compared with other gut studies.
-- **Increased, nominal only:** chronic constipation in the same direction as periodontitis; Parkinson's disease, dry eye syndrome and COVID-19 in the opposite direction (their increased taxa lean towards the periodontitis-decreased taxa). FDR is about 0.12–0.13 for all four.
-- **Decreased signatures:** nothing passes FDR. Obesity is the strongest (opposite direction, p = 0.003, FDR = 0.12); no condition's decreased signatures resemble the periodontitis-decreased taxa beyond nominal p ≈ 0.06.
-- **The study-level points are spread widely** even in colorectal cancer, where a minority of studies rank low. Small conditions (5–15 study units) have intervals too wide to say much.
+- **Colorectal cancer** is the only result significant after FDR correction: its increased signatures are more similar than typical to the periodontitis-increased consensus (mean rank 0.75 over 57 study units, FDR < 0.0001), but not to the periodontitis-decreased one. Its decreased signatures are not more similar to either.
+- **Same direction, nominal only:** increased signatures of gastric cancer, chronic constipation, depression, autism and rheumatoid arthritis resemble periodontitis-increased taxa; decreased signatures of schizophrenia resemble periodontitis-decreased taxa.
+- **Opposite direction, nominal only:** increased signatures of ulcerative colitis, Crohn's disease, COVID-19 and atopic eczema resemble the periodontitis-*decreased* taxa (e.g. oral commensals such as *Streptococcus*, *Rothia* and *Actinomyces* rising in these conditions); decreased signatures of endometriosis, Alzheimer's disease and HIV infection resemble the periodontitis-*increased* taxa.
+- **Gastric cancer** is nominally more similar to *both* periodontitis signatures (rank 0.65 and 0.73), i.e. generically oral rather than direction-specific, as expected for oral taxa reaching the stomach.
+- Study-level points are spread widely; conditions with 5–15 study units have intervals too wide to say much.
 
-Version C2 breaks these results down to see which periodontitis signature drives them, and the tabs below compare the conditions' own consensus signatures with PerioSigDB's.
+Version C2 plots both similarities together for all conditions, and the tabs below compare the conditions' own consensus signatures with PerioSigDB's.
 
 ### Version C2: breakdown by periodontitis signature
 
-Version C's direction score is a difference of two similarities. Version C2 shows the two separately, and for BugSigDB increased and decreased signatures separately, to see which part drives a result: e.g. a condition can score high because its increased taxa look like perio up, or only because they look unlike perio down.
+Version C2 plots both similarity ranks of Version C together for every condition, separately for BugSigDB increased and decreased signatures. It shows whether a condition resembles one periodontitis signature specifically, or both (generically oral) or neither.
 
 - **Ranks:** each signature is ranked twice among signatures of the same direction and body site group: once by its similarity to perio up (x) and once by its similarity to perio down (y). A condition's point is the mean of its studies' ranks; 0.5 is typical for those body sites.
 - **Increased panel:** agreement with periodontitis is **bottom right** (disease-increased taxa resemble periodontitis-increased taxa, not periodontitis-decreased ones).
 - **Decreased panel:** agreement is **top left**.
 - **Along the diagonal:** the signature resembles both (or neither) equally, e.g. generically oral or generically unrelated, with no direction.
 - **Reversed:** the opposite corners (top left in the increased panel, bottom right in the decreased panel).
-- Each point is a condition with at least 5 study units in that direction. The two ranks are compared with a paired two-sided Wilcoxon test (equivalent to Version C's test, split by direction). Fill shows whether a difference at p < 0.05 agrees with periodontitis or is reversed. Labelled conditions have p < 0.05; bold labels and dark outlines mark FDR < 0.05 within the panel.
+- Each point is a condition with at least 5 study units in that direction. The two ranks are compared with a paired two-sided Wilcoxon test, i.e. whether the condition is closer to one periodontitis signature than the other. Fill shows whether a difference at p < 0.05 agrees with periodontitis or is reversed. Labelled conditions have p < 0.05; bold labels and dark outlines mark FDR < 0.05 within the panel.
 
 ```{r bsdb-semantic-c2}
 semsim_c2 <- bsdb_cc_sigs |>
@@ -1399,7 +1402,7 @@ taxon_sim <- readRDS("../../output/bugsigdb_taxon_similarity.rds")
 terminal_id <- function(x) paste0("NCBITaxon:", unique(sub("^.*[|]", "", x)))
 
 c2_conditions <- bind_rows(
-  semsim_dir |> filter(p < 0.05) |> arrange(p) |> select(Condition),
+  semsim_sim |> filter(p < 0.05) |> arrange(p) |> select(Condition),
   semsim_c2 |> filter(p < 0.05) |> arrange(deviation, p) |> select(Condition)
 ) |>
   distinct(Condition) |>
@@ -1506,10 +1509,11 @@ consensus_table <- function(cond, n_taxa = 20) {
 cat("::: {.panel-tabset}\n\n")
 for (cond in c2_conditions) {
   cat("##### ", cond, "\n\n", sep = "")
-  c_rows <- semsim_dir |> filter(Condition == cond) |> arrange(p)
+  c_rows <- semsim_sim |> filter(Condition == cond) |> arrange(desc(direction), desc(direction == perio))
   for (i in seq_len(nrow(c_rows))) {
-    cat(sprintf("- **Version C, %s signatures** (%d study units): direction score rank %.2f (p = %s, FDR = %s)\n",
-                c_rows$direction[i], c_rows$studies[i], c_rows$mean_rank[i], signif(c_rows$p[i], 2), signif(c_rows$fdr[i], 2)))
+    cat(sprintf("- **Version C, %s signatures vs periodontitis %s** (%d study units): rank %.2f (p = %s, FDR = %s)\n",
+                c_rows$direction[i], c_rows$perio[i], c_rows$studies[i], c_rows$mean_rank[i],
+                signif(c_rows$p[i], 2), signif(c_rows$fdr[i], 2)))
   }
   rows <- semsim_c2 |> filter(Condition == cond) |> arrange(p)
   for (i in seq_len(nrow(rows))) {
