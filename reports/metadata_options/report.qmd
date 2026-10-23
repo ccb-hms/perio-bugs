@@ -287,7 +287,7 @@ ggplot(within, aes(x = classification, y = mean, color = classification)) +
 ```{r chronic-aggressive}
 #| fig-width: 12
 #| fig-height: 10
-#| fig-cap: "Share of chronic-only and aggressive-only studies reporting each taxon as increased (right) or decreased (left) in periodontitis, for the 25 taxa reported by the most of these studies. Left: all studies; right: checkerboard DNA–DNA hybridization studies only, which test the same species panel. Numbers of studies in the panel titles."
+#| fig-cap: "Share of chronic-only and aggressive-only studies reporting each taxon as increased (right) or decreased (left) in periodontitis, for the 25 taxa reported by the most of these studies. Left: all studies; right: studies recorded as DNA–DNA hybridization only, which mostly test the same checkerboard species panel. Numbers of studies in the panel titles."
 
 ca_studies <- studies |>
   filter(classification %in% c("Chronic", "Aggressive")) |>
@@ -352,9 +352,9 @@ ca_tests <- ca_taxa |>
   )
 ```
 
-**Shows:** the two types share the same core pathogens: *P. gingivalis*, *T. forsythia*, *T. denticola* and *P. intermedia* are increased in both. No taxon differs significantly between them after FDR correction (smallest FDR = `r signif(min(ca_tests$fdr), 2)`; Fisher's exact test per taxon and direction). In the checkerboard studies, which test the same species, the red complex (*P. gingivalis*, *T. forsythia*) is increased at least as often in aggressive as in chronic studies. The clearest (nominal) difference is *Actinomyces gerencseriae*, decreased in 3 of 9 aggressive vs 3 of 46 chronic studies (p = 0.05).
+**Shows:** the two types share the same core pathogens: *P. gingivalis*, *T. forsythia*, *T. denticola* and *P. intermedia* are increased in both. With 9 aggressive studies, each one is 11% of its bars, so single studies stand out: the decreased *Filifactor alocis*, *F. nucleatum* and *Campylobacter rectus* all come from one Sudanese aggressive periodontitis study (1085), which found the classical periodontal pathogens infrequent in its patients and several of them more common in controls. No taxon differs significantly between them after FDR correction (smallest FDR = `r signif(min(ca_tests$fdr), 2)`; Fisher's exact test per taxon and direction). In the checkerboard studies, which test the same species, the red complex (*P. gingivalis*, *T. forsythia*) is increased at least as often in aggressive as in chronic studies. The clearest (nominal) difference is *Actinomyces gerencseriae*, decreased in 3 of 9 aggressive vs 3 of 46 chronic studies (p = 0.05).
 
-**Caveats:** only `r ca_n$n[ca_n$classification == "Aggressive"]` aggressive-only studies, so only large differences could be detected. Methods differ between the groups (most aggressive studies use checkerboard hybridization, chronic studies mostly PCR), and a taxon can only appear if the method tests for it; the checkerboard panel controls for this but has only 5 aggressive studies. *Aggregatibacter actinomycetemcomitans*, classically linked to aggressive periodontitis, is reported increased in 2 of 9 aggressive and 6 of 46 chronic studies.
+**Caveats:** only `r ca_n$n[ca_n$classification == "Aggressive"]` aggressive-only studies, so only large differences could be detected. Methods differ between the groups (most aggressive studies use checkerboard hybridization, chronic studies mostly PCR), and a taxon can only appear if the method tests for it; the hybridization-only panel largely controls for this but has only 5 aggressive studies, and one of them (1085) also used a 272-taxon microarray (HOMIM), so their panels are not identical. *Aggregatibacter actinomycetemcomitans*, classically linked to aggressive periodontitis, is reported increased in 2 of 9 aggressive and 6 of 46 chronic studies.
 
 ## Option 5: Trends over publication year
 
