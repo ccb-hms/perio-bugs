@@ -689,6 +689,27 @@ site_matched_p <- function(condition, genus, sigs, hits) {
   }
 }
 
+# observed and expected share of a condition's signatures with each genus, where expected is the
+# share in other conditions' signatures from the same body site group, weighted by the condition's
+# own site mix; only site groups with signatures from both are used (as in site_matched_p)
+site_expected <- function(sigs, hits) {
+  by_group <- count(sigs, Condition, site_group, name = "n")
+  hits_by_group <- hits |>
+    left_join(select(sigs, sig, Condition, site_group), by = "sig") |>
+    count(Condition, site_group, taxon, name = "h")
+  totals <- count(sigs, site_group, name = "N")
+  hit_totals <- count(hits_by_group, site_group, taxon, wt = h, name = "H")
+
+  tidyr::expand_grid(by_group, taxon = unique(hits$taxon)) |>
+    left_join(hits_by_group, by = c("Condition", "site_group", "taxon")) |>
+    left_join(totals, by = "site_group") |>
+    left_join(hit_totals, by = c("site_group", "taxon")) |>
+    mutate(h = coalesce(h, 0L), H = coalesce(H, 0L)) |>
+    filter(N > n) |>
+    summarise(observed = sum(h) / sum(n), expected = sum(n * (H - h) / (N - n)) / sum(n),
+              .by = c(Condition, taxon))
+}
+
 # match_site = TRUE compares each condition with other signatures from the same body site group
 # (exact Cochran-Mantel-Haenszel test stratified by site group) instead of all other signatures
 condition_heatmap <- function(dir, n_conditions = 15, min_sigs = 5, match_site = FALSE) {
@@ -745,26 +766,51 @@ condition_heatmap <- function(dir, n_conditions = 15, min_sigs = 5, match_site =
     left_join(genus_totals, by = "taxon") |>
     transmute(Condition = "All BugSigDB", taxon, share = coalesce(with_genus, 0L) / nrow(sigs), fdr = NA_real_)
 
-  shares <- bind_rows(baseline, filter(enrichment, Condition %in% conditions$Condition)) |>
-    select(Condition, taxon, share, fdr) |>
-    left_join(select(columns, Condition, col), by = "Condition") |>
-    mutate(enriched = !is.na(fdr) & fdr < 0.05)
-
   genus_levels <- rev(top$taxon)
   high <- if (dir == "increased") "#c2410c" else "#1c5cab"
 
-  p_heat <- ggplot(shares, aes(x = col, y = factor(taxon, levels = genus_levels), fill = share)) +
+  if (match_site) {
+    # site-matched: colour and label are observed / expected (no unmatched baseline column)
+    columns <- filter(columns, Condition != "All BugSigDB") |> mutate(col = droplevels(col))
+    shares <- filter(enrichment, Condition %in% conditions$Condition) |>
+      select(Condition, taxon, n, fdr) |>
+      left_join(site_expected(sigs, hits), by = c("Condition", "taxon")) |>
+      left_join(select(columns, Condition, col), by = "Condition") |>
+      mutate(
+        enriched = !is.na(fdr) & fdr < 0.05,
+        # ratios from a single study are unstable, so only cells with at least 2 studies are shaded
+        ratio = ifelse(coalesce(expected, 0) > 0 & n >= 2, observed / expected, NA),
+        value = ifelse(is.na(ratio), 0, log2(pmax(ratio, 1))),
+        label = ifelse(!is.na(ratio) & (enriched | ratio >= 2),
+                       ifelse(ratio < 10, sprintf("%.1f", ratio), sprintf("%.0f", ratio)), "")
+      )
+    fill_scale <- scale_fill_gradient(low = "#f0efec", high = high, limits = c(0, 4), oob = scales::squish,
+                                      breaks = 0:4, labels = paste0("×", 2^(0:4)), na.value = "white",
+                                      name = "Observed /\nexpected")
+    dark <- quote(value > 2.5)
+  } else {
+    shares <- bind_rows(baseline, filter(enrichment, Condition %in% conditions$Condition)) |>
+      select(Condition, taxon, share, fdr) |>
+      left_join(select(columns, Condition, col), by = "Condition") |>
+      mutate(enriched = !is.na(fdr) & fdr < 0.05, value = share,
+             label = ifelse(enriched | share >= 0.1, round(100 * share), ""))
+    fill_scale <- scale_fill_gradient(low = "#f0efec", high = high, labels = scales::percent, limits = c(0, NA),
+                                      name = "BugSigDB\nstudies")
+    dark <- quote(value > 0.45)
+  }
+
+  p_heat <- ggplot(shares, aes(x = col, y = factor(taxon, levels = genus_levels), fill = value)) +
     geom_tile(color = "white", linewidth = 0.6) +
     geom_tile(data = filter(shares, enriched), color = "grey10", linewidth = 0.7, width = 0.9, height = 0.85) +
-    geom_vline(xintercept = 1.5, color = "grey20", linewidth = 0.6) +
-    geom_text(aes(label = ifelse(enriched | share >= 0.1, round(100 * share), ""),
-                  color = share > 0.45, fontface = ifelse(enriched, "bold", "plain")), size = 2.7) +
-    scale_fill_gradient(low = "#f0efec", high = high, labels = scales::percent, limits = c(0, NA),
-                        name = "BugSigDB\nstudies") +
+    (if (!match_site) geom_vline(xintercept = 1.5, color = "grey20", linewidth = 0.6)) +
+    geom_text(aes(label = label, color = !!dark, fontface = ifelse(enriched, "bold", "plain")), size = 2.7) +
+    fill_scale +
     scale_color_manual(values = c(`FALSE` = "grey20", `TRUE` = "white"), guide = "none") +
     labs(x = NULL, y = NULL,
          caption = if (match_site) {
-           "Outlined, bold: enriched vs other studies from the same body site group (exact CMH test, FDR < 0.05)"
+           paste0("Colour and numbers: share of the condition's studies with the genus / share expected from other\n",
+                  "conditions' studies at the same body sites (cells with at least 2 studies).\n",
+                  "Outlined, bold: enriched vs other studies from the same body site group (exact CMH test, FDR < 0.05)")
          } else {
            "Outlined, bold: enriched vs all other BugSigDB studies (Fisher's exact test, FDR < 0.05)"
          }) +
@@ -899,7 +945,7 @@ condition_heatmap("decreased")
 
 ### Enrichment compared with conditions from the same body sites
 
-As above, but each condition is compared only with studies from the same body site group (oral, gastrointestinal, other, mixed; stratified exact test), since oral genera are common in any oral sample.
+As above, but each condition is compared only with studies from the same body site group (oral, gastrointestinal, other, mixed; stratified exact test), since oral genera are common in any oral sample. Cells show how many times more often the condition's studies report the genus than expected from other conditions' studies at the same body sites (×1 = as expected).
 
 ```{r bsdb-site-increased}
 #| fig-width: 13
