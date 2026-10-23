@@ -159,14 +159,15 @@ All analyses use the **corrected** dataset (`output/perio_bugs_corrected.rds`). 
 ```{r completeness}
 #| fig-width: 13
 #| fig-height: 5.5
-#| fig-cap: "Reporting of metadata across studies. Each column is a study, ordered by publication year; each row is a field. Group-level fields are shaded by whether they are reported for both groups, one group, or neither. Plaque counts as reported only when given as % of sites. The percentage after each field is the share of studies reporting it for both groups (group-level fields) or at all (study-level fields)."
+#| fig-cap: "Reporting of metadata across studies. Each column is a study, ordered by publication year; each row is a field. Group-level fields are shaded by whether they are reported for both groups, one group, or neither. Plaque counts as reported only when given as % of sites. Non-healthy systemic condition is shaded only for studies whose participants have a systemic condition (e.g. diabetes). The percentage after each field is the share of studies reporting it for both groups (group-level fields) or at all (study-level fields)."
 
 study_fields <- tibble(
   Study = studies$Study,
   `Profiling method` = studies$method != "Other / not reported",
   `16S variable region` = !is.na(studies$`16S variable region`),
   `Periodontitis classification` = studies$classification != "Not specified",
-  `Systemic condition` = !is.na(studies$`Systemic condition`),
+  `Non-healthy systemic condition` = !is.na(studies$`Systemic condition`) &
+    studies$`Systemic condition` != "systemically healthy",
   `Group 0 definition` = !is.na(studies$`Group 0 definition`),
   `Group 1 definition` = !is.na(studies$`Group 1 definition`)
 ) |>
@@ -215,7 +216,7 @@ ggplot(completeness, aes(x = Study, y = factor(field_label, levels = field_order
 
 **Shows:** how complete each field is, and whether reporting improved over time. For example, recent studies more often give a periodontitis stage/grade. This is useful as a supplementary figure in a resource paper, and it sets expectations for every other option below.
 
-**Caveat:** "Not reported" can also mean "not entered". Systemic condition was not extracted for most studies in the original overview sheet.
+**Caveat:** "Not reported" can also mean "not entered". Systemic condition was not extracted for most studies in the original overview sheet, so studies with comorbid participants may be missed.
 
 # Health vs periodontitis
 
@@ -257,61 +258,7 @@ long |>
 
 **Caveat:** each study counts equally, regardless of its sample size.
 
-## Option 3: Summary table ("Table 1")
-
-```{r table1}
-pooled <- long |>
-  semi_join(paired, by = c("Study", "feature")) |>
-  filter(!is.na(n)) |>
-  summarise(
-    subjects = sum(n),
-    pooled_mean = sum(n * mean) / sum(n),
-    .by = c(label, group)
-  )
-
-iqr_fmt <- function(x, digits) {
-  q <- quantile(x, c(0.25, 0.5, 0.75))
-  sprintf(paste0("%.", digits, "f [%.", digits, "f–%.", digits, "f]"), q[2], q[1], q[3])
-}
-
-table1 <- paired |>
-  mutate(digits = ifelse(feature %in% c("pd", "cal"), 2, 1)) |>
-  summarise(
-    Studies = n(),
-    Health = iqr_fmt(mean_Health, first(digits)),
-    Periodontitis = iqr_fmt(mean_Periodontitis, first(digits)),
-    Difference = iqr_fmt(mean_Periodontitis - mean_Health, first(digits)),
-    .by = c(feature, label)
-  ) |>
-  left_join(select(paired_tests, feature, p_label), by = "feature") |>
-  left_join(
-    pooled |>
-      mutate(pooled_mean = sprintf(ifelse(grepl("mm", label), "%.2f", "%.1f"), pooled_mean)) |>
-      pivot_wider(id_cols = label, names_from = group, values_from = c(pooled_mean, subjects)),
-    by = "label"
-  ) |>
-  arrange(label) |>
-  transmute(
-    Measure = label, Studies,
-    Health, Periodontitis, Difference, `Paired test` = p_label,
-    `Health ` = paste0(pooled_mean_Health, " (", subjects_Health, ")"),
-    `Periodontitis ` = paste0(pooled_mean_Periodontitis, " (", subjects_Periodontitis, ")")
-  )
-
-table1 |>
-  kbl(align = "lcccccccc",
-      caption = "Health and periodontitis groups across studies reporting each measure for both groups. Study-level columns give the median [IQR] of study means; the paired test is a Wilcoxon signed-rank test across studies. Pooled columns weight each study mean by its group size (number of subjects in brackets).") |>
-  add_header_above(c(" " = 2, "Study means, median [IQR]" = 3, " " = 1, "Pooled mean (subjects)" = 2)) |>
-  kable_styling(bootstrap_options = c("striped", "condensed"), full_width = TRUE)
-```
-
-**Shows:** the conventional "Table 1" in compact form, with both the between-study spread and a subject-weighted pooled mean. It pairs naturally with Option 2.
-
-**Caveat:** the pooled means ignore within-study variance and differences in measurement protocol (e.g. full-mouth vs sampled sites).
-
-# Variation within periodontitis groups
-
-## Option 4: Disease severity by periodontitis classification
+## Option 3: Disease severity by periodontitis classification
 
 ```{r within-perio}
 #| fig-width: 13
@@ -335,7 +282,7 @@ ggplot(within, aes(x = classification, y = mean, color = classification)) +
 
 **Caveat:** some groups have few studies (e.g. refractory n = 1). PD/CAL are sometimes from sampled sites only, which inflates them.
 
-## Option 5: Trends over publication year
+## Option 4: Trends over publication year
 
 ```{r trends}
 #| fig-width: 13
@@ -357,7 +304,7 @@ within |>
 
 # Study characteristics
 
-## Option 6: Periodontitis classification over time and by method
+## Option 5: Periodontitis classification over time and by method
 
 ```{r classification}
 #| fig-width: 13
@@ -394,7 +341,7 @@ pA + pB + plot_layout(widths = c(1.2, 1))
 
 **Caveat:** "Not specified" is large. Many older studies define periodontitis only by PD/CAL thresholds.
 
-## Option 7: Systemic condition of participants
+## Option 6: Systemic condition of participants
 
 ```{r systemic}
 #| fig-width: 10
@@ -431,7 +378,7 @@ studies |>
 
 # Metadata and signature content
 
-## Option 8: Signature content by study characteristics
+## Option 7: Signature content by study characteristics
 
 ```{r signature-content}
 #| fig-width: 13
@@ -523,7 +470,7 @@ sig_genera <- function(d) {
 
 PerioSigDB uses BugSigDB's format, so its signatures can be set against the rest of the microbiome literature. These options use the BugSigDB export of `r bsdb_version`, with `r n_distinct(bsdb$PMID)` studies and `r nrow(bsdb)` signatures across all conditions and body sites. BugSigDB's own periodontitis signatures (`r nrow(bsdb) - nrow(bsdb_other)`) are excluded throughout.
 
-## Option 9: Profiling methods and taxonomic resolution
+## Option 8: Profiling methods and taxonomic resolution
 
 ```{r bsdb-methods}
 #| fig-width: 13
@@ -578,9 +525,9 @@ stack_bar(methods_db, method, pal_method, "A") +
   plot_layout(widths = c(1.3, 1))
 ```
 
-**Shows:** PerioSigDB is dominated by targeted assays (checkerboard DNA–DNA hybridization and PCR) that report named species, whereas BugSigDB is mostly 16S and shotgun sequencing reported at genus level. This is the main structural difference between the two databases. It is why Option 11 compares them at genus level.
+**Shows:** PerioSigDB is dominated by targeted assays (checkerboard DNA–DNA hybridization and PCR) that report named species, whereas BugSigDB is mostly 16S and shotgun sequencing reported at genus level. This is the main structural difference between the two databases. It is why Option 10 compares them at genus level.
 
-## Option 10: Metadata captured by each database
+## Option 9: Metadata captured by each database
 
 ```{r bsdb-fields}
 #| fig-width: 10
@@ -645,7 +592,7 @@ ggplot(fields_db, aes(x = db, y = field)) +
 - A filled field is not necessarily a complete one (e.g. "Matched on" can list only some of the variables).
 - PerioSigDB's lower sequencing type completeness is mostly checkerboard hybridization, which has no sequencing type in BugSigDB's vocabulary.
 
-## Option 11: PerioSigDB taxa across other conditions
+## Option 10: PerioSigDB taxa across other conditions
 
 ```{r bsdb-conditions-data}
 # genera with the most consistent direction in PerioSigDB: exact binomial test of increased vs
@@ -1169,15 +1116,14 @@ tribble(
   ~Option, ~Question, ~Form, ~Notes,
   "1. Completeness heatmap", "What metadata are available?", "Heatmap (fields × studies)", "Good supplementary figure; frames all others",
   "2. Paired comparison", "How do health and periodontitis groups differ?", "Paired slopes, small multiples", "Recommended main figure",
-  "3. Summary table", "Typical values per group", "Table", "Recommended main table; pairs with 2",
-  "4. Severity by classification", "Is 'periodontitis' comparable across studies?", "Beeswarm, small multiples", "Recommended for within-periodontitis variation",
-  "5. Trends over time", "Have cohorts changed over time?", "Scatter + trend", "Year confounded with method",
-  "6. Classification", "How was periodontitis defined?", "Stacked bars + count tile", "Context for stratification",
-  "7. Systemic condition", "Are comorbid populations included?", "Bar chart", "Half not recorded yet",
-  "8. Signature content", "Do metadata relate to signatures?", "Scatter + bars", "Exploratory; needs taxa-assessed data",
-  "9. Methods and resolution", "How do PerioSigDB and BugSigDB differ structurally?", "Stacked bars", "Explains species vs genus mismatch",
-  "10. Metadata fields", "What does each database record?", "Dot matrix", "Shows complementary fields and gaps",
-  "11. Taxa across conditions", "Where do periodontitis-linked genera appear elsewhere?", "Genus heatmaps, similarity dot plots, colorectal cancer heatmap", "Most novel; site-matched enrichment most defensible"
+  "3. Severity by classification", "Is 'periodontitis' comparable across studies?", "Beeswarm, small multiples", "Recommended for within-periodontitis variation",
+  "4. Trends over time", "Have cohorts changed over time?", "Scatter + trend", "Year confounded with method",
+  "5. Classification", "How was periodontitis defined?", "Stacked bars + count tile", "Context for stratification",
+  "6. Systemic condition", "Are comorbid populations included?", "Bar chart", "Half not recorded yet",
+  "7. Signature content", "Do metadata relate to signatures?", "Scatter + bars", "Exploratory; needs taxa-assessed data",
+  "8. Methods and resolution", "How do PerioSigDB and BugSigDB differ structurally?", "Stacked bars", "Explains species vs genus mismatch",
+  "9. Metadata fields", "What does each database record?", "Dot matrix", "Shows complementary fields and gaps",
+  "10. Taxa across conditions", "Where do periodontitis-linked genera appear elsewhere?", "Genus heatmaps, similarity dot plots, colorectal cancer heatmap", "Most novel; site-matched enrichment most defensible"
 ) |>
   kbl(caption = "Candidate figures and tables.") |>
   kable_styling(bootstrap_options = c("striped", "condensed"), full_width = TRUE)
@@ -1185,6 +1131,6 @@ tribble(
 
 **Suggested combination:**
 
-- **Main text:** Option 2 (paired comparison) with Option 3 (summary table), plus Option 4 (severity by classification).
+- **Main text:** Option 2 (paired comparison), plus Option 3 (severity by classification).
 - **Supplement:** Option 1 (completeness).
-- **Positioning against BugSigDB:** Option 10 (complementary metadata) and Option 11 (taxa across conditions).
+- **Positioning against BugSigDB:** Option 9 (complementary metadata) and Option 10 (taxa across conditions).
