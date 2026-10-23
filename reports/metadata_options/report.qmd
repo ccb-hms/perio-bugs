@@ -1373,7 +1373,7 @@ tidyr::expand_grid(select(perio_up, id, row = label), select(crc_up, taxon, col 
         panel.grid = element_blank(), strip.text = element_text(face = "bold"))
 ```
 
-Five taxa are shared exactly (*P. intermedia*, *F. nucleatum*, *Peptostreptococcus*, *P. stomatis*, *P. micra*) and several more are close relatives; *Treponema*, *Tannerella*, *Fretibacterium* and *Desulfobulbus* have no counterpart. (The colorectal cancer decreased consensus, *Faecalibacterium*, is unrelated to periodontitis.)
+Five taxa are shared exactly (*P. intermedia*, *F. nucleatum*, *Peptostreptococcus*, *P. stomatis*, *P. micra*) and several more are close relatives; *Treponema*, *Tannerella*, *Fretibacterium* and *Desulfobulbus* have no close counterpart. (The colorectal cancer decreased consensus, *Faecalibacterium*, is unrelated to periodontitis.)
 
 #### Similarity to each periodontitis taxon
 
