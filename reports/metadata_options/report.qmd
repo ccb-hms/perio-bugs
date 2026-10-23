@@ -865,12 +865,16 @@ direction_heatmap <- function(dir, n_conditions = 15, min_sigs = 5) {
     direction_test() |>
     mutate(Condition = "All BugSigDB")
 
-  # conditions with the most genera significantly in the same direction as periodontitis
+  # conditions with the most net agreement with periodontitis: genera significantly in the same
+  # direction minus those significantly in the opposite one, then a signed score (-log10 p, added
+  # for genera mostly in the same direction and subtracted for those mostly in the opposite one);
+  # only conditions with net agreement are shown
   conditions <- tests |>
-    summarise(n_consistent = sum(fdr < 0.05 & share_same > 0.5),
-              score = sum(-log10(p[share_same > 0.5])), .by = Condition) |>
+    summarise(net_significant = sum(fdr < 0.05 & share_same > 0.5) - sum(fdr < 0.05 & share_same < 0.5),
+              score = sum(sign(share_same - 0.5) * -log10(p)), .by = Condition) |>
+    filter(score > 0) |>
     left_join(condition_sizes, by = "Condition") |>
-    arrange(desc(n_consistent), desc(score)) |>
+    arrange(desc(net_significant), desc(score)) |>
     slice_head(n = n_conditions)
 
   columns <- bind_rows(
@@ -962,7 +966,7 @@ condition_heatmap("decreased", match_site = TRUE)
 
 ### Direction of periodontitis genera within each condition
 
-*When the condition reports the genus, is it in the same direction as in periodontitis?* Colour: share of reports in the same direction; outlined = FDR < 0.05 (binomial test); grey = only 1–2 studies.
+*When the condition reports the genus, is it in the same direction as in periodontitis?* Colour: share of reports in the same direction; outlined = FDR < 0.05 (binomial test); grey = only 1–2 studies. Columns: up to 15 conditions with net agreement with periodontitis, ranked by genera significant in the same minus the opposite direction, then by a signed score in which genera mostly in the opposite direction count against the condition.
 
 ```{r bsdb-direction-increased}
 #| fig-width: 13
