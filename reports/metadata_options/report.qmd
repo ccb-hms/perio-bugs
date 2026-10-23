@@ -584,10 +584,36 @@ site_group <- function(sites) {
 # also files under the study's condition
 control_names <- paste0("control|healthy|\\bhealth\\b|normal|\\bnon[- ]?|without|negative|unaffected|",
                         "\\bHC\\b|\\bNC\\b|cognitively (intact|unimpaired)|^no\\b|-free\\b|peritumo|adjacent|benign")
+# BugSigDB condition labels that name the same condition (different ontology terms), merged
+condition_synonyms <- c(
+  "Colorectal carcinoma" = "Colorectal cancer", "Colorectal adenocarcinoma" = "Colorectal cancer",
+  "Colon carcinoma" = "Colorectal cancer",
+  "Major depressive disorder" = "Unipolar depression",
+  "Human immunodeficiency virus" = "HIV infection",
+  "Eczema" = "Atopic eczema",
+  "Autism" = "Autism spectrum disorder",
+  "Breast carcinoma" = "Breast cancer",
+  "Esophageal carcinoma" = "Esophageal cancer",
+  "Human papillomavirus" = "Human papilloma virus infection",
+  "Gastric adenocarcinoma" = "Gastric cancer",
+  "Prostate carcinoma" = "Prostate cancer",
+  "Psoriasis vulgaris" = "Psoriasis",
+  "Autoimmune type 1 diabetes" = "Type I diabetes mellitus",
+  "SARS-CoV-2-related disease" = "COVID-19",
+  "Constipation" = "Chronic constipation",
+  # all oral, pharyngeal or laryngeal cancers
+  "Squamous cell carcinoma" = "Head and neck cancer", "Oral squamous cell carcinoma" = "Head and neck cancer",
+  "Head and neck squamous cell carcinoma" = "Head and neck cancer", "Oral cavity carcinoma" = "Head and neck cancer",
+  "Head and neck carcinoma" = "Head and neck cancer"
+)
+
+# human disease-vs-control comparisons only (PerioSigDB is human)
 bsdb_cc <- bsdb_other |>
-  filter(grepl(control_names, `Group 0 name`, ignore.case = TRUE),
+  filter(`Host species` == "Homo sapiens",
+         grepl(control_names, `Group 0 name`, ignore.case = TRUE),
          !grepl(control_names, `Group 1 name`, ignore.case = TRUE),
-         `Abundance in Group 1` %in% c("increased", "decreased"))
+         `Abundance in Group 1` %in% c("increased", "decreased")) |>
+  mutate(Condition = coalesce(condition_synonyms[Condition], Condition))
 
 # count each study once per condition, direction and body site group: the units below are
 # study-level, and a genus is in a unit if it is in any of the study's signatures in that unit
@@ -847,7 +873,7 @@ direction_heatmap <- function(dir, n_conditions = 15, min_sigs = 5) {
 }
 ```
 
-Where else in the microbiome literature (BugSigDB) do the taxa that PerioSigDB links to periodontitis turn up? BugSigDB is restricted to disease-vs-control comparisons (`r nrow(bsdb_cc)` signatures from `r n_distinct(bsdb_cc$Study)` studies), and each study counts once per condition, direction and body site group.
+Where else in the microbiome literature (BugSigDB) do the taxa that PerioSigDB links to periodontitis turn up? BugSigDB is restricted to human disease-vs-control comparisons (`r nrow(bsdb_cc)` signatures from `r n_distinct(bsdb_cc$Study)` studies), and each study counts once per condition, direction and body site group. Condition labels that name the same condition are merged (e.g. colorectal carcinoma into colorectal cancer; oral, pharyngeal and laryngeal cancers into head and neck cancer).
 
 The genus heatmaps use the 20 most significant PerioSigDB genera per direction (left panel; binomial test of increased vs decreased signatures, FDR on the left). The grey top bar is the share of each condition's studies from oral sites.
 
@@ -869,7 +895,7 @@ condition_heatmap("increased")
 condition_heatmap("decreased")
 ```
 
-**Shows:** colorectal cancer is enriched for *Porphyromonas*, *Parvimonas*, *Peptostreptococcus* and *Fusobacterium*. Oral conditions (rheumatoid arthritis, oral cancers, smoking) look enriched, but not once body site is accounted for (next section). Decreased genera: only *Gemella* in smoking.
+**Shows:** colorectal cancer is enriched for *Porphyromonas*, *Parvimonas*, *Peptostreptococcus* and *Fusobacterium*. Oral conditions also look enriched: head and neck cancer and rheumatoid arthritis for *Treponema*, and for decreased genera, oral commensals in head and neck cancer (*Actinomyces*, *Neisseria*, *Rothia*), smoking (*Capnocytophaga*, *Gemella*, *Lautropia*) and COVID-19 (*Neisseria*). Most of this reflects body site (next section).
 
 ### Enrichment compared with conditions from the same body sites
 
@@ -889,7 +915,7 @@ condition_heatmap("increased", match_site = TRUE)
 condition_heatmap("decreased", match_site = TRUE)
 ```
 
-**Shows:** only colorectal cancer remains, with the same four genera. The oral conditions' enrichment was a body site effect.
+**Shows:** only colorectal cancer remains, with the same four genera plus *Selenomonas*. The oral conditions' enrichment was a body site effect.
 
 ### Direction of periodontitis genera within each condition
 
@@ -909,7 +935,7 @@ direction_heatmap("increased")
 direction_heatmap("decreased")
 ```
 
-**Shows:** only colorectal cancer is significant: *Peptostreptococcus* (27/27 studies increased), *Parvimonas* (24/24), *Porphyromonas* (22/23), *Fusobacterium* (32/37). No condition is significant for decreased genera.
+**Shows:** only colorectal cancer is significant: *Peptostreptococcus* (29/29 studies increased), *Parvimonas* (26/26), *Porphyromonas* (23/24), *Fusobacterium* (34/39). Among decreased genera, colorectal cancer's *Gemella* is significant in the *opposite* direction (18/18 studies increased, whereas it is decreased in periodontitis).
 
 ### Whole-signature similarity to periodontitis
 
@@ -1038,7 +1064,7 @@ similarity_grid <- function(res, n_top = 5) {
 similarity_grid(semsim_all)
 ```
 
-**Shows:** colorectal cancer's increased taxa resemble the periodontitis-increased taxa (FDR = 0.0001), the only result passing FDR. Nominally, increased signatures of gastric cancer, HIV infection and chronic constipation resemble the periodontitis-increased taxa, and decreased signatures of smoking (p = 0.008), dry eye syndrome and COVID-19 resemble the periodontitis-decreased taxa (loss of oral commensals).
+**Shows:** colorectal cancer's increased taxa resemble the periodontitis-increased taxa (FDR = 0.0001), the only result passing FDR. Head and neck cancer comes close: its decreased taxa resemble the periodontitis-decreased taxa (p = 0.002, FDR = 0.07) and its increased taxa the periodontitis-increased ones (p = 0.01), i.e. the periodontitis pattern in both directions. Smoking's decreased taxa also resemble the periodontitis-decreased taxa (p = 0.009), and gastric cancer's increased taxa resemble both periodontitis signatures (oral taxa in general).
 
 #### Compared with signatures from the same body sites
 
@@ -1051,7 +1077,7 @@ As above, but each signature is ranked only against BugSigDB signatures of the s
 similarity_grid(semsim_site)
 ```
 
-**Shows:** colorectal cancer remains (FDR = 0.0003) while smoking drops out, as in the site-matched enrichment. Gastric cancer's increased signatures resemble both periodontitis signatures (nominally), i.e. oral taxa in general.
+**Shows:** colorectal cancer remains (FDR = 0.0002) while head and neck cancer and smoking drop below p < 0.05, as in the site-matched enrichment: compared with other oral studies, their signatures are not unusually periodontitis-like. Gastric cancer's increased signatures still resemble both periodontitis signatures (nominally), i.e. oral taxa in general.
 
 ### Taxa shared by periodontitis and colorectal cancer
 
@@ -1107,7 +1133,7 @@ tidyr::expand_grid(select(perio_up, id, row = label), select(crc_up, taxon, col 
         panel.grid = element_blank(), strip.text = element_text(face = "bold"))
 ```
 
-Five taxa are shared exactly (*P. intermedia*, *F. nucleatum*, *Peptostreptococcus*, *P. stomatis*, *P. micra*) and several more are close relatives; *Treponema*, *Tannerella*, *Fretibacterium* and *Desulfobulbus* have no close counterpart. (The colorectal cancer decreased consensus, *Faecalibacterium*, is unrelated to periodontitis.)
+Five taxa are shared exactly (*P. intermedia*, *F. nucleatum*, *Peptostreptococcus*, *P. stomatis*, *P. micra*) and several more are close relatives; *Treponema*, *Tannerella*, *Fretibacterium* and *Desulfobulbus* have no close counterpart. (The colorectal cancer decreased consensus, butyrate producers such as *Faecalibacterium*, *Roseburia* and *Lachnospira*, is unrelated to periodontitis.)
 
 ### Agreement across approaches
 
@@ -1119,7 +1145,7 @@ Picked after looking at several hundred tests, so hypotheses only:
 
 - **Gastric cancer:** *Fusobacterium* in nearly half of studies, almost always increased.
 - **Rheumatoid arthritis:** *Treponema* and *Selenomonas* enriched and increased.
-- **Smoking:** loss of oral commensals (*Gemella*, *Corynebacterium*, *Granulicatella*) with more *Fusobacterium*.
+- **Smoking and head and neck cancer:** loss of oral commensals (e.g. *Gemella*, *Lautropia*, *Rothia*, *Neisseria*), significant against all of BugSigDB but not against other oral studies.
 - **Across many conditions:** *Fusobacterium*, *Peptostreptococcus* and *Parvimonas* tend to be increased and *Haemophilus* and *Neisseria* decreased, suggesting part of the periodontitis signature is a generic dysbiosis pattern.
 
 **Caveats:** studies are treated as independent; the disease-vs-control filter works on group names; aggregating PerioSigDB species to genus loses specificity (e.g. *P. gingivalis* up, *P. catoniae* down).
