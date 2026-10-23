@@ -1375,35 +1375,6 @@ tidyr::expand_grid(select(perio_up, id, row = label), select(crc_up, taxon, col 
 
 Five taxa are shared exactly (*P. intermedia*, *F. nucleatum*, *Peptostreptococcus*, *P. stomatis*, *P. micra*) and several more are close relatives; *Treponema*, *Tannerella*, *Fretibacterium* and *Desulfobulbus* have no close counterpart. (The colorectal cancer decreased consensus, *Faecalibacterium*, is unrelated to periodontitis.)
 
-#### Similarity to each periodontitis taxon
-
-Mean similarity rank of colorectal cancer signatures for each PerioSigDB consensus taxon (\* FDR < 0.05).
-
-```{r bsdb-taxon-ranks-heat}
-#| fig-width: 6.5
-#| fig-height: 10
-#| fig-cap: "Similarity of colorectal cancer signatures to each PerioSigDB consensus taxon, as mean rank among BugSigDB signatures of the same direction and body site group (0.5 = typical; darker = more similar than typical). * FDR < 0.05."
-crc_taxon_ranks |>
-  inner_join(perio_consensus, by = "id") |>
-  mutate(
-    row = factor(label, levels = rev(perio_consensus$label[order(taxon_sim$lineage[perio_consensus$id])])),
-    col = factor(paste0(direction, "\n(", studies, ")"), levels = paste0(c("increased", "decreased"), "\n(", rev(sort(unique(studies))), ")")),
-    perio_direction = factor(paste("Periodontitis", perio_direction),
-                             levels = paste("Periodontitis", c("increased", "decreased"))),
-    text = sprintf("%.2f%s", mean_rank, ifelse(!is.na(fdr) & fdr < 0.05, "*", ""))
-  ) |>
-  ggplot(aes(x = col, y = row, fill = mean_rank)) +
-  geom_tile(color = "white", linewidth = 0.4) +
-  geom_text(aes(label = text, color = mean_rank > 0.65), size = 2.9) +
-  scale_color_manual(values = c(`TRUE` = "white", `FALSE` = "grey15"), guide = "none") +
-  scale_fill_gradient2(low = "#ffffff", mid = "#ecebe8", high = "#262626", midpoint = 0.5,
-                       limits = c(0.3, 0.8), oob = scales::squish, name = "Mean\nrank") +
-  facet_grid(perio_direction ~ ., scales = "free_y", space = "free_y", labeller = label_wrap_gen(14)) +
-  labs(x = "Colorectal cancer signatures (study units)", y = NULL) +
-  theme(axis.text.y = element_text(face = "italic"), panel.grid = element_blank(),
-        strip.text = element_text(face = "bold"))
-```
-
 ### Agreement across approaches
 
 Every approach singles out colorectal cancer, and only colorectal cancer, after FDR correction. Site-matched enrichment is the fairest genus-level test, the direction test confirms the genera move as in periodontitis, and whole-signature similarity confirms it at species level. Apparent links to oral conditions disappear once body site is accounted for.
