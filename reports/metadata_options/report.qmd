@@ -823,7 +823,7 @@ condition_heatmap <- function(dir, n_conditions = 15, min_sigs = 5, match_site =
 # direction of each genus within each BugSigDB condition: exact binomial test of signatures
 # reporting it increased vs decreased against 50% (the same test as for PerioSigDB),
 # BH-adjusted across all genus x condition tests
-direction_heatmap <- function(dir, n_conditions = 15, min_sigs = 5) {
+direction_heatmap <- function(dir, min_sigs = 5, min_reports = 3, min_genera = 3) {
   top <- filter(perio_genera, direction == dir)
   genus_levels <- rev(top$taxon)
 
@@ -865,19 +865,22 @@ direction_heatmap <- function(dir, n_conditions = 15, min_sigs = 5) {
     direction_test() |>
     mutate(Condition = "All BugSigDB")
 
-  # conditions with the most genera significantly in the same direction as periodontitis
+  # conditions with at least min_genera genera reported by at least min_reports studies, ordered by
+  # the share of those reports in the same direction as periodontitis (pooled across genera)
   conditions <- tests |>
-    summarise(n_consistent = sum(fdr < 0.05 & share_same > 0.5),
-              score = sum(-log10(p[share_same > 0.5])), .by = Condition) |>
+    filter(n >= min_reports) |>
+    summarise(genera = n(), share = sum(same) / sum(n), .by = Condition) |>
+    filter(genera >= min_genera) |>
     left_join(condition_sizes, by = "Condition") |>
-    arrange(desc(n_consistent), desc(score)) |>
-    slice_head(n = n_conditions)
+    arrange(desc(share))
 
   columns <- bind_rows(
-    tibble(Condition = "All BugSigDB", signatures = nrow(bsdb_sigs), oral = mean(bsdb_sigs$oral)),
-    select(conditions, Condition, signatures, oral)
+    tibble(Condition = "All BugSigDB", signatures = nrow(bsdb_sigs), oral = mean(bsdb_sigs$oral), share = NA),
+    select(conditions, Condition, signatures, oral, share)
   ) |>
-    mutate(col = paste0(Condition, " (", signatures, ")"), col = factor(col, levels = col))
+    mutate(col = ifelse(is.na(share), paste0(Condition, " (", signatures, ")"),
+                        sprintf("%s (%d; %.0f%%)", Condition, signatures, 100 * share)),
+           col = factor(col, levels = col))
 
   cells <- bind_rows(baseline, filter(tests, Condition %in% conditions$Condition)) |>
     right_join(tidyr::expand_grid(Condition = columns$Condition, taxon = top$taxon),
@@ -962,7 +965,7 @@ condition_heatmap("decreased", match_site = TRUE)
 
 ### Direction of periodontitis genera within each condition
 
-*When the condition reports the genus, is it in the same direction as in periodontitis?* Colour: share of reports in the same direction; outlined = FDR < 0.05 (binomial test); grey = only 1–2 studies.
+*When the condition reports the genus, is it in the same direction as in periodontitis?* Colour: share of reports in the same direction; outlined = FDR < 0.05 (binomial test); grey = only 1–2 studies. Columns: conditions with at least 3 genera each reported by at least 3 studies, ordered by the share of all those reports in the same direction as periodontitis (percentage in brackets).
 
 ```{r bsdb-direction-increased}
 #| fig-width: 13
@@ -978,7 +981,7 @@ direction_heatmap("increased")
 direction_heatmap("decreased")
 ```
 
-**Shows:** only colorectal cancer is significant: *Peptostreptococcus* (29/29 studies increased), *Parvimonas* (26/26), *Porphyromonas* (23/24), *Fusobacterium* (34/39). Among decreased genera, colorectal cancer's *Gemella* is significant in the *opposite* direction (18/18 studies increased, whereas it is decreased in periodontitis).
+**Shows:** colorectal cancer agrees most with periodontitis for increased genera (91% of reports in the same direction) and is the only condition with significant genera: *Peptostreptococcus* (29/29 studies increased), *Parvimonas* (26/26), *Porphyromonas* (23/24), *Fusobacterium* (34/39). Most other conditions are mixed (35–73%). For decreased genera, head and neck cancer (71%) and smoking (63%) agree most (loss of oral commensals), while colorectal cancer (32%) and ulcerative colitis (0%) mostly report them increased; colorectal cancer's *Gemella* is significant in the opposite direction (18/18 studies increased).
 
 ### Whole-signature similarity to periodontitis
 
