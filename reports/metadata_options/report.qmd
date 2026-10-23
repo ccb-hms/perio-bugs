@@ -922,7 +922,7 @@ Compares whole signatures at the reported rank (mostly species), without collaps
 
 - **PerioSigDB consensus:** taxa significantly more often increased (`r length(semsim$consensus$increased)`) or decreased (`r length(semsim$consensus$decreased)`) in periodontitis (binomial test).
 - **Similarity:** semantic similarity on the NCBI taxonomy (best-match average of Lin similarity, as in BugSigDB's tools), ranked against BugSigDB signatures of the same direction and body site group (0.5 = typical), so oral conditions are compared with oral ones.
-- **Test:** is a condition more similar than typical? One-sided Wilcoxon test. Rows are the conditions with p < 0.05 in at least one comparison, with every study unit.
+- **Test:** is a condition more similar than typical? One-sided Wilcoxon test. Rows are the 5 conditions most significantly similar to each periodontitis signature in the same direction, with every study unit.
 
 ```{r bsdb-semantic-c}
 # similarity ranks among BugSigDB signatures of the same direction and body site group
@@ -979,17 +979,19 @@ similarity_plot <- function(res, perio_dir, dir) {
 comparison_levels <- c("Perio increased\nvs BugSigDB increased", "Perio decreased\nvs BugSigDB decreased",
                        "Perio increased\nvs BugSigDB decreased", "Perio decreased\nvs BugSigDB increased")
 
-similarity_grid <- function(res) {
+similarity_grid <- function(res, n_top = 5) {
   label_comparison <- function(d) {
     d |> mutate(
       comparison = factor(sprintf("Perio %s\nvs BugSigDB %s", perio, direction), levels = comparison_levels),
       opposite = perio != direction
     )
   }
-  # conditions with p < 0.05 in any comparison, ordered by their smallest p
+  # union of the n_top conditions most similar to each periodontitis signature (same direction),
+  # ordered by their smallest p in those two comparisons
   conditions <- res$stats |>
+    filter(perio == direction) |>
+    slice_min(p, n = n_top, by = perio, with_ties = FALSE) |>
     summarise(best = min(p), .by = Condition) |>
-    filter(best < 0.05) |>
     arrange(desc(best)) |>
     pull(Condition)
 
@@ -1027,8 +1029,8 @@ similarity_grid <- function(res) {
 
 ```{r bsdb-semantic-c-fig}
 #| fig-width: 13
-#| fig-height: 7.5
-#| fig-cap: "Which BugSigDB conditions resemble the periodontitis signatures? Columns: similarity to the periodontitis-increased (orange points) or -decreased (blue points) consensus, for BugSigDB signatures of the same direction (white) or the opposite direction (shaded). Similarity is ranked among BugSigDB signatures of the same direction and body site group (0.5 = typical). Rows: conditions with p < 0.05 in at least one column. Small points: study units; large point and bar: mean and 95% confidence interval."
+#| fig-height: 6
+#| fig-cap: "Which BugSigDB conditions resemble the periodontitis signatures? Columns: similarity to the periodontitis-increased (orange points) or -decreased (blue points) consensus, for BugSigDB signatures of the same direction (white) or the opposite direction (shaded). Similarity is ranked among BugSigDB signatures of the same direction and body site group (0.5 = typical). Rows: the 5 conditions most significantly similar to each periodontitis signature (first two columns). Small points: study units; large point and bar: mean and 95% confidence interval."
 similarity_grid(semsim_site)
 ```
 
