@@ -1286,7 +1286,7 @@ semsim_sim |>
 
 - **Colorectal cancer** is the only result significant after FDR correction: its increased signatures are more similar than typical to the periodontitis-increased consensus (mean rank 0.75 over 57 study units, FDR < 0.0001), but not to the periodontitis-decreased one. Its decreased signatures are not more similar to either.
 - **Same direction, nominal only:** increased signatures of gastric cancer, chronic constipation, depression, autism and rheumatoid arthritis resemble periodontitis-increased taxa; decreased signatures of schizophrenia resemble periodontitis-decreased taxa.
-- **Opposite direction, nominal only:** increased signatures of ulcerative colitis, Crohn's disease, COVID-19 and atopic eczema resemble the periodontitis-*decreased* taxa (e.g. oral commensals such as *Streptococcus*, *Rothia* and *Actinomyces* rising in these conditions); decreased signatures of endometriosis, Alzheimer's disease and HIV infection resemble the periodontitis-*increased* taxa.
+- **Opposite direction, nominal only:** increased signatures of ulcerative colitis, Crohn's disease, COVID-19 and atopic eczema resemble the periodontitis-*decreased* taxa (for COVID-19, oral commensals such as *Rothia*, *Actinomyces*, *Streptococcus* and *Granulicatella* are increased); decreased signatures of endometriosis, Alzheimer's disease and HIV infection resemble the periodontitis-*increased* taxa.
 - **Gastric cancer** is nominally more similar to *both* periodontitis signatures (rank 0.65 and 0.73), i.e. generically oral rather than direction-specific, as expected for oral taxa reaching the stomach.
 - Study-level points are spread widely; conditions with 5–15 study units have intervals too wide to say much.
 
