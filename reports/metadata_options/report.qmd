@@ -1221,13 +1221,14 @@ similarity_plot <- function(perio_dir, dir) {
 
 **Shows:** colorectal cancer's increased taxa resemble the periodontitis-increased taxa (FDR < 0.0001); nothing else passes FDR. Gastric cancer resembles both periodontitis signatures, i.e. oral taxa in general.
 
-### Colorectal cancer in detail
+### Taxa shared by periodontitis and colorectal cancer
 
-#### Taxa driving the similarity
+Colorectal cancer's increased consensus, built as for PerioSigDB (binomial test across its studies), against the periodontitis-increased consensus. Cells: Lin similarity (1 = same taxon, outlined; about 0.9 = same genus).
 
-Lines join each periodontitis taxon (left) to its closest taxon in colorectal cancer's increased signatures (right) when they are close relatives (Lin ≥ 0.75) in at least 3 studies; width = studies, darker = closer (black = same taxon). Bold: significantly more similar than typical.
-
-```{r bsdb-taxon-ranks}
+```{r bsdb-crc-consensus}
+#| fig-width: 10
+#| fig-height: 9
+#| fig-cap: "Lin similarity between the taxa increased in periodontitis (PerioSigDB consensus, rows) and in colorectal cancer (consensus, columns). Outlined: the same taxon."
 # precomputed by scripts/bugsigdb_taxon_similarity.R
 taxon_sim <- readRDS("../../output/bugsigdb_taxon_similarity.rds")
 
@@ -1240,105 +1241,6 @@ perio_consensus <- tibble(
   left_join(select(semsim$taxon_tests, id = ids, perio_up = increased, perio_down = decreased), by = "id") |>
   mutate(label = sprintf("%s (%d/%d)", taxon_sim$names[id], perio_up, perio_down))
 
-# closest taxon in each BugSigDB unit to each periodontitis consensus taxon
-unit_taxa <- bsdb_cc_sigs |>
-  mutate(taxon = map(bsdb_cc$`NCBI Taxonomy IDs`[sig], terminal_id)) |>
-  select(unit, taxon) |>
-  unnest(taxon) |>
-  distinct() |>
-  filter(taxon %in% rownames(taxon_sim$sim))
-
-unit_best <- split(unit_taxa$taxon, unit_taxa$unit) |>
-  map(\(t) apply(taxon_sim$sim[t, perio_consensus$id, drop = FALSE], 2, max)) |>
-  bind_rows(.id = "unit") |>
-  mutate(unit = as.integer(unit))
-
-# ranked against all BugSigDB units, then summarised for colorectal cancer
-crc_taxon_ranks <- bsdb_cc_sigs |>
-  distinct(unit, Condition, direction, site_group) |>
-  inner_join(unit_best, by = "unit") |>
-  pivot_longer(starts_with("NCBITaxon"), names_to = "id", values_to = "sim") |>
-  mutate(rank = (rank(sim) - 0.5) / n(), .by = c(direction, site_group, id)) |>
-  filter(Condition == "Colorectal cancer") |>
-  summarise(
-    studies = n_distinct(unit),
-    mean_rank = mean(rank),
-    p = if (n_distinct(rank) > 1) wilcox.test(rank, mu = 0.5, alternative = "greater", exact = FALSE)$p.value else NA,
-    .by = c(direction, id)
-  ) |>
-  mutate(fdr = p.adjust(p, method = "BH"))
-```
-
-```{r bsdb-taxon-ranks-fig}
-#| fig-width: 11
-#| fig-height: 11
-#| fig-cap: "Taxa that make colorectal cancer's increased signatures similar to the PerioSigDB consensus signatures. Lines join each periodontitis taxon to its closest taxon in colorectal cancer studies, when they are close relatives (Lin ≥ 0.75) in at least 3 studies; width = number of studies, darkness = similarity."
-crc_units <- bsdb_cc_sigs |>
-  filter(Condition == "Colorectal cancer", direction == "increased") |>
-  distinct(unit) |>
-  pull()
-
-# closest colorectal cancer taxon to each periodontitis taxon, per study unit
-crc_links <- unit_taxa |>
-  filter(unit %in% crc_units) |>
-  mutate(sim = map(taxon, \(t) tibble(id = perio_consensus$id, sim = taxon_sim$sim[t, perio_consensus$id]))) |>
-  unnest(sim) |>
-  slice_max(sim, n = 1, by = c(unit, id), with_ties = FALSE) |>
-  filter(sim >= 0.75) |>
-  summarise(studies = n(), sim = max(sim), .by = c(id, taxon)) |>
-  filter(studies >= 3)
-
-crc_counts <- unit_taxa |>
-  filter(unit %in% crc_units) |>
-  count(taxon, name = "crc_studies")
-
-left <- perio_consensus |>
-  arrange(desc(taxon_sim$lineage[id])) |>
-  left_join(filter(crc_taxon_ranks, direction == "increased") |> select(id, fdr), by = "id") |>
-  mutate(y = seq_len(n()), significant = !is.na(fdr) & fdr < 0.05)
-
-right <- crc_links |>
-  left_join(select(left, id, y), by = "id") |>
-  summarise(y_mean = weighted.mean(y, studies), .by = taxon) |>
-  left_join(crc_counts, by = "taxon") |>
-  arrange(y_mean) |>
-  mutate(y = seq(1, nrow(left), length.out = n()),
-         label = sprintf("%s (%d)", sub(" <[^>]+>", "", taxon_sim$names[taxon]), crc_studies))
-
-links <- crc_links |>
-  left_join(select(left, id, y_left = y), by = "id") |>
-  left_join(select(right, taxon, y_right = y), by = "taxon")
-
-ggplot() +
-  geom_segment(data = links, aes(x = 0, xend = 1, y = y_left, yend = y_right, linewidth = studies, color = sim),
-               lineend = "round") +
-  geom_point(data = left, aes(x = 0, y = y, fill = perio_direction), shape = 21, size = 2.6, color = "white") +
-  geom_point(data = right, aes(x = 1, y = y), shape = 21, size = 2.6, fill = "#eb6834", color = "white") +
-  geom_text(data = left, aes(x = -0.03, y = y, label = label, fontface = ifelse(significant, "bold.italic", "italic")),
-            hjust = 1, size = 3, color = "grey15") +
-  geom_text(data = right, aes(x = 1.03, y = y, label = label), hjust = 0, size = 3, fontface = "italic", color = "grey15") +
-  annotate("text", x = c(0, 1), y = nrow(left) + 1.8, label = c("PerioSigDB consensus taxa", "Increased in colorectal cancer"),
-           hjust = c(1, 0), fontface = "bold", size = 3.5) +
-  scale_fill_manual(values = c(increased = "#eb6834", decreased = "#2a78d6"), name = "Periodontitis",
-                    guide = guide_legend(override.aes = list(size = 4))) +
-  scale_color_gradient(low = "grey80", high = "grey5", limits = c(0.75, 1), name = "Lin\nsimilarity") +
-  scale_linewidth_continuous(range = c(0.3, 3.5), name = "Studies") +
-  scale_x_continuous(limits = c(-0.9, 1.75), expand = c(0, 0)) +
-  scale_y_continuous(limits = c(0.5, nrow(left) + 2.5), expand = c(0, 0)) +
-  theme_void() +
-  theme(legend.position = "right")
-```
-
-**Shows:** the similarity comes from a handful of periodontal pathogens, often the same species: *Fusobacterium*/*F. nucleatum*, *Peptostreptococcus*, *Parvimonas micra*, *Porphyromonas* and *Prevotella*. Most of the rest of the periodontitis signature is absent.
-
-#### Taxa shared by the consensus signatures
-
-Colorectal cancer's increased consensus, built as for PerioSigDB (binomial test across its studies), against the periodontitis-increased consensus. Cells: Lin similarity (1 = same taxon, outlined; about 0.9 = same genus).
-
-```{r bsdb-crc-consensus}
-#| fig-width: 10
-#| fig-height: 9
-#| fig-cap: "Lin similarity between the taxa increased in periodontitis (PerioSigDB consensus, rows) and in colorectal cancer (consensus, columns). Outlined: the same taxon."
 crc_consensus <- bsdb_cc_sigs |>
   filter(Condition == "Colorectal cancer") |>
   mutate(taxon = map(bsdb_cc$`NCBI Taxonomy IDs`[sig], terminal_id)) |>
