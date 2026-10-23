@@ -921,42 +921,46 @@ semsim <- readRDS("../../output/bugsigdb_semantic_similarity.rds")
 Compares whole signatures at the reported rank (mostly species), without collapsing to genus.
 
 - **PerioSigDB consensus:** taxa significantly more often increased (`r length(semsim$consensus$increased)`) or decreased (`r length(semsim$consensus$decreased)`) in periodontitis (binomial test).
-- **Similarity:** semantic similarity on the NCBI taxonomy (best-match average of Lin similarity, as in BugSigDB's tools), ranked against BugSigDB signatures of the same direction and body site (0.5 = typical).
+- **Similarity:** semantic similarity on the NCBI taxonomy (best-match average of Lin similarity, as in BugSigDB's tools), ranked against BugSigDB signatures of the same direction (0.5 = typical): first against all of them, then only against those from the same body site group.
 - **Test:** is a condition more similar than typical? One-sided Wilcoxon test; filled = FDR < 0.05. Each panel shows the 5 most significant conditions with every study unit.
 
 ```{r bsdb-semantic-c}
-semsim_sim_units <- bsdb_cc_sigs |>
-  inner_join(semsim$similarity, by = c("bsdb_id" = "BSDB ID")) |>
-  summarise(up = mean(sim_increased), down = mean(sim_decreased),
-            .by = c(unit, Condition, direction, site_group)) |>
-  mutate(up = (rank(up) - 0.5) / n(), down = (rank(down) - 0.5) / n(), .by = c(direction, site_group)) |>
-  filter(n() >= 5, .by = c(Condition, direction)) |>
-  pivot_longer(c(up, down), names_to = "perio", values_to = "rank") |>
-  mutate(perio = ifelse(perio == "up", "increased", "decreased"))
+# similarity ranks among BugSigDB signatures of the same direction (and body site group if match_site)
+similarity_ranks <- function(match_site) {
+  units <- bsdb_cc_sigs |>
+    inner_join(semsim$similarity, by = c("bsdb_id" = "BSDB ID")) |>
+    summarise(up = mean(sim_increased), down = mean(sim_decreased),
+              .by = c(unit, Condition, direction, site_group)) |>
+    mutate(up = (rank(up) - 0.5) / n(), down = (rank(down) - 0.5) / n(),
+           .by = all_of(if (match_site) c("direction", "site_group") else "direction")) |>
+    filter(n() >= 5, .by = c(Condition, direction)) |>
+    pivot_longer(c(up, down), names_to = "perio", values_to = "rank") |>
+    mutate(perio = ifelse(perio == "up", "increased", "decreased"))
 
-# one-sided: more similar than typical, within each BugSigDB direction x periodontitis signature
-semsim_sim <- semsim_sim_units |>
-  summarise(
-    studies = n(),
-    mean_rank = mean(rank),
-    ci = 1.96 * sd(rank) / sqrt(n()),
-    p = wilcox.test(rank, mu = 0.5, alternative = "greater", exact = FALSE)$p.value,
-    .by = c(Condition, direction, perio)
-  ) |>
-  mutate(fdr = p.adjust(p, method = "BH"), .by = c(direction, perio))
-```
+  # one-sided: more similar than typical, within each BugSigDB direction x periodontitis signature
+  stats <- units |>
+    summarise(
+      studies = n(),
+      mean_rank = mean(rank),
+      ci = 1.96 * sd(rank) / sqrt(n()),
+      p = wilcox.test(rank, mu = 0.5, alternative = "greater", exact = FALSE)$p.value,
+      .by = c(Condition, direction, perio)
+    ) |>
+    mutate(fdr = p.adjust(p, method = "BH"), .by = c(direction, perio))
 
-```{r bsdb-semantic-c-fig}
-#| fig-width: 14
-#| fig-height: 9
-#| fig-cap: "Which BugSigDB conditions resemble the periodontitis signatures? Left (orange): similarity to the periodontitis-increased consensus; right (blue): to the periodontitis-decreased consensus. Top: BugSigDB signatures of the same direction; bottom: of the opposite direction. Similarity is ranked among BugSigDB signatures of the same direction and body site group (0.5 = typical). For each comparison, the 5 conditions most significantly more similar than typical are shown, with the number of study units in brackets. Small points: study units; large point and bar: mean and 95% confidence interval (filled: FDR < 0.05)."
-similarity_plot <- function(perio_dir, dir) {
-  shown <- semsim_sim |>
+  list(units = units, stats = stats)
+}
+
+semsim_all <- similarity_ranks(match_site = FALSE)
+semsim_site <- similarity_ranks(match_site = TRUE)
+
+similarity_plot <- function(res, perio_dir, dir) {
+  shown <- res$stats |>
     filter(perio == perio_dir, direction == dir) |>
     slice_min(p, n = 5, with_ties = FALSE) |>
     mutate(label = paste0(Condition, " (", studies, ")\np = ", signif(p, 2), ", FDR = ", signif(fdr, 2)),
            label = fct_reorder(label, -p))
-  points <- inner_join(semsim_sim_units, select(shown, Condition, direction, perio, label),
+  points <- inner_join(res$units, select(shown, Condition, direction, perio, label),
                        by = c("Condition", "direction", "perio"))
 
   ggplot(shown, aes(y = label)) +
@@ -973,12 +977,33 @@ similarity_plot <- function(perio_dir, dir) {
     theme(plot.title = element_text(face = "bold", size = 11), plot.subtitle = element_text(size = 10, color = "grey35"))
 }
 
-(similarity_plot("increased", "increased") | similarity_plot("decreased", "decreased")) /
-  (similarity_plot("increased", "decreased") | similarity_plot("decreased", "increased"))
+similarity_panels <- function(res) {
+  (similarity_plot(res, "increased", "increased") | similarity_plot(res, "decreased", "decreased")) /
+    (similarity_plot(res, "increased", "decreased") | similarity_plot(res, "decreased", "increased"))
+}
 ```
 
+```{r bsdb-semantic-all-fig}
+#| fig-width: 14
+#| fig-height: 9
+#| fig-cap: "Which BugSigDB conditions resemble the periodontitis signatures? Left (orange): similarity to the periodontitis-increased consensus; right (blue): to the periodontitis-decreased consensus. Top: BugSigDB signatures of the same direction; bottom: of the opposite direction. Similarity is ranked among all BugSigDB signatures of the same direction (0.5 = typical). For each comparison, the 5 conditions most significantly more similar than typical are shown, with the number of study units in brackets. Small points: study units; large point and bar: mean and 95% confidence interval (filled: FDR < 0.05)."
+similarity_panels(semsim_all)
+```
 
-**Shows:** colorectal cancer's increased taxa resemble the periodontitis-increased taxa (FDR < 0.0001); nothing else passes FDR. Gastric cancer resembles both periodontitis signatures, i.e. oral taxa in general.
+**Shows:** colorectal cancer's increased taxa resemble the periodontitis-increased taxa (FDR < 0.0001), the only result passing FDR. Without body site matching, oral conditions also rise to the top, though not significantly: decreased signatures of smoking, rheumatoid arthritis and squamous cell carcinoma resemble the periodontitis-decreased taxa (loss of oral commensals), and smoking's increased signatures resemble the periodontitis-increased taxa.
+
+#### Compared with signatures from the same body sites
+
+As above, but each signature is ranked only against BugSigDB signatures of the same direction and body site group, so oral conditions are compared with oral ones.
+
+```{r bsdb-semantic-c-fig}
+#| fig-width: 14
+#| fig-height: 9
+#| fig-cap: "As the previous figure, but similarity is ranked among BugSigDB signatures of the same direction and body site group."
+similarity_panels(semsim_site)
+```
+
+**Shows:** colorectal cancer remains (FDR < 0.0001) and the oral conditions drop out, as in the site-matched enrichment. Gastric cancer resembles both periodontitis signatures, i.e. oral taxa in general.
 
 ### Taxa shared by periodontitis and colorectal cancer
 
