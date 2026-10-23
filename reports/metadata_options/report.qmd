@@ -305,92 +305,13 @@ table1 |>
   kable_styling(bootstrap_options = c("striped", "condensed"), full_width = TRUE)
 ```
 
-**Shows:** the conventional "Table 1" in compact form, with both the between-study spread and a subject-weighted pooled mean. It pairs naturally with Option 2 or Option 4.
+**Shows:** the conventional "Table 1" in compact form, with both the between-study spread and a subject-weighted pooled mean. It pairs naturally with Option 2.
 
 **Caveat:** the pooled means ignore within-study variance and differences in measurement protocol (e.g. full-mouth vs sampled sites).
 
-## Option 4: Pooled effect sizes
-
-```{r effect-sizes}
-# Hedges' g (continuous) and log odds ratios (males, smokers) per study,
-# pooled with a DerSimonian-Laird random-effects model
-hedges_g <- function(m1, s1, n1, m0, s0, n0) {
-  sp <- sqrt(((n1 - 1) * s1^2 + (n0 - 1) * s0^2) / (n1 + n0 - 2))
-  g <- (1 - 3 / (4 * (n1 + n0) - 9)) * (m1 - m0) / sp
-  tibble(yi = g, vi = (n1 + n0) / (n1 * n0) + g^2 / (2 * (n1 + n0)))
-}
-
-log_or <- function(x1, n1, x0, n0) {
-  cc <- ifelse(x1 == 0 | x0 == 0 | x1 == n1 | x0 == n0, 0.5, 0)
-  a <- x1 + cc; b <- n1 - x1 + cc; c <- x0 + cc; d <- n0 - x0 + cc
-  tibble(yi = log(a * d / (b * c)), vi = 1 / a + 1 / b + 1 / c + 1 / d)
-}
-
-dersimonian_laird <- function(yi, vi) {
-  w <- 1 / vi
-  k <- length(yi)
-  q <- sum(w * (yi - sum(w * yi) / sum(w))^2)
-  tau2 <- max(0, (q - (k - 1)) / (sum(w) - sum(w^2) / sum(w)))
-  ws <- 1 / (vi + tau2)
-  est <- sum(ws * yi) / sum(ws)
-  se <- sqrt(1 / sum(ws))
-  tibble(k = k, est = est, lo = est - 1.96 * se, hi = est + 1.96 * se,
-         i2 = ifelse(q > 0, max(0, (q - (k - 1)) / q), 0))
-}
-
-per_study <- bind_rows(
-  paired |>
-    filter(!feature %in% c("males", "smokers"),
-           !is.na(sd_Health), !is.na(sd_Periodontitis), !is.na(n_Health), !is.na(n_Periodontitis),
-           sd_Health > 0 | sd_Periodontitis > 0) |>
-    mutate(hedges_g(mean_Periodontitis, sd_Periodontitis, n_Periodontitis,
-                    mean_Health, sd_Health, n_Health), scale = "Hedges' g"),
-  paired |>
-    filter(feature %in% c("males", "smokers"), !is.na(num_Health), !is.na(num_Periodontitis),
-           # no contrast when both groups exclude smokers
-           num_Health + num_Periodontitis > 0) |>
-    mutate(log_or(num_Periodontitis, n_Periodontitis, num_Health, n_Health), scale = "Odds ratio")
-)
-
-pooled_effects <- per_study |>
-  summarise(dersimonian_laird(yi, vi), .by = c(label, scale)) |>
-  mutate(across(c(est, lo, hi), ~ ifelse(scale == "Odds ratio", exp(.x), .x)))
-```
-
-```{r effect-sizes-fig}
-#| fig-width: 12
-#| fig-height: 4.5
-#| fig-cap: "Pooled difference between periodontitis and health groups (random-effects meta-analysis across studies, 95% CI). Left: standardized mean difference (Hedges' g) for continuous measures. Right: odds ratio of being male or a smoker in the periodontitis group. k = number of studies; I² = share of variability due to between-study heterogeneity."
-
-effect_plot <- function(d, xlab, ref, log = FALSE) {
-  p <- ggplot(d, aes(x = est, y = fct_rev(label))) +
-    geom_vline(xintercept = ref, color = "grey50", linetype = "dashed") +
-    geom_errorbarh(aes(xmin = lo, xmax = hi), height = 0, linewidth = 0.8, color = pal_group[["Periodontitis"]]) +
-    geom_point(size = 3, color = pal_group[["Periodontitis"]]) +
-    geom_text(aes(x = hi, label = sprintf("k = %d, I² = %d%%", k, round(100 * i2))),
-              hjust = -0.1, size = 3, color = "grey30") +
-    labs(x = xlab, y = NULL) +
-    scale_x_continuous(expand = expansion(mult = c(0.05, 0.35)))
-  if (log) p <- p + scale_x_log10(expand = expansion(mult = c(0.05, 0.9)))
-  p
-}
-
-effect_plot(filter(pooled_effects, scale == "Hedges' g"), "Hedges' g (periodontitis − health)", 0) +
-  effect_plot(filter(pooled_effects, scale == "Odds ratio"), "Odds ratio (periodontitis vs health)", 1, log = TRUE) +
-  plot_layout(widths = c(2, 1))
-```
-
-**Shows:** one standardized number per measure, so measures on different scales can be compared directly. The I² values make the heterogeneity explicit, and the odds ratios make the age, sex and smoking confounding concrete.
-
-**Caveats:**
-
-- This only includes studies that report SDs (or counts).
-- Standardized effects of clinical measures are very large, because healthy groups are defined by low PD, CAL and BOP. The effect partly reflects case definitions rather than biology.
-- Some SDs come from SEM conversions or pooled subgroups (see `manual_corrections.csv`).
-
 # Variation within periodontitis groups
 
-## Option 5: Disease severity by periodontitis classification
+## Option 4: Disease severity by periodontitis classification
 
 ```{r within-perio}
 #| fig-width: 13
@@ -414,7 +335,7 @@ ggplot(within, aes(x = classification, y = mean, color = classification)) +
 
 **Caveat:** some groups have few studies (e.g. refractory n = 1). PD/CAL are sometimes from sampled sites only, which inflates them.
 
-## Option 6: Trends over publication year
+## Option 5: Trends over publication year
 
 ```{r trends}
 #| fig-width: 13
@@ -436,7 +357,7 @@ within |>
 
 # Study characteristics
 
-## Option 7: Periodontitis classification over time and by method
+## Option 6: Periodontitis classification over time and by method
 
 ```{r classification}
 #| fig-width: 13
@@ -473,7 +394,7 @@ pA + pB + plot_layout(widths = c(1.2, 1))
 
 **Caveat:** "Not specified" is large. Many older studies define periodontitis only by PD/CAL thresholds.
 
-## Option 8: Systemic condition of participants
+## Option 7: Systemic condition of participants
 
 ```{r systemic}
 #| fig-width: 10
@@ -508,60 +429,9 @@ studies |>
 
 **Caveat:** this is unknown for about half the studies until the curators fill it in. It might work better as a table than a figure.
 
-## Option 9: Sample size by profiling method
-
-```{r sample-size}
-#| fig-width: 11
-#| fig-height: 5
-#| fig-cap: "Total participants per study (health + periodontitis, log scale) by publication year, colored by profiling method."
-
-studies |>
-  mutate(total = `Group 0 sample size` + `Group 1 sample size`) |>
-  filter(!is.na(total)) |>
-  ggplot(aes(x = Year, y = total)) +
-  geom_point(aes(fill = method), shape = 21, color = "white", size = 3, stroke = 0.4) +
-  scale_y_log10() +
-  scale_fill_manual(values = pal_method) +
-  labs(x = "Publication year", y = "Participants (log scale)")
-```
-
-**Shows:** sequencing studies are typically small, while checkerboard and PCR studies include hundreds of subjects. This is relevant for weighting signatures, or for reading differences between methods.
-
-**Caveat:** participants are not samples. Many studies analyse several sites per subject (pooled or not).
-
-## Option 10: Group imbalance in age and smoking
-
-```{r imbalance}
-#| fig-width: 9
-#| fig-height: 6.5
-#| fig-cap: "Difference between periodontitis and health groups in mean age (x) and % smokers (y), one point per study reporting both for both groups (studies excluding smokers from both groups omitted). Studies with the largest differences are labelled."
-
-imbalance <- paired |>
-  filter(feature %in% c("age", "smokers")) |>
-  transmute(Study, feature, diff = mean_Periodontitis - mean_Health) |>
-  pivot_wider(names_from = feature, values_from = diff) |>
-  filter(!is.na(age), !is.na(smokers)) |>
-  left_join(select(studies, Study, classification), by = "Study") |>
-  mutate(label = ifelse(abs(smokers) > 40 | abs(age) > 25 | age < -5, sub("Study ", "", Study), NA))
-
-ggplot(imbalance, aes(x = age, y = smokers)) +
-  geom_hline(yintercept = 0, color = "grey60") +
-  geom_vline(xintercept = 0, color = "grey60") +
-  geom_point(aes(fill = classification), shape = 21, color = "white", size = 3, stroke = 0.5) +
-  geom_text_repel(aes(label = label), size = 3, color = "grey25", min.segment.length = 0) +
-  scale_fill_manual(values = pal_class) +
-  labs(x = "Age difference, years (periodontitis − health)",
-       y = "Smokers difference, percentage points") +
-  guides(fill = guide_legend(nrow = 2))
-```
-
-**Shows:** age and smoking imbalances in a single view. Most studies have older periodontitis groups and many also have more smokers. (The periodontitis-resistant cohorts with older controls, 1752/1818/1897, don't report smoking for controls, so they are not shown; their age inversion is visible in Option 2.) These are the two main confounders of periodontitis signatures.
-
-**Caveat:** many studies don't report smoking for both groups, often because smokers were excluded entirely.
-
 # Metadata and signature content
 
-## Option 11: Signature content by study characteristics
+## Option 8: Signature content by study characteristics
 
 ```{r signature-content}
 #| fig-width: 13
@@ -653,7 +523,7 @@ sig_genera <- function(d) {
 
 PerioSigDB uses BugSigDB's format, so its signatures can be set against the rest of the microbiome literature. These options use the BugSigDB export of `r bsdb_version`, with `r n_distinct(bsdb$PMID)` studies and `r nrow(bsdb)` signatures across all conditions and body sites. BugSigDB's own periodontitis signatures (`r nrow(bsdb) - nrow(bsdb_other)`) are excluded throughout.
 
-## Option 12: Profiling methods and taxonomic resolution
+## Option 9: Profiling methods and taxonomic resolution
 
 ```{r bsdb-methods}
 #| fig-width: 13
@@ -708,9 +578,9 @@ stack_bar(methods_db, method, pal_method, "A") +
   plot_layout(widths = c(1.3, 1))
 ```
 
-**Shows:** PerioSigDB is dominated by targeted assays (checkerboard DNA–DNA hybridization and PCR) that report named species, whereas BugSigDB is mostly 16S and shotgun sequencing reported at genus level. This is the main structural difference between the two databases. It is why Option 14 compares them at genus level.
+**Shows:** PerioSigDB is dominated by targeted assays (checkerboard DNA–DNA hybridization and PCR) that report named species, whereas BugSigDB is mostly 16S and shotgun sequencing reported at genus level. This is the main structural difference between the two databases. It is why Option 11 compares them at genus level.
 
-## Option 13: Metadata captured by each database
+## Option 10: Metadata captured by each database
 
 ```{r bsdb-fields}
 #| fig-width: 10
@@ -775,7 +645,7 @@ ggplot(fields_db, aes(x = db, y = field)) +
 - A filled field is not necessarily a complete one (e.g. "Matched on" can list only some of the variables).
 - PerioSigDB's lower sequencing type completeness is mostly checkerboard hybridization, which has no sequencing type in BugSigDB's vocabulary.
 
-## Option 14: PerioSigDB taxa across other conditions
+## Option 11: PerioSigDB taxa across other conditions
 
 ```{r bsdb-conditions-data}
 # genera with the most consistent direction in PerioSigDB: exact binomial test of increased vs
@@ -1300,17 +1170,14 @@ tribble(
   "1. Completeness heatmap", "What metadata are available?", "Heatmap (fields × studies)", "Good supplementary figure; frames all others",
   "2. Paired comparison", "How do health and periodontitis groups differ?", "Paired slopes, small multiples", "Recommended main figure",
   "3. Summary table", "Typical values per group", "Table", "Recommended main table; pairs with 2",
-  "4. Pooled effect sizes", "Standardized size of each difference", "Meta-analytic dot plot", "Makes heterogeneity (I²) explicit",
-  "5. Severity by classification", "Is 'periodontitis' comparable across studies?", "Beeswarm, small multiples", "Recommended for within-periodontitis variation",
-  "6. Trends over time", "Have cohorts changed over time?", "Scatter + trend", "Year confounded with method",
-  "7. Classification", "How was periodontitis defined?", "Stacked bars + count tile", "Context for stratification",
-  "8. Systemic condition", "Are comorbid populations included?", "Bar chart", "Half not recorded yet",
-  "9. Sample size", "How large are studies by method?", "Scatter (log)", "Supports weighting decisions",
-  "10. Group imbalance", "Age and smoking confounding", "Scatter with quadrants", "Compact confounding summary",
-  "11. Signature content", "Do metadata relate to signatures?", "Scatter + bars", "Exploratory; needs taxa-assessed data",
-  "12. Methods and resolution", "How do PerioSigDB and BugSigDB differ structurally?", "Stacked bars", "Explains species vs genus mismatch",
-  "13. Metadata fields", "What does each database record?", "Dot matrix", "Shows complementary fields and gaps",
-  "14. Taxa across conditions", "Where do periodontitis-linked genera appear elsewhere?", "Genus heatmaps, similarity dot plots, colorectal cancer heatmaps", "Most novel; site-matched enrichment most defensible"
+  "4. Severity by classification", "Is 'periodontitis' comparable across studies?", "Beeswarm, small multiples", "Recommended for within-periodontitis variation",
+  "5. Trends over time", "Have cohorts changed over time?", "Scatter + trend", "Year confounded with method",
+  "6. Classification", "How was periodontitis defined?", "Stacked bars + count tile", "Context for stratification",
+  "7. Systemic condition", "Are comorbid populations included?", "Bar chart", "Half not recorded yet",
+  "8. Signature content", "Do metadata relate to signatures?", "Scatter + bars", "Exploratory; needs taxa-assessed data",
+  "9. Methods and resolution", "How do PerioSigDB and BugSigDB differ structurally?", "Stacked bars", "Explains species vs genus mismatch",
+  "10. Metadata fields", "What does each database record?", "Dot matrix", "Shows complementary fields and gaps",
+  "11. Taxa across conditions", "Where do periodontitis-linked genera appear elsewhere?", "Genus heatmaps, similarity dot plots, colorectal cancer heatmap", "Most novel; site-matched enrichment most defensible"
 ) |>
   kbl(caption = "Candidate figures and tables.") |>
   kable_styling(bootstrap_options = c("striped", "condensed"), full_width = TRUE)
@@ -1318,6 +1185,6 @@ tribble(
 
 **Suggested combination:**
 
-- **Main text:** Option 2 (paired comparison) with Option 3 (summary table), plus Option 5 (severity by classification).
-- **Supplement:** Option 1 (completeness), with Option 4 or 10 to address confounding.
-- **Positioning against BugSigDB:** Option 13 (complementary metadata) and Option 14 (taxa across conditions).
+- **Main text:** Option 2 (paired comparison) with Option 3 (summary table), plus Option 4 (severity by classification).
+- **Supplement:** Option 1 (completeness).
+- **Positioning against BugSigDB:** Option 10 (complementary metadata) and Option 11 (taxa across conditions).
