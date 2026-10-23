@@ -1003,7 +1003,7 @@ As above, but each signature is ranked only against BugSigDB signatures of the s
 similarity_panels(semsim_site)
 ```
 
-**Shows:** colorectal cancer remains (FDR < 0.0001) and the oral conditions drop out, as in the site-matched enrichment. Gastric cancer resembles both periodontitis signatures, i.e. oral taxa in general.
+**Shows:** colorectal cancer remains (FDR < 0.0001) while smoking and squamous cell carcinoma drop out, as in the site-matched enrichment. Gastric cancer resembles both periodontitis signatures, i.e. oral taxa in general.
 
 ### Taxa shared by periodontitis and colorectal cancer
 
