@@ -1216,12 +1216,14 @@ Versions A–B work with genera. Versions C and C2 instead compare **whole signa
 - **Test:** mean rank against 0.5, two-sided Wilcoxon test, Benjamini–Hochberg across all conditions with at least 5 study units. The figure shows the 5 most significant conditions in each direction (same as and opposite to periodontitis), with 95% confidence intervals; filled points have FDR < 0.05.
 
 ```{r bsdb-semantic-c}
-semsim_dir <- bsdb_cc_sigs |>
+semsim_dir_units <- bsdb_cc_sigs |>
   inner_join(semsim$similarity, by = c("bsdb_id" = "BSDB ID")) |>
   mutate(score = ifelse(direction == "increased", sim_increased - sim_decreased, sim_decreased - sim_increased)) |>
   summarise(score = mean(score), .by = c(unit, Condition, direction, site_group)) |>
   mutate(rank = (rank(score) - 0.5) / n(), .by = c(direction, site_group)) |>
-  filter(n() >= 5, .by = Condition) |>
+  filter(n() >= 5, .by = Condition)
+
+semsim_dir <- semsim_dir_units |>
   summarise(
     studies = n(),
     mean_rank = mean(rank),
@@ -1233,31 +1235,38 @@ semsim_dir <- bsdb_cc_sigs |>
 ```
 
 ```{r bsdb-semantic-c-fig}
-#| fig-width: 9
-#| fig-height: 4.5
-#| fig-cap: "Direction score of BugSigDB conditions: how much more their signatures resemble the periodontitis signature of the same direction than the opposite one, as mean rank among studies of the same direction and body site group (0.5 = typical). The 5 most significant conditions on each side of 0.5 are shown, with the number of study units in brackets. Filled: FDR < 0.05."
-# 5 most significant conditions in each direction
+#| fig-width: 10
+#| fig-height: 7
+#| fig-cap: "Direction score of BugSigDB conditions: how much more their signatures resemble the periodontitis signature of the same direction than the opposite one, ranked among studies of the same direction and body site group (0.5 = typical). The 5 most significant conditions on each side of 0.5 are shown, most significant at the top, with the number of study units in brackets. Small points: study units, coloured by signature direction; large point and bar: mean and 95% confidence interval (filled: FDR < 0.05)."
+# 5 most significant conditions in each direction, ordered by p-value
 c_shown <- semsim_dir |>
-  mutate(side = ifelse(mean_rank > 0.5, "same", "opposite")) |>
-  slice_min(p, n = 5, by = side)
+  mutate(side = factor(ifelse(mean_rank > 0.5, "Same as periodontitis", "Opposite to periodontitis"),
+                       levels = c("Same as periodontitis", "Opposite to periodontitis"))) |>
+  slice_min(p, n = 5, by = side) |>
+  mutate(label = paste0(Condition, " (", studies, ")\np = ", signif(p, 2), ", FDR = ", signif(fdr, 2)),
+         label = fct_reorder(label, -p))
 
-c_shown |>
-  mutate(label = fct_reorder(paste0(Condition, " (", studies, ")"), mean_rank)) |>
-  ggplot(aes(x = mean_rank, y = label)) +
+c_points <- inner_join(semsim_dir_units, select(c_shown, Condition, side, label), by = "Condition")
+
+ggplot(c_shown, aes(y = label)) +
   geom_vline(xintercept = 0.5, color = "grey50", linetype = "dashed") +
-  geom_errorbarh(aes(xmin = mean_rank - ci, xmax = mean_rank + ci), height = 0, color = "grey60") +
-  geom_point(aes(fill = fdr < 0.05), shape = 21, size = 3, color = "grey15") +
-  scale_fill_manual(values = c(`TRUE` = "grey15", `FALSE` = "white"), guide = "none") +
-  annotate("text", x = c(0.12, 0.88), y = nrow(c_shown) + 1, label = c("← opposite to periodontitis", "same as periodontitis →"),
-           hjust = c(0, 1), vjust = 0, size = 3.2, color = "grey35") +
-  scale_y_discrete(expand = expansion(add = c(0.6, 1.6))) +
-  labs(x = "Direction score (mean rank; 0.5 = typical)", y = NULL)
+  geom_quasirandom(data = c_points, aes(x = rank, color = direction), orientation = "y", width = 0.3, size = 1.1,
+                   alpha = 0.75) +
+  scale_color_manual(values = c(increased = "#eb6834", decreased = "#2a78d6"), name = "Signature",
+                     guide = guide_legend(override.aes = list(size = 3, alpha = 1))) +
+  geom_errorbarh(aes(xmin = mean_rank - ci, xmax = mean_rank + ci), height = 0, linewidth = 0.8, color = "grey10") +
+  geom_point(aes(x = mean_rank, fill = fdr < 0.05), shape = 21, size = 3.5, color = "grey10", stroke = 0.8) +
+  scale_fill_manual(values = c(`TRUE` = "grey10", `FALSE` = "white"), guide = "none") +
+  scale_x_continuous(limits = c(0, 1)) +
+  facet_grid(side ~ ., scales = "free_y", space = "free_y") +
+  labs(x = "Direction score (rank among studies of the same direction and body site group; 0.5 = typical)", y = NULL) +
+  theme(strip.text.y = element_text(angle = 0, face = "bold", hjust = 0))
 ```
 
 ```{r bsdb-semantic-c-table}
 semsim_dir |>
   filter(p < 0.05) |>
-  arrange(desc(mean_rank)) |>
+  arrange(p) |>
   transmute(Condition, `Study units` = studies, `Mean rank` = round(mean_rank, 2), p = signif(p, 2), FDR = signif(fdr, 2)) |>
   kbl(caption = "Conditions with p < 0.05 in Version C.") |>
   kable_styling(bootstrap_options = c("striped", "condensed"), full_width = FALSE)
@@ -1269,6 +1278,7 @@ semsim_dir |>
 - **Same direction, nominal only:** chronic constipation and cervical glandular intraepithelial neoplasia.
 - **Opposite direction, nominal only:** Parkinson's disease, obesity, COVID-19, endometriosis and ulcerative colitis. None passes FDR.
 - Most conditions sit close to 0.5, so a periodontitis-like direction is not a generic feature of disease signatures.
+- **The study-level points are spread widely**, and the signal in each condition comes from one direction: colorectal cancer's increased signatures (mean rank 0.71; decreased 0.53), Parkinson's disease's and COVID-19's increased signatures (0.41 and 0.37), and obesity's decreased signatures (0.34). Version C2 shows the same split.
 
 Version C2 breaks these results down to see which periodontitis signature drives them, and the tabs below compare the conditions' own consensus signatures with PerioSigDB's.
 
