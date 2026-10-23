@@ -35,3 +35,4 @@ output/perio_bugs_corrected.*
 reports/metadata_options/report.html
 reports/metadata_options/report_files/*
 output/bugsigdb_semantic_similarity.rds
+output/bugsigdb_taxon_similarity.rds
