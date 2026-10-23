@@ -1403,14 +1403,14 @@ ggplot() +
 
 **Colorectal cancer consensus signatures.** Built the same way as for PerioSigDB: taxa, at their reported rank, that colorectal cancer's disease-vs-control studies report significantly more often in one direction than the other (exact binomial test, p < 0.05; each study counted once per direction). The heatmap compares them taxon by taxon with the PerioSigDB consensus taxa, in the style of Figure 2c/e of the BugSigDB paper.
 
-- **Rows:** PerioSigDB consensus taxa; **columns:** colorectal cancer consensus taxa, both grouped by direction and ordered by taxonomy. In brackets: studies reporting the taxon increased / decreased.
-- **Cells:** Lin similarity of the two taxa (1 = same taxon, outlined in yellow; about 0.9 = same genus; about 0.5 = same family or order; below about 0.3 = different class or phylum).
-- **Blocks:** periodontitis increased × colorectal cancer increased and periodontitis decreased × colorectal cancer decreased are the same direction; the other two are the opposite direction.
+- **Rows:** taxa increased in periodontitis (PerioSigDB consensus); **columns:** taxa increased in colorectal cancer (its consensus), both ordered by taxonomy. In brackets: studies reporting the taxon increased / decreased.
+- **Cells:** Lin similarity of the two taxa (1 = same taxon, outlined; about 0.9 = same genus; about 0.5 = same family or order; below about 0.3 = different class or phylum).
+- Only the increased signatures are shown, as that is where colorectal cancer resembles periodontitis (Version C). The colorectal cancer decreased consensus is only *Faecalibacterium* and *F. prausnitzii*, unrelated to either periodontitis signature.
 
 ```{r bsdb-crc-consensus}
-#| fig-width: 12
-#| fig-height: 11
-#| fig-cap: "Lin similarity between the PerioSigDB consensus taxa (rows) and the colorectal cancer consensus taxa (columns). Outlined: the same taxon."
+#| fig-width: 10
+#| fig-height: 9
+#| fig-cap: "Lin similarity between the taxa increased in periodontitis (PerioSigDB consensus, rows) and in colorectal cancer (consensus, columns). Outlined: the same taxon."
 crc_consensus <- bsdb_cc_sigs |>
   filter(Condition == "Colorectal cancer") |>
   mutate(taxon = map(bsdb_cc$`NCBI Taxonomy IDs`[sig], terminal_id)) |>
@@ -1426,30 +1426,26 @@ crc_consensus <- bsdb_cc_sigs |>
   filter(p < 0.05, taxon %in% rownames(taxon_sim$sim)) |>
   mutate(label = sprintf("%s (%d/%d)", sub(" <[^>]+>", "", taxon_sim$names[taxon]), increased, decreased))
 
-tidyr::expand_grid(select(perio_consensus, id, perio_direction, row = label),
-                   select(crc_consensus, taxon, direction, col = label)) |>
+perio_up <- filter(perio_consensus, perio_direction == "increased")
+crc_up <- filter(crc_consensus, direction == "increased")
+
+tidyr::expand_grid(select(perio_up, id, row = label), select(crc_up, taxon, col = label)) |>
   mutate(
     sim = taxon_sim$sim[cbind(taxon, id)],
-    row = factor(row, levels = rev(perio_consensus$label[order(taxon_sim$lineage[perio_consensus$id])])),
-    col = factor(col, levels = crc_consensus$label[order(taxon_sim$lineage[crc_consensus$taxon])]),
-    perio_direction = factor(paste("Periodontitis", perio_direction),
-                             levels = paste("Periodontitis", c("increased", "decreased"))),
-    direction = factor(paste("Colorectal cancer", direction),
-                       levels = paste("Colorectal cancer", c("increased", "decreased")))
+    row = factor(row, levels = rev(perio_up$label[order(taxon_sim$lineage[perio_up$id])])),
+    col = factor(col, levels = crc_up$label[order(taxon_sim$lineage[crc_up$taxon])])
   ) |>
   ggplot(aes(x = col, y = row, fill = sim)) +
   geom_tile(color = "white", linewidth = 0.3) +
-  geom_tile(data = \(d) filter(d, sim > 0.999), color = "#eda100", linewidth = 0.9, fill = NA) +
-  scale_fill_gradient(low = "#f4f4f2", high = "#262626", limits = c(0, 1), name = "Lin\nsimilarity") +
-  facet_grid(perio_direction ~ direction, scales = "free", space = "free", labeller = label_wrap_gen(14)) +
-  labs(x = NULL, y = NULL) +
+  geom_tile(data = \(d) filter(d, sim > 0.999), color = "grey10", linewidth = 0.9, fill = NA) +
+  scale_fill_gradient(low = "#f7f3f1", high = "#c0392b", limits = c(0, 1), name = "Lin\nsimilarity") +
+  labs(x = "Increased in colorectal cancer (consensus)", y = "Increased in periodontitis (PerioSigDB consensus)") +
   theme(axis.text.x = element_text(angle = 50, hjust = 1, face = "italic"),
         axis.text.y = element_text(face = "italic"),
         panel.grid = element_blank(), strip.text = element_text(face = "bold"))
 ```
 
-- **Increased:** the colorectal cancer increased consensus (`r sum(crc_consensus$direction == "increased")` taxa) shares five taxa exactly with the periodontitis-increased consensus (*Prevotella intermedia*, *Fusobacterium nucleatum*, *Peptostreptococcus*, *P. stomatis*, *Parvimonas micra*), and several more are close relatives (*Porphyromonas*, *P. asaccharolytica*, Porphyromonadaceae, *Fusobacterium*, *Parvimonas*, *P. anaerobius*). *Gemella* and *G. morbillorum* are closest to the periodontitis-*decreased* *G. haemolysans*. The rest (*Bacteroides fragilis*, *Solobacterium moorei*, *[Clostridium] symbiosum*, Enterobacteriaceae) are typical gut colorectal cancer taxa with only distant periodontitis relatives.
-- **Decreased:** the colorectal cancer decreased consensus (`r sum(crc_consensus$direction == "decreased")` taxa) is *Faecalibacterium* (and *F. prausnitzii*), unrelated to either periodontitis signature.
+- **Increased:** the colorectal cancer increased consensus (`r sum(crc_consensus$direction == "increased")` taxa) shares five taxa exactly with the periodontitis-increased consensus (*Prevotella intermedia*, *Fusobacterium nucleatum*, *Peptostreptococcus*, *P. stomatis*, *Parvimonas micra*), and several more are close relatives (*Porphyromonas*, *P. asaccharolytica*, Porphyromonadaceae, *Fusobacterium*, *Parvimonas*, *P. anaerobius*). *Gemella* and *G. morbillorum* have no close periodontitis-increased relative (their closest periodontitis taxon is the periodontitis-*decreased* *G. haemolysans*). The rest (*Bacteroides fragilis*, *Solobacterium moorei*, *[Clostridium] symbiosum*, Enterobacteriaceae) are typical gut colorectal cancer taxa with only distant periodontitis relatives.
 
 The next heatmap gives colorectal cancer's mean similarity rank for every periodontitis taxon, for its increased and decreased signatures (\* FDR < 0.05; one-sided Wilcoxon test of mean rank > 0.5, Benjamini–Hochberg across all cells).
 
