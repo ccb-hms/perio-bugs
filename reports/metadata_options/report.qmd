@@ -1290,27 +1290,20 @@ semsim_sim |>
 
 **Caveat:** raw semantic similarity mostly reflects broad taxonomy. For example, in fecal studies BugSigDB's *decreased* signatures are more similar to the periodontitis-*increased* consensus than to the decreased one, because gut taxa are mostly anaerobes like the periodontal pathogens, whereas the periodontitis-decreased taxa are oral aerobes. Ranking within body site group and direction removes most of this, but not all.
 
-#### Which periodontitis taxa drive the similarity
+#### Colorectal cancer: what drives the similarity
 
-Version C scores whole signatures. The heatmap splits that score into the individual PerioSigDB consensus taxa, for each condition with p < 0.05 in Version C.
+Colorectal cancer is the only condition significant in Version C, through its increased signatures. The figure shows which taxa in those signatures make them similar to the periodontitis signatures.
 
-- **Per-taxon similarity:** for each BugSigDB study unit and each PerioSigDB consensus taxon, the Lin similarity of the closest taxon in the unit's signature (1 = the unit reports that taxon; about 0.9 = same genus; about 0.5 = same family or order). This is one half of the best-match average used in Version C.
-- **Rank:** as in Version C, each unit is ranked among all BugSigDB units of the same direction and body site group, separately for each periodontitis taxon (0.5 = typical).
-- **Cells:** the condition's mean rank for that taxon; darker means the condition's studies report that taxon, or close relatives, more often than typical. Dots mark p < 0.05 (one-sided Wilcoxon test of mean rank > 0.5, not corrected for multiple testing).
-- **Rows:** the PerioSigDB consensus taxa, the same in every column, grouped into periodontitis increased and decreased and ordered by taxonomy. In brackets: PerioSigDB studies reporting the taxon increased / decreased.
-- **Columns:** conditions, split by BugSigDB increased and decreased signatures, with the number of study units in brackets. Periodontitis increased × BugSigDB increased and periodontitis decreased × BugSigDB decreased are the same direction; the other two blocks are the opposite direction.
+- **Left:** the PerioSigDB consensus taxa (orange: increased in periodontitis; blue: decreased), ordered by taxonomy. In brackets: PerioSigDB studies reporting the taxon increased / decreased. **Bold:** colorectal cancer's increased signatures are significantly more similar than typical to this taxon (FDR < 0.05; see below).
+- **Right:** taxa reported as increased in colorectal cancer, with the number of colorectal cancer studies reporting them.
+- **Lines:** for each periodontitis taxon, Version C matches it with its closest taxon in each colorectal cancer study. A line joins it to that closest taxon when they are close relatives (Lin similarity ≥ 0.75; in practice the same taxon, the same genus, or a species of the same genus) in at least 3 studies. Line width is the number of studies in which that taxon was the closest match; darker lines are closer relatives (black = the same taxon).
+- Periodontitis taxa without lines have no close relative in most colorectal cancer studies. A few are still bold (e.g. *Filifactor alocis*): their higher-than-typical similarity comes from more distant relatives in many studies (here other Peptostreptococcaceae and *Peptostreptococcus*).
 
 ```{r bsdb-taxon-ranks}
 # precomputed by scripts/bugsigdb_taxon_similarity.R
 taxon_sim <- readRDS("../../output/bugsigdb_taxon_similarity.rds")
 
 terminal_id <- function(x) paste0("NCBITaxon:", unique(sub("^.*[|]", "", x)))
-
-flagged_conditions <- semsim_sim |>
-  filter(p < 0.05) |>
-  arrange(p) |>
-  distinct(Condition) |>
-  pull()
 
 perio_consensus <- tibble(
   id = unlist(semsim$consensus),
@@ -1332,53 +1325,115 @@ unit_best <- split(unit_taxa$taxon, unit_taxa$unit) |>
   bind_rows(.id = "unit") |>
   mutate(unit = as.integer(unit))
 
-taxon_ranks <- bsdb_cc_sigs |>
+# ranked against all BugSigDB units, then summarised for colorectal cancer
+crc_taxon_ranks <- bsdb_cc_sigs |>
   distinct(unit, Condition, direction, site_group) |>
   inner_join(unit_best, by = "unit") |>
   pivot_longer(starts_with("NCBITaxon"), names_to = "id", values_to = "sim") |>
   mutate(rank = (rank(sim) - 0.5) / n(), .by = c(direction, site_group, id)) |>
-  filter(Condition %in% flagged_conditions) |>
-  filter(n_distinct(unit) >= 5, .by = c(Condition, direction)) |>
+  filter(Condition == "Colorectal cancer") |>
   summarise(
     studies = n_distinct(unit),
     mean_rank = mean(rank),
     p = if (n_distinct(rank) > 1) wilcox.test(rank, mu = 0.5, alternative = "greater", exact = FALSE)$p.value else NA,
-    .by = c(Condition, direction, id)
-  )
+    .by = c(direction, id)
+  ) |>
+  mutate(fdr = p.adjust(p, method = "BH"))
 ```
 
 ```{r bsdb-taxon-ranks-fig}
-#| fig-width: 14
+#| fig-width: 11
 #| fig-height: 11
-#| fig-cap: "Similarity of each flagged condition's signatures to each PerioSigDB consensus taxon, as mean rank among BugSigDB signatures of the same direction and body site group (0.5 = typical; darker = more similar than typical). Dots: p < 0.05 (uncorrected)."
-taxon_ranks |>
+#| fig-cap: "Taxa that make colorectal cancer's increased signatures similar to the PerioSigDB consensus signatures. Lines join each periodontitis taxon to its closest taxon in colorectal cancer studies, when they are close relatives (Lin ≥ 0.75) in at least 3 studies; width = number of studies, darkness = similarity."
+crc_units <- bsdb_cc_sigs |>
+  filter(Condition == "Colorectal cancer", direction == "increased") |>
+  distinct(unit) |>
+  pull()
+
+# closest colorectal cancer taxon to each periodontitis taxon, per study unit
+crc_links <- unit_taxa |>
+  filter(unit %in% crc_units) |>
+  mutate(sim = map(taxon, \(t) tibble(id = perio_consensus$id, sim = taxon_sim$sim[t, perio_consensus$id]))) |>
+  unnest(sim) |>
+  slice_max(sim, n = 1, by = c(unit, id), with_ties = FALSE) |>
+  filter(sim >= 0.75) |>
+  summarise(studies = n(), sim = max(sim), .by = c(id, taxon)) |>
+  filter(studies >= 3)
+
+crc_counts <- unit_taxa |>
+  filter(unit %in% crc_units) |>
+  count(taxon, name = "crc_studies")
+
+left <- perio_consensus |>
+  arrange(desc(taxon_sim$lineage[id])) |>
+  left_join(filter(crc_taxon_ranks, direction == "increased") |> select(id, fdr), by = "id") |>
+  mutate(y = seq_len(n()), significant = !is.na(fdr) & fdr < 0.05)
+
+right <- crc_links |>
+  left_join(select(left, id, y), by = "id") |>
+  summarise(y_mean = weighted.mean(y, studies), .by = taxon) |>
+  left_join(crc_counts, by = "taxon") |>
+  arrange(y_mean) |>
+  mutate(y = seq(1, nrow(left), length.out = n()),
+         label = sprintf("%s (%d)", sub(" <[^>]+>", "", taxon_sim$names[taxon]), crc_studies))
+
+links <- crc_links |>
+  left_join(select(left, id, y_left = y), by = "id") |>
+  left_join(select(right, taxon, y_right = y), by = "taxon")
+
+ggplot() +
+  geom_segment(data = links, aes(x = 0, xend = 1, y = y_left, yend = y_right, linewidth = studies, color = sim),
+               lineend = "round") +
+  geom_point(data = left, aes(x = 0, y = y, fill = perio_direction), shape = 21, size = 2.6, color = "white") +
+  geom_point(data = right, aes(x = 1, y = y), shape = 21, size = 2.6, fill = "#eb6834", color = "white") +
+  geom_text(data = left, aes(x = -0.03, y = y, label = label, fontface = ifelse(significant, "bold.italic", "italic")),
+            hjust = 1, size = 3, color = "grey15") +
+  geom_text(data = right, aes(x = 1.03, y = y, label = label), hjust = 0, size = 3, fontface = "italic", color = "grey15") +
+  annotate("text", x = c(0, 1), y = nrow(left) + 1.8, label = c("PerioSigDB consensus taxa", "Increased in colorectal cancer"),
+           hjust = c(1, 0), fontface = "bold", size = 3.5) +
+  scale_fill_manual(values = c(increased = "#eb6834", decreased = "#2a78d6"), name = "Periodontitis",
+                    guide = guide_legend(override.aes = list(size = 4))) +
+  scale_color_gradient(low = "grey80", high = "grey5", limits = c(0.75, 1), name = "Lin\nsimilarity") +
+  scale_linewidth_continuous(range = c(0.3, 3.5), name = "Studies") +
+  scale_x_continuous(limits = c(-0.9, 1.75), expand = c(0, 0)) +
+  scale_y_continuous(limits = c(0.5, nrow(left) + 2.5), expand = c(0, 0)) +
+  theme_void() +
+  theme(legend.position = "right")
+```
+
+The heatmap below gives colorectal cancer's mean similarity rank for every periodontitis taxon, for its increased and decreased signatures (\* FDR < 0.05; one-sided Wilcoxon test of mean rank > 0.5, Benjamini–Hochberg across all cells).
+
+```{r bsdb-taxon-ranks-heat}
+#| fig-width: 6.5
+#| fig-height: 10
+#| fig-cap: "Similarity of colorectal cancer signatures to each PerioSigDB consensus taxon, as mean rank among BugSigDB signatures of the same direction and body site group (0.5 = typical; darker = more similar than typical). * FDR < 0.05."
+crc_taxon_ranks |>
   inner_join(perio_consensus, by = "id") |>
   mutate(
     row = factor(label, levels = rev(perio_consensus$label[order(taxon_sim$lineage[perio_consensus$id])])),
-    col = paste0(Condition, " (", studies, ")"),
-    col = factor(col, levels = unique(col[order(match(Condition, flagged_conditions))])),
+    col = factor(paste0(direction, "\n(", studies, ")"), levels = paste0(c("increased", "decreased"), "\n(", rev(sort(unique(studies))), ")")),
     perio_direction = factor(paste("Periodontitis", perio_direction),
                              levels = paste("Periodontitis", c("increased", "decreased"))),
-    direction = factor(paste("BugSigDB", direction), levels = paste("BugSigDB", c("increased", "decreased")))
+    text = sprintf("%.2f%s", mean_rank, ifelse(!is.na(fdr) & fdr < 0.05, "*", ""))
   ) |>
   ggplot(aes(x = col, y = row, fill = mean_rank)) +
-  geom_tile(color = "white", linewidth = 0.3) +
-  geom_point(data = \(d) filter(d, p < 0.05), size = 0.9, color = "white") +
+  geom_tile(color = "white", linewidth = 0.4) +
+  geom_text(aes(label = text, color = mean_rank > 0.65), size = 2.9) +
+  scale_color_manual(values = c(`TRUE` = "white", `FALSE` = "grey15"), guide = "none") +
   scale_fill_gradient2(low = "#ffffff", mid = "#ecebe8", high = "#262626", midpoint = 0.5,
-                       limits = c(0.2, 0.9), oob = scales::squish, name = "Mean\nrank") +
-  facet_grid(perio_direction ~ direction, scales = "free", space = "free", labeller = label_wrap_gen(14)) +
-  labs(x = NULL, y = NULL) +
-  theme(axis.text.x = element_text(angle = 50, hjust = 1),
-        axis.text.y = element_text(face = "italic"),
-        panel.grid = element_blank(), strip.text = element_text(face = "bold"))
+                       limits = c(0.3, 0.8), oob = scales::squish, name = "Mean\nrank") +
+  facet_grid(perio_direction ~ ., scales = "free_y", space = "free_y", labeller = label_wrap_gen(14)) +
+  labs(x = "Colorectal cancer signatures (study units)", y = NULL) +
+  theme(axis.text.y = element_text(face = "italic"), panel.grid = element_blank(),
+        strip.text = element_text(face = "bold"))
 ```
 
 **Shows:**
 
-- **Colorectal cancer** (increased): the similarity comes from specific periodontal pathogens, most strongly *Fusobacterium nucleatum* (mean rank 0.74), *Peptostreptococcus* and *P. stomatis*, *Porphyromonas gingivalis* and *P. endodontalis*, *Parvimonas micra*, *Filifactor alocis*, *Mogibacterium timidum* and the *Prevotella* species (0.61–0.70, all p < 0.001). Not *Treponema*, *Fretibacterium* or *Campylobacter rectus*. The one periodontitis-decreased taxon it resembles is *Gemella haemolysans*.
-- **Gastric cancer**: almost every periodontitis taxon, in both blocks and both directions, is more similar than typical, i.e. gastric signatures contain oral taxa in general (pathobionts and commensals), not a periodontitis-specific pattern.
-- **Chronic constipation** (increased) resembles the Bacteroidales (*Tannerella*, *Porphyromonas*, *Prevotella*), through gut relatives such as *Parabacteroides* rather than the periodontal species themselves.
-- **Other conditions** have scattered dots from few studies, often in whole taxonomic blocks (e.g. all *Treponema* species together), which reflects one or two studies reporting a relative rather than a consistent signal.
+- **What drives the similarity** is a handful of periodontal genera reported as increased in colorectal cancer, often at the very same species: *Fusobacterium* / *F. nucleatum* (up to 22 and 10 studies), *Peptostreptococcus* / *P. stomatis* / *P. anaerobius*, *Parvimonas* / *P. micra*, *Porphyromonas*, *Prevotella* / *P. intermedia* / *P. nigrescens*, and *Gemella*. The red complex beyond *Porphyromonas* (*Tannerella*, *Treponema*) and the other periodontal genera (*Fretibacterium*, *Desulfobulbus*, *Eubacterium*) are essentially absent.
+- **Similarity ranks (heatmap):** the similarity comes from specific periodontal pathogens, most strongly *Fusobacterium nucleatum* (0.74), *Peptostreptococcus* and *P. stomatis*, *Porphyromonas gingivalis* and *P. endodontalis*, *Parvimonas micra*, *Filifactor alocis*, *Mogibacterium timidum* and the *Prevotella* species (0.61–0.70). Not *Treponema*, *Fretibacterium*, *Selenomonas* or *Campylobacter rectus*.
+- Among the periodontitis-decreased taxa, the increased signatures resemble only *Gemella haemolysans*: *Gemella* is increased in colorectal cancer but decreased in periodontitis.
+- **Decreased signatures** are not more similar than typical to any periodontitis taxon.
 
 ### Comparing the versions
 
