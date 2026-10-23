@@ -299,8 +299,6 @@ within |>
 
 **Shows:** whether the periodontitis cohorts recruited have changed over three decades of publications (e.g. older patients and higher BOP in recent studies). This is relevant to whether older and newer signatures are comparable.
 
-**Caveat:** publication year is confounded with profiling method, since sequencing replaced hybridization and PCR over the same period, so a time trend cannot be separated from a method effect.
-
 # Study characteristics
 
 ## Periodontitis classification over time and by method
