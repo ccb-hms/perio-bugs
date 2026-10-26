@@ -989,6 +989,67 @@ direction_heatmap("decreased")
 
 **Shows:** colorectal cancer agrees most with periodontitis for increased genera (89% of reports in the same direction) and is the only condition with significant genera: *Peptostreptococcus* (25/25 studies increased), *Parvimonas* (22/22), *Porphyromonas* (20/21), *Fusobacterium* (29/34). For decreased genera only head and neck cancer, esophageal cancer, smoking and irritable bowel syndrome report most of them decreased; in most conditions these oral commensals are reported increased about as often (e.g. *Streptococcus*). Colorectal cancer's *Gemella* is significant in the opposite direction (15/15 studies increased).
 
+#### Conditions where several periodontitis genera move together
+
+Each condition is summarised over all the periodontitis genera its studies report (at least 3 studies per genus): how consistently the periodontitis-increased genera are increased (x) and how consistently the periodontitis-decreased genera are decreased (y), as the share of reports. Labels give the number of genera that mostly agree with periodontitis out of those counted.
+
+```{r bsdb-agreement-map}
+#| fig-width: 9
+#| fig-height: 7.5
+#| fig-cap: "Agreement of BugSigDB conditions with periodontitis across many genera. x: share of reports of periodontitis-increased genera that are increased; y: share of reports of periodontitis-decreased genera that are decreased. Point size: number of genera counted (reported by at least 3 studies; conditions with at least 3 such genera in each direction)."
+genus_agreement <- bsdb_genera |>
+  filter(taxon %in% perio_genera$taxon) |>
+  distinct(sig, taxon, direction) |>
+  left_join(select(bsdb_sigs, sig, Condition), by = "sig") |>
+  count(Condition, taxon, direction) |>
+  pivot_wider(names_from = direction, values_from = n, values_fill = 0) |>
+  left_join(select(perio_genera, taxon, perio = direction), by = "taxon") |>
+  mutate(n = increased + decreased, same = ifelse(perio == "increased", increased, decreased)) |>
+  filter(n >= 3)
+
+agreement_map <- genus_agreement |>
+  summarise(genera = n(), agree = sum(same / n > 0.5), share = sum(same) / sum(n), .by = c(Condition, perio)) |>
+  filter(genera >= 3) |>
+  pivot_wider(names_from = perio, values_from = c(genera, agree, share)) |>
+  filter(!is.na(share_increased), !is.na(share_decreased)) |>
+  mutate(genera = genera_increased + genera_decreased, agree = agree_increased + agree_decreased,
+         label = sprintf("%s (%d/%d)", Condition, agree, genera),
+         p = map2_dbl(agree, genera, \(k, n) binom.test(k, n)$p.value))
+
+quadrants <- tibble(
+  x = c(1, 1, 0, 0), y = c(1.06, -0.06, -0.06, 1.06), hjust = c(1, 1, 0, 0), vjust = c(1, 0, 0, 1),
+  label = c("Periodontitis-like\npathogens up, commensals down", "Oral taxa up\npathogens and commensals up",
+            "Opposite\npathogens down, commensals up", "Pathogens down,\ncommensals down")
+)
+
+ggplot(agreement_map, aes(share_increased, share_decreased)) +
+  annotate("rect", xmin = 0.5, xmax = 1, ymin = 0.5, ymax = 1, fill = "grey94") +
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey60") +
+  geom_vline(xintercept = 0.5, linetype = "dashed", color = "grey60") +
+  geom_text(data = quadrants, aes(x, y, label = label, hjust = hjust, vjust = vjust), size = 3, color = "grey45",
+            lineheight = 0.9) +
+  geom_point(aes(size = genera), shape = 21, fill = "grey65", color = "grey15") +
+  geom_text_repel(aes(label = label), size = 3.1, color = "grey15", seed = 1, min.segment.length = 0) +
+  scale_size_area(max_size = 8, name = "Genera counted") +
+  scale_x_continuous(labels = scales::percent, limits = c(0, 1)) +
+  scale_y_continuous(labels = scales::percent, limits = c(-0.06, 1.06), breaks = seq(0, 1, 0.25)) +
+  coord_equal() +
+  labs(x = "Periodontitis-increased genera: share of reports increased",
+       y = "Periodontitis-decreased genera: share of reports decreased") +
+  theme(legend.position = "right")
+```
+
+```{r bsdb-agreement-values}
+am <- \(cond, col) agreement_map[[col]][agreement_map$Condition == cond]
+am_pct <- \(cond, col) sprintf("%.0f%%", 100 * am(cond, col))
+```
+
+**Shows:** three patterns, each supported by many genera rather than one or two (sign tests across genera are not corrected for the number of conditions).
+
+- **Periodontitis-like (top right):** head and neck cancer (`r am("Head and neck cancer", "agree")` of `r am("Head and neck cancer", "genera")` genera agree, sign test p = `r signif(am("Head and neck cancer", "p"), 1)`) and smoking (`r am("Smoking behavior", "agree")` of `r am("Smoking behavior", "genera")`): periodontal pathogens increased and oral commensals decreased (*Haemophilus*, *Neisseria* and *Corynebacterium* in both; also *Rothia* and *Actinomyces* in head and neck cancer, *Gemella* and *Lautropia* in smoking). Both are sampled mostly in the mouth, and smoking is a periodontitis risk factor.
+- **Oral taxa up (bottom right):** colorectal cancer, gastric cancer, ulcerative colitis and type 2 diabetes report the periodontal pathogens increased (`r am_pct("Colorectal cancer", "share_increased")` of reports for colorectal cancer) but the oral commensals increased too (only `r am_pct("Colorectal cancer", "share_decreased")` decreased). This fits oral bacteria in general reaching the gut or stomach, rather than a periodontitis-like shift.
+- **Opposite to periodontitis (left):** COVID-19 (only `r am("COVID-19", "agree")` of `r am("COVID-19", "genera")` genera agree, p = `r signif(am("COVID-19", "p"), 1)`), Parkinson's disease and Alzheimer's disease report the periodontal pathogens mostly decreased.
+
 ### Whole-signature similarity to periodontitis
 
 ```{r bsdb-semantic-load}
@@ -1116,7 +1177,7 @@ similarity_grid <- function(res, n_top = 5) {
 similarity_grid(semsim_all)
 ```
 
-**Shows:** colorectal cancer's increased taxa resemble the periodontitis-increased taxa (FDR = 0.0008), the only result passing FDR. Head and neck cancer comes next: its decreased taxa resemble the periodontitis-decreased taxa (p = 0.004, FDR = 0.14) and its increased taxa the periodontitis-increased ones (p = 0.02), i.e. the periodontitis pattern in both directions. Smoking's decreased taxa also resemble the periodontitis-decreased taxa (p = 0.009), and gastric cancer's increased taxa resemble both periodontitis signatures (oral taxa in general).
+**Shows:** colorectal cancer's increased taxa resemble the periodontitis-increased taxa (FDR = 0.0008), the only result passing FDR. Head and neck cancer comes next: its decreased taxa resemble the periodontitis-decreased taxa (p = 0.004, FDR = 0.14) and its increased taxa the periodontitis-increased ones (p = 0.02), i.e. the periodontitis pattern in both directions. Smoking's decreased taxa also resemble the periodontitis-decreased taxa (p = 0.009). In the shaded column, the increased taxa of ulcerative colitis, gastric cancer and COVID-19 resemble the periodontitis-decreased commensals (p ≈ 0.02), the same "oral taxa up" pattern as in the agreement map above; gastric cancer resembles both periodontitis signatures.
 
 #### Compared with signatures from the same body sites
 
@@ -1218,15 +1279,5 @@ pct <- \(x) sprintf("%.0f%%", 100 * x)
 ```
 
 **Robustness:** colorectal cancer is not singled out simply because it is one of the largest conditions in BugSigDB. The other largest conditions (`r paste(others, collapse = ", ")`) show none of the signal: none reports any of *Fusobacterium*, *Parvimonas*, *Peptostreptococcus* or *Porphyromonas* more than `r sprintf("%.1f", max(large_oe$max_ratio[large_oe$Condition != "Colorectal cancer"]))` times as often as expected, and their similarity ranks to the periodontitis-increased signature are `r others_sim` (0.5 = typical). When colorectal cancer is cut to 15 random study units, the size of a typical condition, the four genera stay significantly enriched in `r pct(min(rowMeans(sub_enrich)))`–`r pct(max(rowMeans(sub_enrich)))` of draws and the similarity in `r pct(mean(sub_sim))`.
-
-### Suggestive results (not significant)
-
-Picked after looking at several hundred tests, so hypotheses only:
-
-- **Gastric cancer:** *Fusobacterium* in 5 of 12 studies (3.3× the site-matched expectation), increased in 5 of the 6 reporting it.
-- **Rheumatoid arthritis:** *Treponema* (5 of 13 studies, 4.3×) and *Selenomonas* (4 of 13, 3.6×), almost always increased.
-- **Smoking and head and neck cancer:** loss of oral commensals. Significant against all of BugSigDB (smoking: *Gemella*, *Lautropia*, *Capnocytophaga*; head and neck cancer: *Rothia*, *Actinomyces*), and smoking's *Gemella* (5.4×) and head and neck cancer's *Rothia* (2.3×) remain nominally enriched against other oral studies.
-- **COVID-19:** *Neisseria* decreased in 11 of 41 studies (3.1×), mostly respiratory samples.
-- **Across many conditions** (excluding colorectal cancer): *Haemophilus* is mostly decreased, as in periodontitis (22 conditions vs 5, sign test FDR = 0.02), while *Streptococcus* and *Actinomyces* are mostly *increased*, the opposite (28 vs 7 and 14 vs 3). *Fusobacterium* tends to be increased (12 vs 4, not significant). So only part of the periodontitis signature looks like a generic disease pattern.
 
 **Caveats:** studies are treated as independent; the disease-vs-control filter works on group names; aggregating PerioSigDB species to genus loses specificity (e.g. *P. gingivalis* up, *P. catoniae* down).
