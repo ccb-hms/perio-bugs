@@ -869,12 +869,12 @@ direction_heatmap <- function(dir, n_conditions = 15, min_sigs = 5, min_reports 
     mutate(Condition = "All BugSigDB")
 
   # conditions with at least min_genera genera reported by at least min_reports studies (and at least
-  # min_total such reports in all), ranked by
-  # the share of those reports in the same direction as periodontitis (pooled across genera);
+  # min_total such reports in all), ranked by the mean over those genera of
+  # the share of each genus's reports in the same direction as periodontitis;
   # only conditions with net agreement (share > 50%) are shown
   conditions <- tests |>
     filter(n >= min_reports) |>
-    summarise(genera = n(), reports = sum(n), share = sum(same) / sum(n), .by = Condition) |>
+    summarise(genera = n(), reports = sum(n), share = mean(same / n), .by = Condition) |>
     filter(genera >= min_genera, reports >= min_total, share > 0.5) |>
     left_join(condition_sizes, by = "Condition") |>
     arrange(desc(share)) |>
@@ -971,7 +971,7 @@ condition_heatmap("decreased", match_site = TRUE)
 
 ### Direction of periodontitis genera within each condition
 
-*When the condition reports the genus, is it in the same direction as in periodontitis?* Colour: share of reports in the same direction; outlined = FDR < 0.05 (binomial test); grey = only 1–2 studies. Columns: conditions with at least 3 genera each reported by at least 3 studies (at least 10 reports in all) and with more than half of those reports in the same direction as periodontitis, ranked by that share (percentage in brackets; up to 15).
+*When the condition reports the genus, is it in the same direction as in periodontitis?* Colour: share of reports in the same direction; outlined = FDR < 0.05 (binomial test); grey = only 1–2 studies. Columns: conditions that mostly agree with periodontitis, ranked by the average share of each genus's reports in the same direction (in brackets; genera reported by at least 3 studies).
 
 ```{r bsdb-direction-increased}
 #| fig-width: 13
@@ -987,16 +987,16 @@ direction_heatmap("increased")
 direction_heatmap("decreased")
 ```
 
-**Shows:** colorectal cancer agrees most with periodontitis for increased genera (89% of reports in the same direction) and is the only condition with significant genera: *Peptostreptococcus* (25/25 studies increased), *Parvimonas* (22/22), *Porphyromonas* (20/21), *Fusobacterium* (29/34). For decreased genera only head and neck cancer, esophageal cancer, smoking and irritable bowel syndrome report most of them decreased; in most conditions these oral commensals are reported increased about as often (e.g. *Streptococcus*). Colorectal cancer's *Gemella* is significant in the opposite direction (15/15 studies increased).
+**Shows:** colorectal cancer is the only condition with significant genera: *Peptostreptococcus* (25/25 studies increased), *Parvimonas* (22/22), *Porphyromonas* (20/21) and *Fusobacterium* (29/34). Its *Gemella* is significant in the opposite direction (15/15 studies increased). The next figure summarises both directions for every condition.
 
 #### Conditions where several periodontitis genera move together
 
-Each condition is summarised over all the periodontitis genera its studies report (at least 3 studies per genus): how consistently the periodontitis-increased genera are increased (x) and how consistently the periodontitis-decreased genera are decreased (y), as the share of each genus's reports in that direction, averaged over genera so that each genus counts once. Labels give the number of genera that mostly agree with periodontitis out of those counted. The axes show direction only, not how often the genera are reported compared with other conditions (see the enrichment heatmaps for that).
+Each condition is summarised over all the periodontitis genera its studies report (at least 3 studies per genus): how consistently the periodontitis-increased genera are increased (x) and how consistently the periodontitis-decreased genera are decreased (y), as the share of each genus's reports in that direction, averaged over genera so that each genus counts once. Point size is the number of genera counted. The axes show direction only, not how often the genera are reported compared with other conditions (see the enrichment heatmaps for that).
 
 ```{r bsdb-agreement-map}
 #| fig-width: 9
 #| fig-height: 7.5
-#| fig-cap: "Agreement of BugSigDB conditions with periodontitis across many genera. x: share of reports of periodontitis-increased genera that are increased; y: share of reports of periodontitis-decreased genera that are decreased; both averaged over genera. Point size: number of genera counted (reported by at least 3 studies; conditions with at least 3 such genera in each direction)."
+#| fig-cap: "Direction of the periodontitis genera in each BugSigDB condition. x: for the genera increased in periodontitis, how often the condition's studies report them increased; y: for the genera decreased in periodontitis, how often they report them decreased (average over genera of the share of each genus's reports). Point size: number of genera counted (reported by at least 3 studies; conditions with at least 3 such genera in each direction)."
 genus_agreement <- bsdb_genera |>
   filter(taxon %in% perio_genera$taxon) |>
   distinct(sig, taxon, direction) |>
@@ -1014,7 +1014,7 @@ agreement_map <- genus_agreement |>
   pivot_wider(names_from = perio, values_from = c(genera, agree, share)) |>
   filter(!is.na(share_increased), !is.na(share_decreased)) |>
   mutate(genera = genera_increased + genera_decreased, agree = agree_increased + agree_decreased,
-         label = sprintf("%s (%d/%d)", Condition, agree, genera),
+         label = Condition,
          p = map2_dbl(agree, genera, \(k, n) binom.test(k, n)$p.value))
 
 quadrants <- tibble(
@@ -1035,9 +1035,9 @@ ggplot(agreement_map, aes(share_increased, share_decreased)) +
   scale_x_continuous(labels = scales::percent, limits = c(0, 1)) +
   scale_y_continuous(labels = scales::percent, limits = c(-0.06, 1.06), breaks = seq(0, 1, 0.25)) +
   coord_equal() +
-  labs(x = "Periodontitis-increased genera: mean share of reports increased",
-       y = "Periodontitis-decreased genera: mean share of reports decreased") +
-  theme(legend.position = "right")
+  labs(x = "Genera increased in periodontitis:\nhow often reported increased here",
+       y = "Genera decreased in periodontitis:\nhow often reported decreased here") +
+  theme(legend.position = "right", legend.title = element_text(size = 9))
 ```
 
 ```{r bsdb-agreement-values}
