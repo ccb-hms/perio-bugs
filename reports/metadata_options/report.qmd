@@ -991,12 +991,12 @@ direction_heatmap("decreased")
 
 #### Conditions where several periodontitis genera move together
 
-Each condition is summarised over all the periodontitis genera its studies report (at least 3 studies per genus): how consistently the periodontitis-increased genera are increased (x) and how consistently the periodontitis-decreased genera are decreased (y), as the share of reports. Labels give the number of genera that mostly agree with periodontitis out of those counted.
+Each condition is summarised over all the periodontitis genera its studies report (at least 3 studies per genus): how consistently the periodontitis-increased genera are increased (x) and how consistently the periodontitis-decreased genera are decreased (y), as the share of each genus's reports in that direction, averaged over genera so that each genus counts once. Labels give the number of genera that mostly agree with periodontitis out of those counted. The axes show direction only, not how often the genera are reported compared with other conditions (see the enrichment heatmaps for that).
 
 ```{r bsdb-agreement-map}
 #| fig-width: 9
 #| fig-height: 7.5
-#| fig-cap: "Agreement of BugSigDB conditions with periodontitis across many genera. x: share of reports of periodontitis-increased genera that are increased; y: share of reports of periodontitis-decreased genera that are decreased. Point size: number of genera counted (reported by at least 3 studies; conditions with at least 3 such genera in each direction)."
+#| fig-cap: "Agreement of BugSigDB conditions with periodontitis across many genera. x: share of reports of periodontitis-increased genera that are increased; y: share of reports of periodontitis-decreased genera that are decreased; both averaged over genera. Point size: number of genera counted (reported by at least 3 studies; conditions with at least 3 such genera in each direction)."
 genus_agreement <- bsdb_genera |>
   filter(taxon %in% perio_genera$taxon) |>
   distinct(sig, taxon, direction) |>
@@ -1008,7 +1008,8 @@ genus_agreement <- bsdb_genera |>
   filter(n >= 3)
 
 agreement_map <- genus_agreement |>
-  summarise(genera = n(), agree = sum(same / n > 0.5), share = sum(same) / sum(n), .by = c(Condition, perio)) |>
+  # each genus counts once: mean over genera of the share of its reports in the same direction
+  summarise(genera = n(), agree = sum(same / n > 0.5), share = mean(same / n), .by = c(Condition, perio)) |>
   filter(genera >= 3) |>
   pivot_wider(names_from = perio, values_from = c(genera, agree, share)) |>
   filter(!is.na(share_increased), !is.na(share_decreased)) |>
@@ -1034,8 +1035,8 @@ ggplot(agreement_map, aes(share_increased, share_decreased)) +
   scale_x_continuous(labels = scales::percent, limits = c(0, 1)) +
   scale_y_continuous(labels = scales::percent, limits = c(-0.06, 1.06), breaks = seq(0, 1, 0.25)) +
   coord_equal() +
-  labs(x = "Periodontitis-increased genera: share of reports increased",
-       y = "Periodontitis-decreased genera: share of reports decreased") +
+  labs(x = "Periodontitis-increased genera: mean share of reports increased",
+       y = "Periodontitis-decreased genera: mean share of reports decreased") +
   theme(legend.position = "right")
 ```
 
@@ -1047,7 +1048,7 @@ am_pct <- \(cond, col) sprintf("%.0f%%", 100 * am(cond, col))
 **Shows:** three patterns, each supported by many genera rather than one or two (sign tests across genera are not corrected for the number of conditions).
 
 - **Periodontitis-like (top right):** head and neck cancer (`r am("Head and neck cancer", "agree")` of `r am("Head and neck cancer", "genera")` genera agree, sign test p = `r signif(am("Head and neck cancer", "p"), 1)`) and smoking (`r am("Smoking behavior", "agree")` of `r am("Smoking behavior", "genera")`): periodontal pathogens increased and oral commensals decreased (*Haemophilus*, *Neisseria* and *Corynebacterium* in both; also *Rothia* and *Actinomyces* in head and neck cancer, *Gemella* and *Lautropia* in smoking). Both are sampled mostly in the mouth, and smoking is a periodontitis risk factor.
-- **Oral taxa up (bottom right):** colorectal cancer, gastric cancer, ulcerative colitis and type 2 diabetes report the periodontal pathogens increased (`r am_pct("Colorectal cancer", "share_increased")` of reports for colorectal cancer) but the oral commensals increased too (only `r am_pct("Colorectal cancer", "share_decreased")` decreased). This fits oral bacteria in general reaching the gut or stomach, rather than a periodontitis-like shift.
+- **Oral taxa up (bottom right):** colorectal cancer, gastric cancer, ulcerative colitis and type 2 diabetes report the periodontal pathogens increased (on average `r am_pct("Colorectal cancer", "share_increased")` of each genus's reports for colorectal cancer) and the oral commensals mostly increased too (`r am_pct("Colorectal cancer", "share_decreased")` decreased; e.g. *Gemella* in 15 of 15 colorectal cancer studies). For colorectal cancer, apart from *Gemella* these commensals are not reported more often than in other gut conditions, so the similarity grids below do not flag it; for gastric cancer and ulcerative colitis they do. This fits oral bacteria in general reaching the gut or stomach, rather than a periodontitis-like shift.
 - **Opposite to periodontitis (left):** COVID-19 (only `r am("COVID-19", "agree")` of `r am("COVID-19", "genera")` genera agree, p = `r signif(am("COVID-19", "p"), 1)`), Parkinson's disease and Alzheimer's disease report the periodontal pathogens mostly decreased.
 
 ### Whole-signature similarity to periodontitis
