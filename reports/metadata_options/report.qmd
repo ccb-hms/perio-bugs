@@ -1223,9 +1223,10 @@ pct <- \(x) sprintf("%.0f%%", 100 * x)
 
 Picked after looking at several hundred tests, so hypotheses only:
 
-- **Gastric cancer:** *Fusobacterium* in nearly half of studies, almost always increased.
-- **Rheumatoid arthritis:** *Treponema* and *Selenomonas* enriched and increased.
-- **Smoking and head and neck cancer:** loss of oral commensals (e.g. *Gemella*, *Lautropia*, *Rothia*, *Neisseria*), significant against all of BugSigDB but not against other oral studies.
-- **Across many conditions:** *Fusobacterium*, *Peptostreptococcus* and *Parvimonas* tend to be increased and *Haemophilus* and *Neisseria* decreased, suggesting part of the periodontitis signature is a generic dysbiosis pattern.
+- **Gastric cancer:** *Fusobacterium* in 5 of 12 studies (3.3× the site-matched expectation), increased in 5 of the 6 reporting it.
+- **Rheumatoid arthritis:** *Treponema* (5 of 13 studies, 4.3×) and *Selenomonas* (4 of 13, 3.6×), almost always increased.
+- **Smoking and head and neck cancer:** loss of oral commensals. Significant against all of BugSigDB (smoking: *Gemella*, *Lautropia*, *Capnocytophaga*; head and neck cancer: *Rothia*, *Actinomyces*), and smoking's *Gemella* (5.4×) and head and neck cancer's *Rothia* (2.3×) remain nominally enriched against other oral studies.
+- **COVID-19:** *Neisseria* decreased in 11 of 41 studies (3.1×), mostly respiratory samples.
+- **Across many conditions** (excluding colorectal cancer): *Haemophilus* is mostly decreased, as in periodontitis (22 conditions vs 5, sign test FDR = 0.02), while *Streptococcus* and *Actinomyces* are mostly *increased*, the opposite (28 vs 7 and 14 vs 3). *Fusobacterium* tends to be increased (12 vs 4, not significant). So only part of the periodontitis signature looks like a generic disease pattern.
 
 **Caveats:** studies are treated as independent; the disease-vs-control filter works on group names; aggregating PerioSigDB species to genus loses specificity (e.g. *P. gingivalis* up, *P. catoniae* down).
