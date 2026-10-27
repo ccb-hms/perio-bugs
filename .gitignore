@@ -38,3 +38,9 @@ output/bugsigdb_semantic_similarity.rds
 output/bugsigdb_taxon_similarity.rds
 reports/metadata_options/rsconnect/*
 reports/metadata_options/Rplots.pdf
+output/bugsigdb_replicability_sim.rds
+output/crc_bugset_enrichment.rds
+output/hmp_oral_prevalence.rds
+output/hmp_subgingival_correlation.rds
+output/oral_taxon_similarity.rds
+reports/metadata_options/llm_review/
