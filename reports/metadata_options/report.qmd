@@ -1204,7 +1204,7 @@ similarity_grid <- function(res, n_top = 5) {
 similarity_grid(semsim_all)
 ```
 
-**Shows:** colorectal cancer's increased taxa resemble the periodontitis-increased taxa (FDR = 0.0008), the only result passing FDR. Head and neck cancer comes next: its decreased taxa resemble the periodontitis-decreased taxa (p = 0.004, FDR = 0.14) and its increased taxa the periodontitis-increased ones (p = 0.02), i.e. the periodontitis pattern in both directions. Smoking's decreased taxa also resemble the periodontitis-decreased taxa (p = 0.009). In the shaded column, the increased taxa of ulcerative colitis, gastric cancer and COVID-19 resemble the periodontitis-decreased commensals (p ≈ 0.02), the same "oral taxa up" pattern as in "Conditions where several periodontitis genera move together" above; gastric cancer resembles both periodontitis signatures.
+**Shows:** colorectal cancer's increased taxa resemble the periodontitis-increased taxa (FDR = 0.0008), the only result passing FDR. Head and neck cancer comes next: its decreased taxa resemble the periodontitis-decreased taxa (p = 0.004, FDR = 0.14) and its increased taxa the periodontitis-increased ones (p = 0.02), i.e. the periodontitis pattern in both directions. Smoking's decreased taxa also resemble the periodontitis-decreased taxa (p = 0.01). In the shaded column, the increased taxa of ulcerative colitis, gastric cancer and COVID-19 resemble the periodontitis-decreased commensals (p ≈ 0.02), the same "oral taxa up" pattern as in "Conditions where several periodontitis genera move together" above; gastric cancer resembles both periodontitis signatures.
 
 #### Compared with signatures from the same body sites
 
@@ -1396,7 +1396,7 @@ Everything above compares published signatures. The BugSigDB paper also tested s
 ```{r crc-enrichment}
 #| fig-width: 12
 #| fig-height: 5.5
-#| fig-cap: "Rank of the PerioSigDB consensus signatures (genus level; red: increased, blue: decreased in periodontitis) and two colorectal cancer meta-analysis signatures (grey: Wirbel 2019, circle; Thomas 2019, triangle) among all BugSigDB signatures with at least 5 genera present in each curatedMetagenomicData colorectal cancer dataset (about 1,600–2,100 signatures). In each dataset, genera are tested for differential abundance between cancer and control stool samples (limma-trend on log counts per million). Left: over-representation analysis (hypergeometric test of the signature's share of genera differentially abundant at FDR < 0.05; ties ranked last, so datasets without differentially abundant genera rank every signature last). Right: PADOG (gene set analysis that down-weights genera shared by many signatures, with 1,000 sample-label permutations). x: rank as top percentage of signatures (log scale; 1% = top 1 in 100). Filled: FDR < 0.05 across all signatures in that dataset and method. Rows: datasets with their cancer / control samples, ordered by sample size. Enrichment ignores direction; the next figure shows the direction of each genus."
+#| fig-cap: "Rank of the PerioSigDB consensus signatures (genus level; red: increased, blue: decreased in periodontitis) and two colorectal cancer meta-analysis signatures (grey: Wirbel 2019, circle; Thomas 2019, triangle) among all BugSigDB signatures with at least 5 genera present in each curatedMetagenomicData colorectal cancer dataset (about 1,600–2,100 signatures). In each dataset, genera are tested for differential abundance between cancer and control stool samples (limma-trend on log counts per million). Left: over-representation analysis (hypergeometric test of the signature's share of genera differentially abundant at FDR < 0.05; ties ranked last, so datasets without differentially abundant genera rank every signature last). Right: PADOG (gene set analysis that down-weights genera shared by many signatures, with 1,000 sample-label permutations). x: rank as top percentage of signatures (log scale; 1% = top 1 in 100). Filled: FDR < 0.05 across all signatures in that dataset and method. Rows: datasets with their cancer / control samples, ordered by sample size. Enrichment ignores direction."
 # precomputed by scripts/crc_bugset_enrichment.R
 crc_enrichment <- readRDS("../../output/crc_bugset_enrichment.rds")
 
@@ -1433,7 +1433,7 @@ crc_enrichment$ranks |>
 ```{r crc-enrichment-genera}
 #| fig-width: 12
 #| fig-height: 6
-#| fig-cap: "Difference in each genus of the PerioSigDB consensus signatures between colorectal cancer and control stool samples in each curatedMetagenomicData dataset (columns, as in the previous figure). Cells: log2 fold change (red: higher in cancer; blue: lower), from limma-trend on log counts per million. Outlined: FDR < 0.05 across all genera in the dataset. Rows: genera of the periodontitis-increased (top) and -decreased (bottom) signature, ordered by the number of datasets in which they are higher in cancer at FDR < 0.05; Streptococcus is in both because its species go in opposite directions. Grey: genus not detected in the dataset."
+#| fig-cap: "Difference in each genus of the PerioSigDB consensus signatures between colorectal cancer and control stool samples in each curatedMetagenomicData colorectal cancer dataset (columns, with cancer / control samples, ordered by sample size). Cells: log2 fold change (red: higher in cancer; blue: lower), from limma-trend on log counts per million. Outlined: FDR < 0.05 across all genera in the dataset. Rows: genera of the periodontitis-increased (top) and -decreased (bottom) signature, ordered by the number of datasets in which they are higher in cancer at FDR < 0.05; Streptococcus is in both because its species go in opposite directions. Grey: genus not detected in the dataset."
 crc_genera <- crc_enrichment$genera |>
   mutate(signature = factor(signature, levels = c("PerioSigDB_consensus_increased", "PerioSigDB_consensus_decreased"),
                             labels = c("Increased in periodontitis", "Decreased in periodontitis")),
@@ -1720,7 +1720,7 @@ The BugSigDB paper proposed genera reported in only one condition, by several st
 ```{r specificity}
 #| fig-width: 12
 #| fig-height: 6.5
-#| fig-cap: "Specificity of genera reported in periodontitis. x: PerioSigDB studies reporting the genus increased (left) or decreased (right) in periodontitis. y: other BugSigDB conditions (human disease-vs-control comparisons, all body sites) with at least one study reporting the genus in the same direction. Genera reported by at least 3 PerioSigDB studies in that direction; labelled: at least 10 studies, or reported by no more than 5 other conditions. Colour: of the other conditions' studies reporting the genus in the same direction, the share that sampled the mouth (oral body site group); dark means the genus is mostly reported by other oral studies, pale by gut or other studies. Bottom right: genera with much support in periodontitis and few other conditions."
+#| fig-cap: "Specificity of genera reported in periodontitis. x: PerioSigDB studies reporting the genus increased (left) or decreased (right) in periodontitis. y: other BugSigDB conditions (human disease-vs-control comparisons, all body sites) with at least one study reporting the genus in the same direction. Genera reported by at least 3 PerioSigDB studies in that direction; labelled: at least 10 studies, or reported by no more than 5 other conditions. Bottom right: genera with much support in periodontitis and few other conditions."
 perio_support <- sig_genera(dat) |>
   left_join(tibble(sig = seq_len(nrow(dat)), Study = dat$Study), by = "sig") |>
   distinct(Study, direction, taxon) |>
@@ -1729,7 +1729,7 @@ perio_support <- sig_genera(dat) |>
 
 other_support <- bsdb_genera |>
   left_join(select(bsdb_sigs, sig, Condition, site_group), by = "sig") |>
-  summarise(other_conditions = n_distinct(Condition), oral = mean(site_group == "oral"), .by = c(taxon, direction))
+  summarise(other_conditions = n_distinct(Condition), .by = c(taxon, direction))
 
 specificity <- perio_support |>
   left_join(other_support, by = c("taxon", "direction")) |>
@@ -1738,14 +1738,11 @@ specificity <- perio_support |>
                             labels = c("Increased in periodontitis", "Decreased in periodontitis")))
 
 ggplot(specificity, aes(perio_studies, other_conditions)) +
-  geom_point(aes(fill = oral), shape = 21, size = 2.6, color = "grey15", stroke = 0.4) +
+  geom_point(shape = 21, size = 2.6, fill = "grey70", color = "grey15", stroke = 0.4) +
   geom_text_repel(data = \(d) filter(d, perio_studies >= 10 | other_conditions <= 5), aes(label = taxon),
                   size = 2.6, fontface = "italic", color = "grey25", seed = 1, max.overlaps = Inf,
                   min.segment.length = 0.2, segment.color = "grey70") +
   scale_x_log10() +
-  scale_fill_gradient(low = "#f0efec", high = "#6250d6", labels = scales::percent, limits = c(0, 1),
-                      na.value = "white",
-                      name = "Share of the other\nconditions' studies\nreporting the genus\nthat sampled\nthe mouth") +
   facet_wrap(~direction) +
   labs(x = "PerioSigDB studies reporting the genus (log scale)", y = "Other conditions reporting it") +
   theme(strip.text = element_text(face = "bold"), legend.position = "right", legend.title = element_text(size = 9))
@@ -1765,7 +1762,7 @@ Periodontitis studies report the pathogens rising together (e.g. *Treponema* and
 ```{r co-occurrence}
 #| fig-width: 10
 #| fig-height: 5
-#| fig-cap: "Correlation in healthy subgingival plaque between pairs of the genera in the genus heatmaps (20 most consistently increased and 20 most consistently decreased in periodontitis). Each point is a pair of genera: Spearman correlation of their relative abundance across Human Microbiome Project subgingival plaque samples (first visit; genera with at least 0.1% relative abundance in at least 10% of samples). Rows: whether the two genera are both increased, both decreased, or one of each in periodontitis, with the number of pairs. Bar: median. Title: difference in median correlation between pairs on the same side of periodontitis (both increased or both decreased) and pairs on opposite sides, with a one-sided permutation test that shuffles which genera are increased and which decreased (1,000 permutations; pairs share genera, so they are not independent)."
+#| fig-cap: "Correlation in healthy subgingival plaque between pairs of the genera in the genus heatmaps (20 most consistently increased and 20 most consistently decreased in periodontitis). Each point is a pair of genera: Spearman correlation of their relative abundance across Human Microbiome Project subgingival plaque samples (first visit; genera with at least 0.1% relative abundance in at least 10% of samples). Rows: whether the two genera are both increased, both decreased, or one of each in periodontitis, with the number of pairs. Bar: median. Test (title): are pairs that change the same way in periodontitis (both increased or both decreased) more correlated in health than pairs that change in opposite ways? One-sided permutation test of the difference in median correlation, shuffling which genera count as increased and which as decreased in periodontitis (1,000 permutations), since pairs share genera and are not independent."
 hmp_cor <- readRDS("../../output/hmp_subgingival_correlation.rds")
 
 perio_dir <- setNames(perio_genera$direction, perio_genera$taxon)
@@ -1796,8 +1793,10 @@ pair_cor |>
   scale_fill_manual(values = c("Both increased" = "#c2410c", "Both decreased" = "#1c5cab",
                                "One increased,\none decreased" = "grey75"), guide = "none") +
   labs(x = "Correlation in healthy subgingival plaque (Spearman)", y = NULL,
-       title = sprintf("Same side minus opposite sides, difference in median correlation: %.2f (permutation p = %s)",
-                       side_gap(perio_dir), signif(pair_p, 2))) +
+       title = sprintf(paste("Median correlation: %.2f for pairs that change the same way in periodontitis,",
+                             "%.2f for pairs that change in opposite ways (permutation p = %s)"),
+                       with(pair_cor, median(healthy[perio_dir[a] == perio_dir[b]])),
+                       with(pair_cor, median(healthy[perio_dir[a] != perio_dir[b]])), signif(pair_p, 2))) +
   theme(plot.title = element_text(size = 10))
 ```
 
