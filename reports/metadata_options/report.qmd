@@ -1796,7 +1796,7 @@ The BugSigDB paper proposed genera reported in only one condition, by several st
 ```{r specificity}
 #| fig-width: 12
 #| fig-height: 6.5
-#| fig-cap: "Genera reported in periodontitis and how many other conditions report them. x: PerioSigDB studies reporting the genus increased (left) or decreased (right) in periodontitis. y: other BugSigDB conditions (human disease-vs-control comparisons, all body sites) with at least one study reporting the genus in the same direction. Genera reported by at least 3 PerioSigDB studies in that direction; labelled: at least 10 studies, or reported by no more than 5 other conditions. Bottom right: genera with substantial support in periodontitis that are reported in the same direction by few other conditions."
+#| fig-cap: "Genera reported in periodontitis and how many other conditions report them. x: PerioSigDB studies reporting the genus increased (left) or decreased (right) in periodontitis. y: other BugSigDB conditions (human disease-vs-control comparisons, all body sites) with at least one study reporting the genus in the same direction. Genera reported by at least 3 PerioSigDB studies in that direction; labelled: at least 10 studies, or reported by no more than 5 other conditions. Shaded: genera reported by at least 10 PerioSigDB studies and no more than 15 other conditions. The cut-offs are descriptive, not a classification: the points form a continuum, and moving them changes which genera fall inside."
 perio_support <- sig_genera(dat) |>
   left_join(tibble(sig = seq_len(nrow(dat)), Study = dat$Study), by = "sig") |>
   distinct(Study, direction, taxon) |>
@@ -1814,6 +1814,9 @@ specificity <- perio_support |>
                             labels = c("Increased in periodontitis", "Decreased in periodontitis")))
 
 ggplot(specificity, aes(perio_studies, other_conditions)) +
+  annotate("rect", xmin = 10, xmax = Inf, ymin = -Inf, ymax = 15.5, fill = "#fbe9e4") +
+  annotate("text", x = Inf, y = -Inf, label = "Well supported in periodontitis,\nfew other conditions",
+           hjust = 1.05, vjust = -0.5, size = 2.8, color = "#c0392b", lineheight = 0.9) +
   geom_point(shape = 21, size = 2.6, fill = "grey70", color = "grey15", stroke = 0.4) +
   geom_text_repel(data = \(d) filter(d, perio_studies >= 10 | other_conditions <= 5), aes(label = taxon),
                   size = 2.6, fontface = "italic", color = "grey25", seed = 1, max.overlaps = Inf,
@@ -1829,7 +1832,7 @@ sp <- \(g, dir = "Increased in periodontitis") with(filter(specificity, taxon ==
                                                   sprintf("%d studies, %d other conditions", perio_studies, other_conditions))
 ```
 
-**Shows:** increases in the most-reported periodontitis genera, *Porphyromonas* (`r sp("Porphyromonas")`), *Prevotella* (`r sp("Prevotella")`) and *Fusobacterium* (`r sp("Fusobacterium")`), are reported across many conditions and so are not unique to the periodontitis literature. *Desulfobulbus* (`r sp("Desulfobulbus")`), *Fretibacterium* (`r sp("Fretibacterium")`), *Tannerella* (`r sp("Tannerella")`) and *Filifactor* (`r sp("Filifactor")`) have substantial support in PerioSigDB but are reported in the same direction by fewer other conditions, as are *Peptoanaerobacter* and *Johnsonella*, reported by few periodontitis studies and almost no other condition. Several of these are targets of the checkerboard and PCR panels used in many PerioSigDB studies, which may raise their periodontitis counts. Most periodontitis-decreased genera (e.g. *Streptococcus*, *Haemophilus*, *Neisseria*, *Rothia*) are reported decreased by many other conditions; *Cardiobacterium* and *Lautropia* by the fewest.
+**Shows:** increases in the most-reported periodontitis genera, *Porphyromonas* (`r sp("Porphyromonas")`), *Prevotella* (`r sp("Prevotella")`) and *Fusobacterium* (`r sp("Fusobacterium")`), are reported across many conditions and so are not unique to the periodontitis literature. *Desulfobulbus* (`r sp("Desulfobulbus")`), *Fretibacterium* (`r sp("Fretibacterium")`), *Filifactor* (`r sp("Filifactor")`) and *Tannerella* (`r sp("Tannerella")`) fall in the shaded zone: substantial support in PerioSigDB but reported in the same direction by fewer other conditions. *Treponema* (`r sp("Treponema")`) sits just above it. *Peptoanaerobacter* and *Johnsonella* are reported by almost no other condition, but also by few periodontitis studies. Several of these are targets of the checkerboard and PCR panels used in many PerioSigDB studies, which may raise their periodontitis counts. Most periodontitis-decreased genera (e.g. *Streptococcus*, *Haemophilus*, *Neisseria*, *Rothia*) are reported decreased by many other conditions; only *Cardiobacterium* (`r sp("Cardiobacterium", "Decreased in periodontitis")`) falls in the shaded zone, with *Lautropia* (`r sp("Lautropia", "Decreased in periodontitis")`) just above it.
 
 ### Do the periodontitis-associated genera already co-vary in health?
 
