@@ -76,9 +76,15 @@ perio_bugs <- perio_bugs |>
 # up to two signatures (up and down)
 stopifnot(max(table(perio_bugs$Study)) == 2)
 
-perio_bugs <- perio_bugs |> 
-  mutate(Experiment = 'Experiment 1') |> 
+perio_bugs <- perio_bugs |>
+  mutate(Experiment = 'Experiment 1') |>
   relocate(Experiment, .before = `Location of subjects`)
+
+# corrections and new fields from the full-text review (see scripts/llm_annotation/apply_review.R)
+if (corrected) {
+  source('scripts/llm_annotation/apply_review.R')
+  perio_bugs <- apply_review(perio_bugs)
+}
 
 saveRDS(perio_bugs, paste0('output/perio_bugs', suffix, '.rds'))
 write.csv(perio_bugs, paste0('output/perio_bugs', suffix, '.csv'), row.names = FALSE)

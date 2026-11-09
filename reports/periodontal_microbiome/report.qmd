@@ -258,7 +258,7 @@ siglengths_broad <- sapply(allsigs_broad, length)
 ```{r overview-fig}
 #| fig-width: 13
 #| fig-height: 8.5
-#| fig-cap: "PerioSigDB overview. **(A)** Papers and signatures by publication period. **(B)** Papers per country of study population; multi-country studies count toward each country. All signatures come from subgingival plaque, so no body-site panel is shown. Panels C–F are split by whether the signature lists taxa increased or decreased in periodontitis. **(C)** Number of signatures each taxon appears in (increased above the axis, decreased below); the 4 most frequent taxa in each direction are labelled. **(D)** Distribution of signature size (number of taxa). **(E)** Profiling method of increased and decreased signatures. **(F)** Signatures containing the 5 taxa most often reported as increased (top) and the 5 most often reported as decreased (bottom), by direction and profiling method."
+#| fig-cap: "PerioSigDB overview. **(A)** Papers and signatures by publication period. **(B)** Papers per country of study population; multi-country studies count toward each country. All signatures come from subgingival plaque, so no body-site panel is shown. Panels C–F are split by whether the signature lists taxa increased or decreased in periodontitis. **(C)** Number of signatures each taxon appears in (increased above the axis, decreased below); the taxa shown in F are labelled. **(D)** Distribution of signature size (number of taxa). **(E)** Profiling method of increased and decreased signatures. **(F)** Signatures containing the 5 taxa most often reported as increased (top) and the 5 most often reported as decreased (bottom), by direction and profiling method."
 
 # each panel gets its own hues; grey always means "not reported"
 pal_A <- c("#1baf7a", "#4a3aa7")
@@ -315,7 +315,7 @@ papers_per_country <- dat |>
   mutate(country = recode(trimws(`Location of subjects`), !!!country_fix)) |>
   distinct(PMID, country) |>
   count(country, name = "papers") |>
-  mutate(papers_bin = cut(papers, breaks = c(0, 1, 4, 9, Inf), labels = c("1", "2–4", "5–9", "10+")))
+  mutate(papers_bin = cut(papers, breaks = c(0, 1, 4, 9, 19, Inf), labels = c("1", "2–4", "5–9", "10–19", "20+")))
 
 world <- spData::world |>
   filter(name_long != "Antarctica") |>
@@ -325,8 +325,8 @@ stopifnot(all(papers_per_country$country %in% world$name_long))
 pB <- ggplot(world) +
   geom_sf(aes(fill = papers_bin), color = "white", linewidth = 0.1) +
   scale_fill_manual(
-    values = c("1" = "#c6dbef", "2–4" = "#6baed6", "5–9" = "#2171b5", "10+" = "#08306b"),
-    breaks = c("1", "2–4", "5–9", "10+"), na.value = "grey85", name = "papers"
+    values = c("1" = "#deebf7", "2–4" = "#9ecae1", "5–9" = "#4292c6", "10–19" = "#2171b5", "20+" = "#08306b"),
+    breaks = c("1", "2–4", "5–9", "10–19", "20+"), na.value = "grey85", name = "papers"
   ) +
   coord_sf(expand = FALSE) +
   theme_void(base_size = 10) +
@@ -350,8 +350,15 @@ taxon_freq_dir <- tibble(taxon = unlist(msc), direction = rep(sig_dir, lengths(m
   count(taxon, direction, name = "signatures") |>
   mutate(label = tax_label(taxon))
 
-top_taxa_dir <- taxon_freq_dir |>
-  slice_max(signatures, n = 4, by = direction, with_ties = FALSE)
+# top 5 taxa reported as increased, then top 5 reported as decreased (excluding the increased
+# five); labelled in panel C and shown by profiling method in panel F
+top_up <- taxon_freq_dir |>
+  filter(direction == "increased") |>
+  slice_max(signatures, n = 5, with_ties = FALSE)
+top_dn <- taxon_freq_dir |>
+  filter(direction == "decreased", !taxon %in% top_up$taxon) |>
+  slice_max(signatures, n = 5, with_ties = FALSE)
+top_taxa_dir <- bind_rows(top_up, top_dn)
 
 # histogram with increased signatures above the axis and decreased below, on a
 # symmetric log scale so that the many small bins remain visible
@@ -469,13 +476,7 @@ pF <- ggplot(method_counts, aes(x = "", y = prop, fill = method)) +
   theme_void(base_size = 10) +
   theme(legend.position = "none")
 
-# top 5 taxa reported as increased, then top 5 reported as decreased, by profiling method
-top_up <- taxon_freq_dir |>
-  filter(direction == "increased") |>
-  slice_max(signatures, n = 5, with_ties = FALSE)
-top_dn <- taxon_freq_dir |>
-  filter(direction == "decreased", !taxon %in% top_up$taxon) |>
-  slice_max(signatures, n = 5, with_ties = FALSE)
+# Panel F: the taxa labelled in panel C, by profiling method
 top_taxa <- bind_rows(top_up, top_dn)
 
 top_taxa_method <- map_dfr(seq_len(nrow(top_taxa)), function(i) {

@@ -17,6 +17,8 @@ library(ontologySimilarity)
 
 # TODO: use output/perio_bugs.rds once manual corrections are confirmed by curators
 dat <- readRDS('output/perio_bugs_corrected.rds')
+# studies the full-text review proposes excluding (not a health vs periodontitis comparison)
+dat <- dat[!grepl('^proposed exclusion', dat$`Review status`), ]
 
 options(timeout = 1200)
 onto <- BugSigDBStats::getNcbiTaxonomyObo()
