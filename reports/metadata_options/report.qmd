@@ -1179,25 +1179,26 @@ bsdb_genera <- sig_genera(bsdb_cc) |>
   distinct(sig = unit, direction, taxon)
 
 # direction of the periodontitis genera in each condition (genera reported by >= 3 of its studies)
-genus_agreement <- bsdb_genera |>
+genus_agreement_by <- function(by = "Condition") bsdb_genera |>
   filter(taxon %in% perio_genera$taxon) |>
   distinct(sig, taxon, direction) |>
-  left_join(select(bsdb_sigs, sig, Condition), by = "sig") |>
-  count(Condition, taxon, direction) |>
+  left_join(select(bsdb_sigs, sig, all_of(by)), by = "sig") |>
+  count(across(all_of(c(by, "taxon", "direction")))) |>
   pivot_wider(names_from = direction, values_from = n, values_fill = 0) |>
   left_join(select(perio_genera, taxon, perio = direction), by = "taxon") |>
   mutate(n = increased + decreased, same = ifelse(perio == "increased", increased, decreased)) |>
   filter(n >= 3)
+genus_agreement <- genus_agreement_by()
 
 # a genus agrees with periodontitis in a condition if at least two thirds of the condition's reports of it
 # are in the periodontitis direction, and goes the opposite way if at most one third are; in between
 # (e.g. 2 of 4) it counts as neither, i.e. against both directions
 agree_cut <- 2 / 3
 
-agreement_map <- genus_agreement |>
+agreement_summary <- function(ga, by = "Condition") ga |>
   # each genus counts once
   summarise(genera = n(), agree = sum(same / n >= agree_cut), against = sum(same / n <= 1 - agree_cut),
-            share = mean(same / n), .by = c(Condition, perio)) |>
+            share = mean(same / n), .by = all_of(c(by, "perio"))) |>
   filter(genera >= 3) |>
   pivot_wider(names_from = perio, values_from = c(genera, agree, against, share)) |>
   filter(!is.na(share_increased), !is.na(share_decreased)) |>
@@ -1210,6 +1211,9 @@ agreement_map <- genus_agreement |>
          label = Condition,
          informative = informative_increased + informative_decreased,
          p = map2_dbl(agree, informative, \(k, n) binom.test(k, n)$p.value))
+agreement_map <- agreement_summary(genus_agreement)
+# the same within each body site group of a condition (for the body site arrows of the agreement map)
+agreement_map_site <- agreement_summary(genus_agreement_by(c("Condition", "site_group")), c("Condition", "site_group"))
 
 
 # left panel: PerioSigDB signatures with the genus increased (right) and decreased (left), and
@@ -1460,19 +1464,38 @@ direction_test <- function(d, dir) {
       fdr = p.adjust(p, method = "BH")
     )
 }
-direction_hits <- function(dir) {
+# body site subsets shown as extra columns of the direction heatmaps: conditions whose position in the
+# direction summary changes most when restricted to one body site group
+site_subsets <- tribble(
+  ~Condition,             ~site_group,        ~subset,
+  "COVID-19",             "gastrointestinal", "COVID-19 (gut)",
+  "Rheumatoid arthritis", "oral",             "Rheumatoid arthritis (mouth)"
+)
+# BugSigDB study units, with the units of each body site subset added again under the subset's name
+sigs_with_subsets <- function() {
+  bind_rows(bsdb_sigs,
+            inner_join(bsdb_sigs, site_subsets, by = c("Condition", "site_group")) |>
+              mutate(Condition = subset) |> select(-subset))
+}
+direction_hits <- function(dir, subsets = FALSE) {
   bsdb_genera |>
     filter(taxon %in% perio_genera$taxon[perio_genera$direction == dir]) |>
     distinct(sig, taxon) |>
-    left_join(select(bsdb_sigs, sig, Condition, direction), by = "sig") |>
+    left_join(select(if (subsets) sigs_with_subsets() else bsdb_sigs, sig, Condition, direction), by = "sig",
+              relationship = "many-to-many") |>
     filter(direction %in% c("increased", "decreased"))
 }
 direction_tests <- function(dir, min_sigs = 5) {
-  sizes <- bsdb_sigs |> count(Condition, name = "signatures") |> filter(signatures >= min_sigs)
-  direction_hits(dir) |>
+  sizes <- sigs_with_subsets() |> count(Condition, name = "signatures") |> filter(signatures >= min_sigs)
+  tests <- direction_hits(dir, subsets = TRUE) |>
     filter(Condition %in% sizes$Condition) |>
     count_directions(Condition) |>
     direction_test(dir)
+  # FDR of the conditions as before (body site subsets not part of their family); the subsets'
+  # FDR adjusted together with all conditions
+  is_subset <- tests$Condition %in% site_subsets$subset
+  tests$fdr[!is_subset] <- p.adjust(tests$p[!is_subset], method = "BH")
+  tests
 }
 
 # per condition and genus group: genera reported by at least min_reports of the condition's studies
@@ -1593,9 +1616,14 @@ direction_conditions <- function(dir, min_sigs = 5, min_reports = 3, min_genera 
 # a figure with n_ref columns, so the heatmap is narrower rather than stretched.
 direction_heatmap <- function(dir, min_sigs = 5, min_reports = 3, min_genera = 4, min_agree = agree_cut, n_ref = 13,
                               columns_only = FALSE) {
-  condition_sizes <- bsdb_sigs |>
+  condition_sizes <- sigs_with_subsets() |>
     summarise(signatures = n(), oral = mean(oral), .by = Condition)
-  conditions <- direction_conditions(dir, min_sigs, min_reports, min_genera, min_agree) |>
+  shown <- direction_conditions(dir, min_sigs, min_reports, min_genera, min_agree)
+  # body site subsets are always shown, in the panel of the direction most of their genera take
+  forced <- direction_agreement(dir, min_sigs, min_reports) |>
+    filter(Condition %in% site_subsets$subset, !Condition %in% shown$Condition) |>
+    mutate(agreeing = agree >= against, k = ifelse(agreeing, agree, against))
+  conditions <- bind_rows(shown, forced) |>
     arrange(desc(agreeing), p, desc(k / informative)) |>
     left_join(condition_sizes, by = "Condition")
   columns <- bind_rows(
@@ -1659,36 +1687,56 @@ semsim <- readRDS("../../output/bugsigdb_semantic_similarity.rds")
 # precomputed by scripts/bugsigdb_taxon_similarity.R
 taxon_sim <- readRDS("../../output/bugsigdb_taxon_similarity.rds")
 
-# similarity ranks among BugSigDB signatures of the same direction (and body site group if match_site)
-similarity_ranks <- function(match_site = TRUE) {
-  units <- bsdb_cc_sigs |>
-    # signatures with at least 5 taxa (as in the BugSigDB paper): smaller ones give extreme, noisy similarities
-    filter(lengths(bsdb_cc$`NCBI Taxonomy IDs`[sig]) >= 5) |>
-    inner_join(semsim$similarity, by = c("bsdb_id" = "BSDB ID")) |>
-    summarise(up = mean(sim_increased), down = mean(sim_decreased),
-              .by = c(unit, Condition, direction, site_group)) |>
-    mutate(up = (rank(up) - 0.5) / n(), down = (rank(down) - 0.5) / n(),
-           .by = all_of(if (match_site) c("direction", "site_group") else "direction")) |>
-    filter(n() >= 5, .by = c(Condition, direction)) |>
-    pivot_longer(c(up, down), names_to = "perio", values_to = "rank") |>
-    mutate(perio = ifelse(perio == "up", "increased", "decreased"))
-
-  # one-sided: more similar than typical, within each BugSigDB direction x periodontitis signature
-  stats <- units |>
-    summarise(
-      studies = n(),
-      mean_rank = mean(rank),
-      ci = 1.96 * sd(rank) / sqrt(n()),
-      p = wilcox.test(rank, mu = 0.5, alternative = "greater", exact = FALSE)$p.value,
-      .by = c(Condition, direction, perio)
-    ) |>
-    mutate(fdr = p.adjust(p, method = "BH"), .by = c(direction, perio))
-
-  list(units = units, stats = stats)
+# similarity of a set of BugSigDB study units to a PerioSigDB consensus, compared with the units of all *other*
+# conditions (periodontitis studies are not in bsdb_cc): one-sided Wilcoxon rank-sum (Mann-Whitney) test,
+# more similar than the background. Shown rank of a unit: share of background units it is more similar than
+# (ties count half), so a set's mean rank is U / (n_x * n_y) (0.5 = typical).
+# scores: one row per unit and periodontitis consensus (perio), with unit, Condition, direction, site_group, sim.
+# Sets, each needing >= min_units units of the BugSigDB direction:
+#   all:      all of a condition's units, vs all other units of the direction
+#   site_all: a condition's units from one body site group, vs all other units of the direction
+#   site:     the same, vs other units of the direction from that site group; only where that site group has
+#             >= min_bg_units such units from >= min_bg_conditions other conditions (a proper background)
+# BH within each kind of set and each BugSigDB direction x consensus column.
+similarity_tests <- function(scores, min_units = 5, min_bg_units = 20, min_bg_conditions = 10) {
+  unit_info <- distinct(scores, unit, Condition, direction, site_group)
+  sim <- pivot_wider(select(scores, unit, perio, sim), names_from = perio, values_from = sim)
+  sim_of <- \(u, pr) sim[[pr]][match(u, sim$unit)]
+  rank_vs <- \(x, y) vapply(x, \(v) mean(y < v) + 0.5 * mean(y == v), numeric(1))
+  background <- \(cond, dir, kind, s) with(unit_info, unit[direction == dir & Condition != cond &
+                                                             (kind != "site" | site_group == s)])
+  sets <- bind_rows(mutate(unit_info, kind = "all", site = NA_character_),
+                    mutate(unit_info, kind = "site_all", site = site_group),
+                    mutate(unit_info, kind = "site", site = site_group)) |>
+    filter(n() >= min_units, .by = c(kind, Condition, site, direction)) |>
+    nest(units = c(unit, site_group), .by = c(kind, Condition, site, direction)) |>
+    mutate(bg = pmap(list(Condition, direction, kind, site), background),
+           bg_conditions = map_int(bg, \(b) n_distinct(unit_info$Condition[match(b, unit_info$unit)]))) |>
+    filter(kind != "site" | (lengths(bg) >= min_bg_units & bg_conditions >= min_bg_conditions))
+  res <- cross_join(sets, tibble(perio = c("increased", "decreased"))) |>
+    mutate(x = map2(units, perio, \(u, pr) sim_of(u$unit, pr)),
+           y = map2(bg, perio, sim_of),
+           ranks = map2(x, y, rank_vs),
+           studies = lengths(x), background = lengths(y),
+           mean_rank = map_dbl(ranks, mean),
+           ci = map_dbl(ranks, \(r) 1.96 * sd(r) / sqrt(length(r))),
+           p = map2_dbl(x, y, \(x, y) wilcox.test(x, y, alternative = "greater", exact = FALSE)$p.value)) |>
+    mutate(fdr = p.adjust(p, method = "BH"), .by = c(kind, direction, perio))
+  list(stats = select(res, kind, Condition, site, direction, perio, studies, background, bg_conditions,
+                      mean_rank, ci, p, fdr),
+       units = res |> mutate(units = map2(units, ranks, \(u, r) mutate(u, rank = r))) |>
+         select(kind, Condition, site, direction, perio, units) |> unnest(units))
 }
 
-semsim_site <- similarity_ranks()
-semsim_all <- similarity_ranks(match_site = FALSE)
+# mean best-match similarity of each study unit to the two consensus signatures, over its signatures with
+# at least 5 taxa (as in the BugSigDB paper): smaller ones give extreme, noisy similarities
+semsim_scores <- bsdb_cc_sigs |>
+  filter(lengths(bsdb_cc$`NCBI Taxonomy IDs`[sig]) >= 5) |>
+  inner_join(semsim$similarity, by = c("bsdb_id" = "BSDB ID")) |>
+  summarise(increased = mean(sim_increased), decreased = mean(sim_decreased),
+            .by = c(unit, Condition, direction, site_group)) |>
+  pivot_longer(c(increased, decreased), names_to = "perio", values_to = "sim")
+semsim_tests <- similarity_tests(semsim_scores)
 
 # conditions shown: those with enough data in both directions (at least 3 periodontitis genera
 # reported by at least 3 studies in each) in every figure, plus, in each figure, any condition with
@@ -1699,7 +1747,7 @@ figure_conditions <- function(tests) union(base_conditions, tests$Condition[!is.
 
 In which other conditions does the microbiome literature (BugSigDB) report the taxa that PerioSigDB links to periodontitis? BugSigDB is restricted to human disease-vs-control comparisons, excluding meta-analyses (`r nrow(bsdb_cc)` signatures from `r n_distinct(bsdb_cc$Study)` studies), and each study counts once per condition, direction and body site group. Body site groups: oral (mouth, saliva, dental plaque, tongue, gums, inner cheek, lip), upper airway (throat, pharynx including the oropharynx, nose), lower airway, gastrointestinal, urogenital, skin, eye and other (e.g. blood, milk); signatures listing sites from several groups are mixed. Condition labels that name the same condition are merged (e.g. colorectal carcinoma into colorectal cancer; oral, pharyngeal and laryngeal cancers into head and neck cancer).
 
-The enrichment heatmaps show the same `r length(base_conditions)` core conditions, those with at least 3 periodontitis genera reported by at least 3 studies in each direction, plus any other condition with unadjusted p < 0.05 in that figure's own tests. The direction heatmaps instead show, for each direction, the conditions whose reports agree most with periodontitis; the direction summary and the whole-signature similarity figures show these conditions, the similarity figures adding any other condition with unadjusted p < 0.05 in their own tests.
+The enrichment heatmaps show the same `r length(base_conditions)` core conditions, those with at least 3 periodontitis genera reported by at least 3 studies in each direction, plus any other condition with unadjusted p < 0.05 in that figure's own tests. The direction heatmaps instead show, for each direction, the conditions whose reports agree most with periodontitis; the direction summary shows these conditions, and the whole-signature similarity figures show the conditions with unadjusted p < 0.05 in any of their own tests.
 
 ::: {.callout-tip}
 ## How to read the genus heatmaps
@@ -1805,7 +1853,7 @@ direction_heatmap("decreased")
 ```{r bsdb-direction-combined}
 #| fig-width: 15
 #| fig-height: 8
-#| fig-cap: "Periodontitis-associated genera and the direction other conditions report them in (BugSigDB). Left: the 20 periodontitis-increased genera; right: the 20 periodontitis-decreased genera, each with its names on the left and the PerioSigDB signatures reporting the genus decreased (bars to the left) or increased (bars to the right), coloured and shaded as in the consensus taxa figure (binomial test of increased vs decreased signatures; faded: not significant after Benjamini–Hochberg correction; palest: unadjusted p ≥ 0.05). Columns on each side: all of BugSigDB (next to the genus names), then the conditions with at least 4 of these genera reported by at least 3 of their studies with a clear direction, of which at least two thirds agree with periodontitis (first panel) or at least two thirds go the opposite way (second panel); each panel ordered by a two-sided sign test of that count against half, smallest p first. In brackets: the number of genera agreeing or going the opposite way out of the genera with a clear direction. Cells: studies reporting the genus in its periodontitis direction (increased on the left, decreased on the right) / all studies reporting it; colour: from orange (all increased) to blue (all decreased). Grey: 1–2 studies; white: not reported. Hatched: mixed (3 or more studies, between one and two thirds of them in the periodontitis direction, e.g. 2 of 4), left out of the count in brackets. Outlined: two-sided binomial test of the cell's studies against 50% (FDR < 0.05), so an outlined cell can be significant in either direction. Top bars: share of the column's studies from oral sites."
+#| fig-cap: "Periodontitis-associated genera and the direction other conditions report them in (BugSigDB). Left: the 20 periodontitis-increased genera; right: the 20 periodontitis-decreased genera, each with its names on the left and the PerioSigDB signatures reporting the genus decreased (bars to the left) or increased (bars to the right), coloured and shaded as in the consensus taxa figure (binomial test of increased vs decreased signatures; faded: not significant after Benjamini–Hochberg correction; palest: unadjusted p ≥ 0.05). Columns on each side: all of BugSigDB (next to the genus names), then the conditions with at least 4 of these genera reported by at least 3 of their studies with a clear direction, of which at least two thirds agree with periodontitis (first panel) or at least two thirds go the opposite way (second panel); each panel ordered by a two-sided sign test of that count against half, smallest p first. COVID-19 (gut) and rheumatoid arthritis (mouth): the same condition restricted to studies of one body site group, shown in both genus groups even where they do not meet these criteria (rheumatoid arthritis (mouth), decreased genera: 3 genera with a clear direction). In brackets: the number of genera agreeing or going the opposite way out of the genera with a clear direction. Cells: studies reporting the genus in its periodontitis direction (increased on the left, decreased on the right) / all studies reporting it; colour: from orange (all increased) to blue (all decreased). Grey: 1–2 studies; white: not reported. Hatched: mixed (3 or more studies, between one and two thirds of them in the periodontitis direction, e.g. 2 of 4), left out of the count in brackets. Outlined: two-sided binomial test of the cell's studies against 50% (FDR < 0.05), so an outlined cell can be significant in either direction. Top bars: share of the column's studies from oral sites."
 direction_heatmap_combined()
 ```
 
@@ -1835,7 +1883,7 @@ Each condition is summarised over all the periodontitis-associated genera its st
 ```{r bsdb-agreement-map}
 #| fig-width: 9.2
 #| fig-height: 7.5
-#| fig-cap: "Direction of the periodontitis-associated genera in each BugSigDB condition. Genera counted: those among the 20 per direction in the genus heatmaps reported by at least 3 of the condition's studies. A genus agrees with periodontitis if at least two thirds of these studies report it in the periodontitis direction and goes the opposite way if at most one third do; genera in between (e.g. 2 of 4 studies) have no clear direction and are left out, as in the direction heatmaps. x: share of the periodontitis-increased genera with a clear direction that agree (reported increased); y: the same for the periodontitis-decreased genera (reported decreased). Conditions: those shown in either direction heatmap. Point size: number of genera counted. Fill: one-sided sign test of the agreeing genera against half of the genera with a clear direction, coloured by genus group (orange: periodontitis-increased genera; blue: periodontitis-decreased genera; purple: both) from p = 1 (white) to p ≤ 0.01 (full colour). Ring: the same for the genera going the opposite way. Shaded: same direction as periodontitis for both genus groups."
+#| fig-cap: "Direction of the periodontitis-associated genera in each BugSigDB condition. Genera counted: those among the 20 per direction in the genus heatmaps reported by at least 3 of the condition's studies. A genus agrees with periodontitis if at least two thirds of these studies report it in the periodontitis direction and goes the opposite way if at most one third do; genera in between (e.g. 2 of 4 studies) have no clear direction and are left out, as in the direction heatmaps. x: share of the periodontitis-increased genera with a clear direction that agree (reported increased); y: the same for the periodontitis-decreased genera (reported decreased). Conditions: those shown in either direction heatmap. Point size: number of genera counted. Fill: one-sided sign test of the agreeing genera against half of the genera with a clear direction, coloured by genus group (orange: periodontitis-increased genera; blue: periodontitis-decreased genera; purple: both) from p = 1 (white) to p ≤ 0.01 (full colour). Ring: the same for the genera going the opposite way. Shaded: same direction as periodontitis for both genus groups. Arrows: from all of a condition's studies to those of one body site group (mouth, gut or airway), for conditions whose position moves by at least 25 percentage points when restricted to that site (site groups with at least 3 genera with a clear direction in each genus group)."
 # arrows on the 50% lines, pointing outward from the centre, labelled in light grey at their tips
 centre_arrow <- arrow(length = unit(0.25, "cm"), angle = 25, type = "open")
 h_arrows <- tibble(xend = c(1.035, -0.035), label = c("Perio-increased genera\nincreased in condition",
@@ -1858,8 +1906,27 @@ blend <- function(a, b) {
 # half of the genera leaning either way; genera reported equally often in both directions left out)
 # only the conditions shown in the direction heatmaps (either genus group)
 heatmap_conditions <- union(direction_conditions("increased")$Condition, direction_conditions("decreased")$Condition)
+# body site: a condition whose position moves by at least 0.25 when restricted to one body site group
+# (with at least 3 genera with a clear direction in each genus group) also gets a point per such site
+# group, with an arrow from all of its studies to those of the site
+site_names <- c(oral = "mouth", gastrointestinal = "gut", "upper airway" = "airway", "lower airway" = "lung",
+                urogenital = "urogenital", skin = "skin", eye = "eye", other = "other", mixed = "mixed sites")
+site_points <- agreement_map_site |>
+  filter(Condition %in% heatmap_conditions, informative_increased >= 3, informative_decreased >= 3) |>
+  left_join(select(agreement_map, Condition, all_x = frac_increased, all_y = frac_decreased), by = "Condition") |>
+  filter(any(sqrt((frac_increased - all_x)^2 + (frac_decreased - all_y)^2) >= 0.25), .by = Condition) |>
+  mutate(label = paste0(Condition, " (", site_names[site_group], ")"), site = TRUE) |>
+  select(-all_x, -all_y)
+site_split_conditions <- unique(site_points$Condition)
+site_colours <- c(mouth = "#1b9e77", gut = "#a6761d", airway = "#7570b3", other = "grey45")
+unit_site_colours <- c(mouth = "#1b9e77", gut = "#a6761d", airway = "#7570b3", lung = "#e7298a",
+                       urogenital = "#66a61e", skin = "#e6ab02", eye = "#1f78b4", other = "grey55",
+                       "mixed sites" = "grey30")
 agreement_plot <- agreement_map |>
   filter(Condition %in% heatmap_conditions) |>
+  mutate(site = FALSE) |>
+  # body site points first, so that at tied coordinates they sit on the side their arrow comes from
+  (\(d) bind_rows(site_points, d))() |>
   # conditions at identical coordinates are spread slightly sideways so that both are visible
   mutate(plot_x = frac_increased + (row_number() - (n() + 1) / 2) * 0.035, .by = c(frac_increased, frac_decreased)) |>
   mutate(strength_increased = strength(agree_increased, informative_increased),
@@ -1869,6 +1936,13 @@ agreement_plot <- agreement_map |>
          opposite_decreased = strength(against_decreased, informative_decreased),
          ring = blend(opposite_increased, opposite_decreased),
          ring_alpha = pmax(opposite_increased, opposite_decreased))
+# arrows from a condition (all studies) to its body site points, shortened to stop short of the points
+site_arrows <- inner_join(filter(agreement_plot, !site) |> select(Condition, x = plot_x, y = frac_decreased),
+                          filter(agreement_plot, site) |> select(Condition, xend = plot_x, yend = frac_decreased),
+                          by = "Condition") |>
+  mutate(d = sqrt((xend - x)^2 + (yend - y)^2), gap = pmin(0.1, d * 0.35),
+         x0 = x + (xend - x) * 0.05 / d, y0 = y + (yend - y) * 0.05 / d,
+         x1 = xend - (xend - x) * gap / d, y1 = yend - (yend - y) * gap / d)
 
 p_map <- ggplot(agreement_plot, aes(plot_x, frac_decreased)) +
   annotate("rect", xmin = 0.5, xmax = 1, ymin = 0.5, ymax = 1, fill = "grey94") +
@@ -1885,6 +1959,9 @@ p_map <- ggplot(agreement_plot, aes(plot_x, frac_decreased)) +
             vjust = 0, size = 2.7, color = "grey55", lineheight = 0.9) +
   geom_text(data = v_arrows, aes(x = 0.5, y = ly, label = label, vjust = vjust), inherit.aes = FALSE,
             size = 2.7, color = "grey55") +
+  # body site arrows, above the shading
+  geom_segment(data = site_arrows, aes(x = x0, y = y0, xend = x1, yend = y1), inherit.aes = FALSE,
+               color = "grey35", linewidth = 0.5, arrow = arrow(length = unit(0.2, "cm"), angle = 25, type = "open")) +
   # thick ring underneath, so that its outer half shows around the point
   geom_point(aes(size = genera, colour = ring, alpha = ring_alpha), shape = 21, fill = NA, stroke = 4,
              show.legend = FALSE) +
@@ -1898,8 +1975,10 @@ p_map <- ggplot(agreement_plot, aes(plot_x, frac_decreased)) +
   geom_text(data = filter(agreement_plot, frac_decreased == 0.5),
             aes(x = plot_x + ifelse(plot_x < 0.5, 0.02, 0), y = frac_decreased - 0.04, label = label,
                 hjust = ifelse(plot_x < 0.5, 0, 0.5)), vjust = 1, size = 3.1, color = "grey15") +
+  # (points just below the 50% line: labels nudged down, away from the grey arrow labels)
   geom_text_repel(data = filter(agreement_plot, frac_decreased != 0.5),
                   aes(label = label, point.size = 8 * sqrt(genera / max(genera)) + 3), size = 3.1,
+                  nudge_y = ifelse(abs(filter(agreement_plot, frac_decreased != 0.5)$frac_decreased - 0.5) < 0.1, -0.08, 0),
                   color = "grey15", seed = 1, min.segment.length = 0, box.padding = 0.4, point.padding = 0.2,
                   segment.color = "grey50", segment.size = 0.3, max.overlaps = Inf, ylim = c(-0.02, 1.02)) +
   scale_size_area(max_size = 8, name = "Genera counted") +
@@ -1961,7 +2040,7 @@ ag <- \(cond, dir) {
 **Shows:** three patterns. Sign tests across genera are unadjusted for the number of conditions.
 
 - **Same direction as periodontitis for both genus groups (top right):** head and neck cancer (`r ag("Head and neck cancer", "increased")` periodontitis-increased genera agree (reported increased by at least two thirds of studies) and `r ag("Head and neck cancer", "decreased")` periodontitis-decreased genera agree; `r am("Head and neck cancer", "agree")` of `r am("Head and neck cancer", "informative")` genera with a clear direction overall, sign test p = `r signif(am("Head and neck cancer", "p"), 1)`). Smoking agrees for the periodontitis-decreased genera (`r ag("Smoking behavior", "decreased")`) but not for the periodontitis-increased genera (`r ag("Smoking behavior", "increased")`; overall p = `r signif(am("Smoking behavior", "p"), 1)`). *Haemophilus*, *Neisseria* and *Corynebacterium* are decreased in both; also *Rothia* and *Actinomyces* in head and neck cancer, *Gemella* and *Lautropia* in smoking. Both are sampled mostly in the mouth, and smoking is a periodontitis risk factor.
-- **Both genus groups reported increased (bottom right):** colorectal cancer, gastric cancer and rheumatoid arthritis report most periodontitis-increased genera increased (colorectal cancer `r ag("Colorectal cancer", "increased")`) but few periodontitis-decreased genera decreased (colorectal cancer `r ag("Colorectal cancer", "decreased")`; e.g. *Gemella* increased in 15 of 15 colorectal cancer studies). The two groups pull in opposite directions, so none of these is significant overall. The whole-signature similarity analyses below do not flag colorectal cancer's increased signatures as resembling the periodontitis-decreased signature, because they score whole signatures, in which these genera are a small part. For gastric cancer and ulcerative colitis they do. This pattern is compatible with increased representation of oral-associated genera in gastrointestinal disease, but does not establish their source or route of transfer.
+- **Both genus groups reported increased (bottom right):** colorectal cancer, gastric cancer and rheumatoid arthritis report most periodontitis-increased genera increased (colorectal cancer `r ag("Colorectal cancer", "increased")`) but few periodontitis-decreased genera decreased (colorectal cancer `r ag("Colorectal cancer", "decreased")`; e.g. *Gemella* increased in 15 of 15 colorectal cancer studies). The two groups pull in opposite directions, so none of these is significant overall. The whole-signature similarity analyses below do not flag colorectal cancer's increased signatures overall as resembling the periodontitis-decreased signature, because they score whole signatures, in which these genera are a small part; only its few mouth studies do. For ulcerative colitis and COVID-19 gut studies they do. This pattern is compatible with increased representation of oral-associated genera in gastrointestinal disease, but does not establish their source or route of transfer.
 - **Opposite to periodontitis (left):** COVID-19 (`r ag("COVID-19", "increased")` and `r ag("COVID-19", "decreased")`; `r am("COVID-19", "agree")` of `r am("COVID-19", "informative")` genera with a clear direction overall, p = `r signif(am("COVID-19", "p"), 1)`) reports the periodontitis-increased genera mostly decreased, and so, less clearly, does Parkinson's disease (`r ag("Parkinson's disease", "increased")` and `r ag("Parkinson's disease", "decreased")`).
 
 ### Whole-signature similarity to periodontitis
@@ -1972,136 +2051,314 @@ Compares whole signatures using taxa at their reported ranks (mostly species, wi
 - **Similarity:** semantic similarity on the NCBI taxonomy (best-match average of Lin similarity, as in BugSigDB's tools), for BugSigDB signatures with at least 5 taxa (smaller ones give extreme scores).
 
 ```{r bsdb-semantic-c}
-
-similarity_plot <- function(res, perio_dir, dir) {
-  shown <- res$stats |>
-    filter(perio == perio_dir, direction == dir) |>
-    slice_min(p, n = 5, with_ties = FALSE) |>
-    mutate(label = paste0(Condition, " (", studies, ")\np = ", signif(p, 2), ", FDR = ", signif(fdr, 2)),
-           label = fct_reorder(label, -p))
-  points <- inner_join(res$units, select(shown, Condition, direction, perio, label),
-                       by = c("Condition", "direction", "perio"))
-
-  ggplot(shown, aes(y = label)) +
-    geom_vline(xintercept = 0.5, color = "grey50", linetype = "dashed") +
-    geom_quasirandom(data = points, aes(x = rank), orientation = "y", width = 0.3, size = 1.1,
-                     color = c(increased = "#eb6834", decreased = "#2a78d6")[[perio_dir]], alpha = 0.7) +
-    geom_errorbarh(aes(xmin = mean_rank - ci, xmax = mean_rank + ci), height = 0, linewidth = 0.8, color = "grey10") +
-    geom_point(aes(x = mean_rank, fill = fdr < 0.05), shape = 21, size = 3.5, color = "grey10", stroke = 0.8) +
-    scale_fill_manual(values = c(`TRUE` = "grey10", `FALSE` = "white"), guide = "none") +
-    scale_x_continuous(limits = c(0, 1)) +
-    labs(title = sprintf("Periodontitis %s vs BugSigDB %s", perio_dir, dir),
-         subtitle = if (dir == perio_dir) "Same direction" else "Opposite direction",
-         x = sprintf("Similarity to periodontitis-%s signature (rank; 0.5 = typical)", perio_dir), y = NULL) +
-    theme(plot.title = element_text(face = "bold", size = 11), plot.subtitle = element_text(size = 10, color = "grey35"))
+# one row of the similarity tests, and a short text summary of it
+sv_row <- function(cond, dir, perio = dir, kind = "all", site = NA) {
+  st <- semsim_tests$stats
+  st[st$Condition == cond & st$direction == dir & st$perio == perio & st$kind == kind &
+       (if (is.na(site)) is.na(st$site) else !is.na(st$site) & st$site == site), ]
 }
+sv <- function(...) {
+  r <- sv_row(...)
+  sprintf("mean rank %.2f, p = %s, FDR = %s", r$mean_rank, signif(r$p, 1), signif(r$fdr, 1))
+}
+sim_set_label <- \(cond, kind, site) case_when(
+  kind == "all" ~ cond,
+  kind == "site_all" ~ paste0(cond, " (", site_names[site], ")"),
+  .default = paste0(cond, " (", site_names[site], " vs ", site_names[site], ")"))
 
-# one grid: conditions as rows (shared), the four comparisons as columns
+# conditions shown in both similarity figures: unadjusted p < 0.05 in any of their tests
+sim_conditions <- unique(semsim_tests$stats$Condition[semsim_tests$stats$p < 0.05])
+
 comparison_levels <- c("Perio increased\nvs BugSigDB increased", "Perio decreased\nvs BugSigDB decreased",
                        "Perio increased\nvs BugSigDB decreased", "Perio decreased\nvs BugSigDB increased")
+label_comparison <- \(d) mutate(d, comparison = factor(sprintf("Perio %s\nvs BugSigDB %s", perio, direction),
+                                                       levels = comparison_levels),
+                                opposite = perio != direction)
 
-similarity_grid <- function(res, n_top = 5) {
-  label_comparison <- function(d) {
-    d |> mutate(
-      comparison = factor(sprintf("Perio %s\nvs BugSigDB %s", perio, direction), levels = comparison_levels),
-      opposite = perio != direction
-    )
-  }
-  # conditions of the direction heatmaps plus any with p < 0.05 in any column,
-  # ordered by their smallest p in the same-direction comparisons
-  shown <- union(heatmap_conditions, res$stats$Condition[!is.na(res$stats$p) & res$stats$p < 0.05])
-  conditions <- res$stats |>
-    filter(Condition %in% shown) |>
-    summarise(best = suppressWarnings(min(p[perio == direction])), .by = Condition) |>
-    arrange(desc(best)) |>
-    pull(Condition)
-
+# rows of the boxed figure: per condition, all of its units vs all other conditions first, then by p (same-
+# direction columns) its units from each site group vs the same site group (where a proper background) and
+# vs all of BugSigDB (only where p < 0.05 in some column and not the same units as the first row)
+sim_rows <- function(res, conditions) {
+  all_n <- filter(res$stats, kind == "all") |> select(Condition, direction, perio, all_n = studies)
+  site_all_keep <- res$stats |>
+    filter(kind == "site_all") |>
+    left_join(all_n, by = c("Condition", "direction", "perio")) |>
+    summarise(keep = any(p < 0.05) & !all(studies == all_n, na.rm = TRUE), .by = c(Condition, site)) |>
+    filter(keep)
   stats <- res$stats |>
-    filter(Condition %in% conditions) |>
-    label_comparison() |>
-    mutate(Condition = factor(Condition, levels = conditions),
-           significance = case_when(fdr < 0.05 ~ "FDR < 0.05", p < 0.05 ~ "p < 0.05", .default = "Not significant") |>
+    filter(Condition %in% conditions, kind != "site_all" | paste(Condition, site) %in% paste(site_all_keep$Condition, site_all_keep$site))
+  cond_order <- stats |> filter(direction == perio) |> summarise(p = min(p), .by = Condition) |> arrange(p) |> pull(Condition)
+  gap <- 0.6
+  rows <- stats |>
+    summarise(p_same = suppressWarnings(min(p[direction == perio])), .by = c(Condition, kind, site)) |>
+    mutate(Condition = factor(Condition, levels = cond_order)) |>
+    arrange(Condition, kind != "all", p_same) |>
+    mutate(pos = -(row_number() + (as.integer(Condition) - 1) * gap),
+           label = case_when(kind == "all" ~ as.character(Condition),
+                             kind == "site_all" ~ paste0("   ", site_names[site], " studies (vs all BugSigDB)"),
+                             .default = paste0("   ", site_names[site], " studies (vs ", site_names[site], ")")),
+           Condition = as.character(Condition))
+  list(rows = rows, stats = stats)
+}
+
+similarity_boxes <- function(res, conditions) {
+  r <- sim_rows(res, conditions)
+  rows <- r$rows
+  keys <- c("Condition", "kind", "site")
+  boxes <- rows |> summarise(ymin = min(pos) - 0.45, ymax = max(pos) + 0.45, .by = Condition)
+  stats <- r$stats |> inner_join(select(rows, all_of(keys), pos), by = keys) |> label_comparison() |>
+    mutate(significance = case_when(fdr < 0.05 ~ "FDR < 0.05", p < 0.05 ~ "p < 0.05", .default = "Not significant") |>
              factor(levels = c("FDR < 0.05", "p < 0.05", "Not significant")))
-  units <- res$units |>
-    filter(Condition %in% conditions) |>
-    label_comparison() |>
-    mutate(Condition = factor(Condition, levels = conditions))
+  units <- res$units |> inner_join(select(rows, all_of(keys), pos), by = keys) |> label_comparison() |>
+    mutate(point_colour = factor(coalesce(site_names[site_group], "other"), levels = names(unit_site_colours)))
   shade <- distinct(stats, comparison, opposite) |> filter(opposite)
 
-  ggplot(stats, aes(y = Condition)) +
+  ggplot(stats, aes(y = pos)) +
     geom_rect(data = shade, aes(xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf), inherit.aes = FALSE,
               fill = "grey95") +
     geom_vline(xintercept = 0.5, color = "grey50", linetype = "dashed") +
-    geom_quasirandom(data = units, aes(x = rank, color = perio), orientation = "y", width = 0.3, size = 0.8,
-                     alpha = 0.6) +
-    geom_errorbarh(aes(xmin = mean_rank - ci, xmax = mean_rank + ci), height = 0, linewidth = 0.7, color = "grey10") +
+    geom_rect(data = boxes, aes(xmin = -0.03, xmax = 1.03, ymin = ymin, ymax = ymax), inherit.aes = FALSE,
+              fill = NA, colour = "black", linewidth = 0.5) +
+    geom_quasirandom(data = units, aes(x = rank, color = point_colour), orientation = "y", width = 0.3,
+                     size = 0.8, alpha = 0.6) +
+    geom_errorbar(aes(xmin = mean_rank - ci, xmax = mean_rank + ci), width = 0, linewidth = 0.7,
+                  color = "grey10", orientation = "y") +
     geom_point(aes(x = mean_rank, fill = significance), shape = 21, size = 3, color = "grey10", stroke = 0.7) +
-    # left of 0.5 (less similar than typical) is not tested (one-sided test), so it is faded
-    annotate("rect", xmin = -Inf, xmax = 0.5, ymin = -Inf, ymax = Inf, fill = "white", alpha = 0.65) +
-    annotate("text", x = 0.25, y = Inf, label = "not tested", vjust = 1.5, size = 2.8, color = "grey45",
-             fontface = "italic") +
-    scale_color_manual(values = c(increased = "#eb6834", decreased = "#2a78d6"), guide = "none") +
+    scale_color_manual(values = unit_site_colours, name = "Body site") +
     scale_fill_manual(values = c("FDR < 0.05" = "grey10", "p < 0.05" = "grey60", "Not significant" = "white"),
                       name = "Mean", drop = FALSE) +
-    scale_x_continuous(limits = c(0, 1), breaks = c(0, 0.5, 1)) +
+    scale_x_continuous(breaks = c(0, 0.5, 1)) +
+    scale_y_continuous(breaks = rows$pos, labels = rows$label, expand = expansion(add = 0.3)) +
+    # coordinate limits, not scale limits, so that bars reaching past 1 are clipped rather than dropped
+    coord_cartesian(xlim = c(-0.03, 1.03), expand = FALSE, clip = "off") +
     facet_grid(. ~ comparison) +
-    labs(x = "Similarity (rank among BugSigDB study units; 0.5 = typical)", y = NULL) +
+    labs(x = "Similarity (share of other conditions' study units of the same direction it is more similar than; 0.5 = typical)",
+         y = NULL) +
     theme(strip.text = element_text(face = "bold", hjust = 0.5), legend.position = "top",
-          panel.spacing.x = unit(0.8, "lines"))
+          panel.spacing.x = unit(0.8, "lines"), panel.border = element_blank(), panel.grid = element_blank(),
+          axis.text.y = element_text(hjust = 0, face = ifelse(rows$kind == "all", "bold", "plain")))
 }
 ```
 
-```{r bsdb-semantic-all-fig}
-#| fig-width: 13
-#| fig-height: 6
-#| fig-cap: "Similarity of BugSigDB signatures to the PerioSigDB consensus signatures. Each study unit's mean best-match average Lin similarity is ranked among BugSigDB study units of the same direction (0 = least, 1 = most similar; 0.5 = typical). Columns: similarity to the periodontitis-increased (orange points) or -decreased (blue points) consensus, for BugSigDB signatures of the same direction (white) or the opposite direction (shaded). Rows: the conditions shown in the direction heatmaps plus any other condition with unadjusted p < 0.05 in any column, ordered by their smallest p-value in the two same-direction columns, most significant at top. Small points: study units; large point and bar: mean and 95% confidence interval. Large point black: FDR < 0.05; grey: unadjusted p < 0.05; one-sided Wilcoxon signed-rank test of the condition's ranks against 0.5 (BH within each column). Faded (left of 0.5): less similar than typical; the test is one-sided, so this side is not tested, and a low rank mostly reflects body site or taxa unrelated to periodontitis rather than an opposite signal."
-similarity_grid(semsim_all)
+```{r bsdb-semantic-overview}
+#| fig-width: 11.5
+#| fig-height: 7
+#| fig-cap: "Overview of the whole-signature similarity of BugSigDB conditions to the PerioSigDB consensus signatures: which periodontitis consensus each direction of a condition's signatures resembles. Similarity is the mean rank of the condition's study units among the study units of all other conditions with the same BugSigDB direction (the share of them each unit is more similar than; 0.5 = typical), as in the next figure, and only the excess above 0.5 counts (a rank below 0.5 means not similar, and adds nothing). x: for the condition's increased signatures, excess similarity to the periodontitis-increased consensus minus excess similarity to the periodontitis-decreased consensus (right: they resemble the periodontitis-increased taxa; left: the periodontitis-decreased taxa). y: the same for the condition's decreased signatures, excess similarity to the periodontitis-decreased minus to the periodontitis-increased consensus (up: they resemble the periodontitis-decreased taxa; down: the periodontitis-increased taxa). Points: all of a condition's study units, compared with all other conditions. Points: shown only with unadjusted p < 0.05 in at least one of their four comparisons; a condition whose all-units point has none is shown by its significant site points instead, labelled with its name (e.g. autism spectrum disorder: its gut studies compared with other gut studies). Arrows: to the condition's study units from one body site group (same shape as the condition, for conditions with more than one point; labelled with the site), compared with all other conditions (e.g. \"mouth (vs all)\") or only with other conditions' study units from the same site group (e.g. \"mouth (vs mouth)\"), where any of the four mean ranks of the next figure changes by at least 0.15; where a site group's two comparisons nearly coincide (within 0.1), only the within-site one is shown. Rheumatoid arthritis has no all-units point (no comparison with p < 0.05), so its arrow runs from its mouth studies compared with all other conditions to the same studies compared with other mouth studies. A direction with fewer than 5 study units is placed at 0 (not tested). Point size: study units (both directions). Colour: the body site group of at least two thirds of the set's study units (grey: mixed). Fill opacity: one-sided Wilcoxon rank-sum test of the same-direction comparisons (the smaller p of the increased and decreased signatures), from p = 1 (faint) to p ≤ 0.01 (opaque), unadjusted. Ring opacity: the same for the opposite-direction comparisons (increased signatures resembling the periodontitis-decreased consensus, or decreased signatures the periodontitis-increased consensus). Shaded: same direction as periodontitis for both. AD: Alzheimer's disease; ASD: autism spectrum disorder; CRC: colorectal cancer; GC: gastric cancer; HNC: head and neck cancer; MDD: unipolar (major) depression; RA: rheumatoid arthritis; SCZ: schizophrenia; T1D: type 1 diabetes; UC: ulcerative colitis."
+p_strength <- \(p) pmin(-log10(coalesce(p, 1)) / 2, 1)
+# columns of the next figure, by BugSigDB direction . periodontitis consensus
+ov_cols <- c("increased.increased" = "inc_same", "increased.decreased" = "inc_opp",
+             "decreased.decreased" = "dec_same", "decreased.increased" = "dec_opp")
+ov_sets <- semsim_tests$stats |>
+  filter(Condition %in% sim_conditions) |>
+  mutate(col = ov_cols[paste(direction, perio, sep = ".")]) |>
+  select(kind, Condition, site, col, mean_rank, p, studies) |>
+  pivot_wider(names_from = col, values_from = c(mean_rank, p, studies))
+ov_base <- filter(ov_sets, kind == "all")
+ov_min_p <- \(d) pmin(d$p_inc_same, d$p_inc_opp, d$p_dec_same, d$p_dec_opp, na.rm = TRUE)
+# conditions whose all-units point has no comparison with p < 0.05: their significant site points stand in for it
+weak_conditions <- ov_base$Condition[ov_min_p(ov_base) >= 0.05]
+# body site sets: kept where any of the four mean ranks moves by at least 0.15 from all of the condition's units,
+# or where they are significant and the condition's all-units point is not
+ov_change <- ov_sets |>
+  filter(kind != "all") |>
+  inner_join(select(ov_base, Condition, starts_with("mean_rank")), by = "Condition", suffix = c("", "_all")) |>
+  mutate(change = pmax(abs(mean_rank_inc_same - mean_rank_inc_same_all), abs(mean_rank_inc_opp - mean_rank_inc_opp_all),
+                       abs(mean_rank_dec_same - mean_rank_dec_same_all), abs(mean_rank_dec_opp - mean_rank_dec_opp_all),
+                       na.rm = TRUE)) |>
+  filter(change >= 0.15 | (Condition %in% weak_conditions & ov_min_p(pick(everything())) < 0.05)) |>
+  select(all_of(names(ov_sets)))
+ov_mixed <- "mixed (no site ≥ 2/3)"
+# common abbreviations for the point labels (spelled out in the caption)
+ov_abbreviations <- c("Alzheimer's disease" = "AD", "Autism spectrum disorder" = "ASD", "Colorectal cancer" = "CRC",
+                      "Dry eye syndrome" = "Dry eye", "Gastric cancer" = "GC", "Head and neck cancer" = "HNC",
+                      "HIV infection" = "HIV", "Rheumatoid arthritis" = "RA", "Schizophrenia" = "SCZ",
+                      "Smoking behavior" = "Smoking", "Type I diabetes mellitus" = "T1D", "Ulcerative colitis" = "UC",
+                      "Unipolar depression" = "MDD")
+ov_abbrev <- \(x) coalesce(unname(ov_abbreviations[x]), x)
+ov_site_colours <- c(unit_site_colours[names(unit_site_colours) != "mixed sites"], setNames("grey60", ov_mixed))
+# excess similarity above typical (0.5); below typical counts as 0, and so does a missing comparison
+excess <- \(r) pmax(coalesce(r, 0.5) - 0.5, 0)
+ov <- bind_rows(ov_change, ov_base) |>
+  mutate(px = excess(mean_rank_inc_same) - excess(mean_rank_inc_opp),
+         py = excess(mean_rank_dec_same) - excess(mean_rank_dec_opp),
+         units = coalesce(studies_inc_same, 0L) + coalesce(studies_dec_same, 0L),
+         # main point: the condition's name; body site points: the site and comparison (shape shows the condition)
+         label = case_when(kind == "all" ~ ov_abbrev(Condition), kind == "site_all" ~ paste(site_names[site], "(vs all)"),
+                           .default = paste0(site_names[site], " (vs ", site_names[site], ")")),
+         # opacity: the stronger of the two tests (fill: same direction as periodontitis; ring: opposite)
+         fill_alpha = 0.1 + 0.9 * pmax(p_strength(p_inc_same), p_strength(p_dec_same)),
+         ring_alpha = pmax(p_strength(p_inc_opp), p_strength(p_dec_opp))) |>
+  # colour: the body site group of at least two thirds of the set's study units (both directions), else mixed
+  left_join(semsim_tests$units |> distinct(kind, Condition, site, unit, site_group) |>
+              count(kind, Condition, site, site_group) |>
+              mutate(share = n / sum(n), .by = c(kind, Condition, site)) |>
+              slice_max(n, n = 1, with_ties = FALSE, by = c(kind, Condition, site)) |>
+              transmute(kind, Condition, site,
+                        main_site = ifelse(share >= 2/3, coalesce(site_names[site_group], "other"), ov_mixed)),
+            by = c("kind", "Condition", "site")) |>
+  mutate(main_site = factor(main_site, levels = names(ov_site_colours)),
+         ring = scales::alpha(ov_site_colours[as.character(main_site)], ring_alpha))
+# clean-up: (1) where a site group's "vs all" and "vs the same site" points nearly coincide (within 0.1), keep
+# only the within-site one (the fairer comparison); (2) drop points with no p < 0.05 in any of their four tests
+# (conditions left with no point drop out; the next figure shows them all)
+ov <- ov |>
+  mutate(twin_d = {
+    w <- sqrt(outer(px, px, "-")^2 + outer(py, py, "-")^2)
+    same <- outer(paste(Condition, site), paste(Condition, site), "==") & outer(kind, kind, "!=") & kind != "all"
+    w[!same] <- Inf
+    apply(w, 1, min)
+  }) |>
+  filter(!(kind == "site_all" & twin_d < 0.1)) |>
+  filter(pmin(p_inc_same, p_inc_opp, p_dec_same, p_dec_opp, na.rm = TRUE) < 0.05) |>
+  # without its all-units point, the condition's name goes on its first site point
+  mutate(named = kind == "all" | (!any(kind == "all") & row_number() == which.max(kind == "site_all")),
+         label = ifelse(named & kind != "all", paste0(ov_abbrev(Condition), " ", label), label), .by = Condition) |>
+  mutate(kind = factor(kind, levels = c("all", "site_all", "site"))) |>
+  arrange(Condition, kind) |>
+  mutate(kind = as.character(kind))
+# conditions with two or more points (joined by arrows) get their own filled shape (square, diamond, triangles),
+# others a circle
+split_conditions <- ov |> count(Condition) |> filter(n >= 2) |> pull(Condition)
+ov <- mutate(ov, shape = c(22, 23, 24, 25)[match(Condition, split_conditions)] |> coalesce(21))
+# arrows from all of a condition's units to each of its site points; without an all-units point, from the site's
+# "vs all" point to its "vs the same site" point
+ov_from <- ov |> filter(kind == "all" | (kind == "site_all" & !any(kind == "all")), .by = Condition) |>
+  select(Condition, from_kind = kind, from_site = site, x = px, y = py)
+ov_arrows <- inner_join(ov_from, select(ov, Condition, kind, site, xend = px, yend = py), by = "Condition",
+                        relationship = "many-to-many") |>
+  filter(kind != "all", !(kind == from_kind & coalesce(site == from_site, FALSE))) |>
+  mutate(d = sqrt((xend - x)^2 + (yend - y)^2)) |>
+  filter(d > 0.01) |>
+  mutate(gap = pmin(0.025, d * 0.35), x0 = x + (xend - x) * pmin(0.015, d * 0.2) / d,
+         y0 = y + (yend - y) * pmin(0.015, d * 0.2) / d,
+         x1 = xend - (xend - x) * gap / d, y1 = yend - (yend - y) * gap / d)
+
+# arrows on the 0 lines, pointing outward from the centre, labelled in light grey at their tips (as in the
+# direction summary)
+ov_h_arrows <- tibble(xend = c(0.49, -0.49), hjust = c(1, 0),
+                      label = c("Increased signatures resemble\nperio-increased taxa",
+                                "Increased signatures resemble\nperio-decreased taxa"))
+ov_v_arrows <- tibble(yend = c(0.405, -0.265), ly = c(0.413, -0.273), vjust = c(0, 1),
+                      label = c("Decreased signatures resemble perio-decreased taxa",
+                                "Decreased signatures resemble perio-increased taxa"))
+
+# label data: the points, plus unlabelled points along the arrows (so that labels are pushed off them)
+ov_labels <- bind_rows(
+  ov |> mutate(point_size = 8 * sqrt(units / max(units)) + 8,
+               text_size = ifelse(named, 3, 2.6), face = ifelse(named, "plain", "italic"),
+               text_col = ifelse(named, "grey15", "grey40"),
+               # (COVID-19's gut point overlaps UC: its label goes below it, UC's to the left and COVID-19's to its right)
+               ny = case_when(py == 0 ~ 0.05, Condition == "COVID-19" & kind != "all" & site == "gastrointestinal" ~ -0.06,
+                              Condition == "COVID-19" ~ -0.02,
+                              .default = 0),
+               nx = case_when(Condition == "COVID-19" & kind != "all" & site == "gastrointestinal" ~ 0.03,
+                              Condition == "Ulcerative colitis" ~ -0.05, kind != "all" ~ 0,
+                              Condition == "COVID-19" ~ 0.09, Condition == "Head and neck cancer" ~ -0.12,
+                              .default = 0)),
+  ov_arrows |> mutate(n = pmax(2, ceiling(d / 0.015))) |>
+    reframe(t = seq(0.15, 0.85, length.out = n), .by = c(x0, y0, x1, y1, n)) |>
+    transmute(px = x0 + (x1 - x0) * t, py = y0 + (y1 - y0) * t, label = "", point_size = 1,
+              text_size = 2.6, face = "plain", text_col = "grey40", nx = 0, ny = 0)) |>
+  select(px, py, label, point_size, text_size, face, text_col, nx, ny)
+
+p_ov <- ggplot(ov, aes(px, py)) +
+  annotate("rect", xmin = 0, xmax = 0.5, ymin = 0, ymax = 0.395, fill = "grey94") +
+  # dashed lines, with solid heads at the tips (a dashed arrow draws a broken head)
+  geom_segment(data = ov_h_arrows, aes(x = 0, xend = xend, y = 0, yend = 0), inherit.aes = FALSE,
+               linetype = "dashed", color = "grey60") +
+  geom_segment(data = ov_v_arrows, aes(x = 0, xend = 0, y = 0, yend = yend), inherit.aes = FALSE,
+               linetype = "dashed", color = "grey60") +
+  geom_segment(data = ov_h_arrows, aes(x = xend - sign(xend) * 0.0005, xend = xend, y = 0, yend = 0),
+               inherit.aes = FALSE, color = "grey60", arrow = centre_arrow, linejoin = "mitre") +
+  geom_segment(data = ov_v_arrows, aes(x = 0, xend = 0, y = yend - sign(yend) * 0.0005, yend = yend),
+               inherit.aes = FALSE, color = "grey60", arrow = centre_arrow, linejoin = "mitre") +
+  # (below the line: points on the line, with no decreased signatures to test, get their labels above it)
+  geom_text(data = ov_h_arrows, aes(x = xend, y = -0.012, label = label, hjust = hjust), inherit.aes = FALSE,
+            vjust = 1, size = 2.7, color = "grey55", lineheight = 0.9) +
+  geom_text(data = ov_v_arrows, aes(x = 0, y = ly, label = label, vjust = vjust), inherit.aes = FALSE,
+            size = 2.7, color = "grey55") +
+  geom_segment(data = ov_arrows, aes(x = x0, y = y0, xend = x1, yend = y1), inherit.aes = FALSE,
+               color = "grey35", linewidth = 0.5, arrow = arrow(length = unit(0.2, "cm"), angle = 25, type = "open")) +
+  geom_point(aes(size = units, colour = ring, shape = shape), fill = NA, stroke = 4, show.legend = FALSE) +
+  # (fill opacity per point, outside aes, so that the ring keeps its own opacity)
+  geom_point(aes(size = units, fill = main_site, shape = shape), color = "grey15", alpha = ov$fill_alpha) +
+  geom_point(aes(size = units, shape = shape), color = "grey15", fill = NA) +
+  scale_colour_identity() +
+  scale_shape_identity() +
+  # (text size and face set per label outside aes, so that they do not share the point size scale; unlabelled
+  # points along the arrows keep labels off them; a white backing keeps lines from running through the text)
+  geom_label_repel(data = ov_labels, aes(label = label, point.size = point_size),
+                   size = ov_labels$text_size, fontface = ov_labels$face, color = ov_labels$text_col,
+                   fill = scales::alpha("white", 0.75), linewidth = 0, label.padding = unit(0.08, "lines"),
+                   seed = 3, min.segment.length = 0, lineheight = 0.9,
+                   box.padding = 0.4, point.padding = 0.3, force = 6, force_pull = 0.3,
+                   segment.color = "grey50", segment.size = 0.3, max.overlaps = Inf, max.iter = 20000,
+                   xlim = c(-0.36, 0.36), ylim = c(-0.24, 0.38), nudge_x = ov_labels$nx, nudge_y = ov_labels$ny) +
+  scale_size_area(max_size = 8, name = "Study units") +
+  scale_fill_manual(values = ov_site_colours, name = "Main body site", drop = TRUE,
+                    guide = guide_legend(override.aes = list(shape = 21, size = 4, alpha = 1))) +
+  scale_x_continuous(breaks = seq(-0.4, 0.4, 0.2)) +
+  scale_y_continuous(breaks = seq(-0.2, 0.4, 0.2)) +
+  coord_equal(xlim = c(-0.5, 0.5), ylim = c(-0.3, 0.44), expand = FALSE) +
+  labs(x = "Increased signatures: excess similarity to perio-increased minus to perio-decreased consensus\n(mean rank above 0.5 among other conditions)",
+       y = "Decreased signatures: excess similarity to perio-decreased\nminus to perio-increased consensus (mean rank above 0.5)") +
+  theme(legend.title = element_text(size = 9))
+# opacity key: fill (same direction as periodontitis) and ring (opposite), by p of the stronger test
+ov_key <- expand_grid(p = factor(c("1", "0.1", "≤0.01"), levels = c("1", "0.1", "≤0.01")),
+                      part = factor(c("fill: same direction", "ring: opposite"),
+                                    levels = c("fill: same direction", "ring: opposite"))) |>
+  mutate(a = c(0, 0.5, 1)[as.integer(p)])
+p_ov_key <- ggplot(ov_key, aes(p, part)) +
+  geom_point(data = filter(ov_key, part == "ring: opposite"), aes(colour = scales::alpha("grey30", a)),
+             shape = 21, size = 4, stroke = 3.5, fill = NA) +
+  geom_point(data = filter(ov_key, part == "fill: same direction"), aes(fill = scales::alpha("grey30", 0.1 + 0.9 * a)),
+             shape = 21, size = 5, colour = "grey15") +
+  geom_point(data = filter(ov_key, part == "ring: opposite"), shape = 21, size = 4, colour = "grey15", fill = "white") +
+  scale_colour_identity() +
+  scale_fill_identity() +
+  scale_y_discrete(limits = rev) +
+  labs(title = "**Rank-sum test p**<br>(stronger of the two directions)", x = NULL, y = NULL) +
+  theme(plot.title = ggtext::element_markdown(size = 9, lineheight = 1.2, margin = margin(b = 3)),
+        plot.title.position = "plot", axis.text = element_text(size = 8), panel.grid = element_blank(),
+        panel.border = element_blank(), axis.ticks = element_blank())
+wrap_plots(A = p_ov, B = p_ov_key, C = guide_area(), design = "AB\nAC") +
+  plot_layout(widths = c(4.2, 1.6), heights = c(0.25, 2), guides = "collect") &
+  theme(legend.justification = c(0, 1), legend.direction = "vertical")
+```
+
+::: {.callout-note collapse="true" appearance="minimal"}
+## Figure details
+- **Each point:** a set of BugSigDB study units, placed by the four mean ranks of the next figure. x = max(0, column 1 − 0.5) − max(0, column 4 − 0.5): the condition's increased signatures compared with the periodontitis-increased and the periodontitis-decreased consensus. y = max(0, column 2 − 0.5) − max(0, column 3 − 0.5): its decreased signatures compared with the periodontitis-decreased and periodontitis-increased consensus. Ranks below 0.5 count as 0, so a point moves only for signatures more similar than typical.
+- **Reading:** right/top: the condition's increased/decreased signatures resemble periodontitis in the same direction; left/bottom: they resemble the opposite periodontitis consensus (e.g. increased taxa that are depleted in periodontitis). Near 0: neither, or both equally.
+- **Points:** labelled with a condition: all of its units. Labelled with a site, in the condition's shape (circle for conditions with a single point): the condition's units from that body site group, compared with all other conditions ("mouth (vs all)") or only with other conditions' units from that site group ("mouth (vs mouth)").
+- **Arrows:** drawn for a site set when any of its four mean ranks differs by at least 0.15 from that of all of the condition's units.
+- **Left out to reduce clutter:** a site group's comparison with all other conditions when it lies within 0.1 of the within-site comparison of the same studies (e.g. colorectal cancer mouth studies), and any point with no comparison at unadjusted p < 0.05 (e.g. all of rheumatoid arthritis' units). A condition whose all-units point is left out this way is shown by its significant site points instead (rheumatoid arthritis: its mouth studies; autism spectrum disorder, schizophrenia, type 1 diabetes and unipolar depression: their gut studies compared with other gut studies). All points are in the next figure.
+- **Rank:** the share of other conditions' study units of the same direction (and site group, for "vs" sets) that the unit is more similar than, ties counting half. The mean over a set's units equals the Mann–Whitney U statistic divided by the product of the two group sizes.
+- **Colour:** the body site group of at least two thirds of the set's study units, counting both directions (all of colorectal cancer: 88% gut; its mouth studies: mouth; Alzheimer's disease: 68% gut); grey when no site group reaches two thirds (COVID-19 45% gut, rheumatoid arthritis 61% mouth). Opacity: the one-sided rank-sum tests of the next figure, unadjusted, on a log scale from p = 1 to p ≤ 0.01; the fill shows the smaller p of the two same-direction tests (column 1 or 2), the ring the smaller p of the two opposite-direction tests (column 3 or 4). Which direction drives the opacity can be read from the point's position or the next figure.
+- **Watch out:** the comparisons are relative to the background, so a site set compared with all of BugSigDB (mostly gut studies) can look periodontitis-like because of its site alone (mouth and airway studies share oral taxa). Compare its point with the "vs" point of the same site, where there is one.
+:::
+
+```{r bsdb-semantic-boxes}
+#| fig-width: 13.5
+#| fig-height: !expr 1.4 + 0.36 * (nrow(sim_rows(semsim_tests, sim_conditions)$rows) + 0.6 * length(sim_conditions))
+#| fig-cap: "Similarity of BugSigDB signatures to the PerioSigDB consensus signatures, for all of a condition's study units and by body site group. Each study unit's mean best-match average Lin similarity is ranked against the study units of all other conditions with the same BugSigDB direction (the share of them it is more similar than; 0.5 = typical). Boxes: one condition each. First row (bold): all of its study units, compared with all other conditions. Then, ordered by p: its study units from one body site group, compared only with other conditions' units from the same site group (\"vs gut\", \"vs mouth\"; only where that site group has at least 20 such units from at least 10 other conditions in the direction, which excludes airway and eye) or with all other conditions (\"vs all BugSigDB\"; shown only where p < 0.05 in some column and the condition has units from more than one site group). Columns: similarity to the periodontitis-increased or -decreased consensus, for BugSigDB signatures of the same direction (white) or the opposite direction (shaded). Conditions: those with unadjusted p < 0.05 in any row and column, ordered by their smallest p in the two same-direction columns, most significant at top. Small points: study units, coloured by body site group; large point and bar: mean and 95% confidence interval. Large point black: FDR < 0.05; grey: unadjusted p < 0.05; one-sided Wilcoxon rank-sum test of the units' similarities against those of the other conditions (BH within each column, separately for the three kinds of row). A row has no point in a column with fewer than 5 study units of that direction. Left of 0.5: less similar than typical; the test is one-sided, so this side is not tested."
+similarity_boxes(semsim_tests, sim_conditions)
 ```
 
 ::: {.callout-note collapse="true" appearance="minimal"}
 ## Figure details
 - **PerioSigDB consensus signatures:** taxa at their reported rank (species and genera are separate taxa; not collapsed). A taxon is in the consensus if it has more increased than decreased PerioSigDB signatures (or vice versa) with an exact binomial p < 0.05, unadjusted. This gives 32 increased and 12 decreased taxa. Precomputed in a separate step, together with the similarity scores below.
 - **Similarity of one BugSigDB signature:** Lin similarity on the NCBI taxonomy, based on how specific the taxa's most specific shared ancestor is. Information content is computed from descendant counts. The best-match average works in both directions: each consensus taxon is matched to its most similar taxon in the signature, those best scores are averaged, the same is done from the signature side, and the two averages are averaged. Partial credit therefore goes to relatives, e.g. a BugSigDB genus vs a PerioSigDB species of it.
-- **Signatures used:** the same disease-vs-control signatures as the heatmaps, with ≥ 5 NCBI taxa (1,751 of 3,208). Taxa missing from the ontology are dropped. A unit's score is the mean over its signatures, giving 646 increased and 584 decreased units.
-- **Rank:** (rank − 0.5) / N among all units of the same BugSigDB direction (all conditions, including small ones). Each unit is ranked separately for similarity to the increased consensus and to the decreased consensus. The ranks are used because raw scores vary little (median 0.41 among all increased units vs 0.48 for colorectal cancer).
+- **Signatures used:** the same disease-vs-control signatures as the heatmaps, with ≥ 5 NCBI taxa (1,751 of 3,208). Taxa missing from the ontology are dropped. A unit's score is the mean over its signatures, giving 646 increased and 584 decreased units. Periodontitis studies are not in BugSigDB here.
+- **Background:** the study units of all *other* conditions with the same BugSigDB direction, so a condition is never compared with itself. For the "vs" rows, only those from the same body site group. A site group is used as a background only with ≥ 20 such units from ≥ 10 other conditions in that direction: gut (about 390–415 units from 156 conditions), mouth (77–88 from 52–55) and urogenital (26–52 from 24–36). Upper airway (7–11 other units, as COVID-19 is 15 of its 22 decreased units), eye, skin, lung and other groups are too small.
+- **Test:** one-sided Wilcoxon rank-sum (Mann–Whitney) test, normal approximation, of the set's similarities against the background's: is the set more similar than the other conditions? Sets need ≥ 5 study units of the direction (`r n_distinct(semsim_tests$stats$Condition[semsim_tests$stats$kind == "all" & semsim_tests$stats$direction == "increased"])` conditions with increased and `r n_distinct(semsim_tests$stats$Condition[semsim_tests$stats$kind == "all" & semsim_tests$stats$direction == "decreased"])` with decreased units for the first rows). BH runs within each column, separately for the three kinds of row (all units, within site group, site group vs all BugSigDB). The bar is the mean rank ± 1.96 SD/√n, a normal approximation and not a bootstrap.
+- **Rank shown:** the share of background units the unit is more similar than (ties half), which equals the rank-sum effect size on average. The ranks are used because raw scores vary little (median 0.41 among all increased units vs 0.48 for colorectal cancer).
 - **Columns:** BugSigDB direction × consensus. The white columns pair same directions (the main test). The shaded columns pair opposite directions, e.g. "Perio decreased vs BugSigDB increased", which asks whether a condition's increased taxa resemble periodontitis-depleted (health-associated) taxa.
-- **Test:** for each condition with ≥ 5 units of the BugSigDB direction (31 conditions per direction), a one-sided Wilcoxon signed-rank test of its units' ranks > 0.5 (normal approximation). BH runs within each column across those 31 conditions. The bar is the mean ± 1.96 SD/√n, a normal approximation and not a bootstrap.
-- **Rows:** the 7 conditions shown in the direction heatmaps (colorectal cancer, head and neck cancer, rheumatoid arthritis, gastric cancer, COVID-19, Parkinson's disease, smoking) plus any other with unadjusted p < 0.05 in any column (here dry eye syndrome, unipolar depression, HIV infection, Alzheimer's disease and ulcerative colitis), so 12 rows. A row has no point in a column if the condition has < 5 units of that direction.
-- **Example:** colorectal cancer increased vs periodontitis-increased has 47 units with mean rank 0.71; 79% of units are above 0.5, p = 2e-5, FDR = 0.0007. Its other three columns have mean ranks of 0.46–0.48.
-- **Next strongest (not FDR-significant):** head and neck cancer decreased vs decreased, 11 units, mean 0.84, p = 0.004, FDR = 0.14. Smoking decreased vs decreased, 12 units, 0.73, p = 0.01, FDR = 0.16. Head and neck cancer increased vs increased, 8 units, 0.71, p = 0.04.
-- **Watch out:** ranks are relative to the rest of BugSigDB (mostly gut studies), so oral conditions look similar partly because they share oral taxa; the next figure corrects for this. The score covers the whole signature, so a few shared genera (e.g. colorectal cancer *Gemella*) barely move it.
+- **Example:** colorectal cancer increased vs periodontitis-increased: all `r sv_row("Colorectal cancer", "increased")$studies` units, `r sv("Colorectal cancer", "increased")`; its `r sv_row("Colorectal cancer", "increased", kind = "site", site = "gastrointestinal")$studies` gut units vs other gut units, `r sv("Colorectal cancer", "increased", kind = "site", site = "gastrointestinal")`.
+- **Watch out:** a site group compared with all of BugSigDB (mostly gut studies) can look periodontitis-like because of its site alone; the "vs" row of the same site corrects for this where there is one. The score covers the whole signature, so a few shared genera (e.g. colorectal cancer *Gemella*) barely move it. Many tests are run (4 columns × about 30 conditions, plus their site groups), so expect some unadjusted hits by chance.
 :::
 
-**Shows:** colorectal cancer was the only condition meeting the FDR threshold: its increased taxa resemble the periodontitis-increased taxa (FDR = 0.0007). Several other conditions showed unadjusted evidence of similarity that did not remain significant after correction, so these are exploratory. Head and neck cancer showed the next strongest evidence: its decreased taxa resemble the periodontitis-decreased taxa (unadjusted p = 0.004, FDR = 0.14) and its increased taxa the periodontitis-increased ones (unadjusted p = 0.04). Smoking's decreased taxa resemble the periodontitis-decreased taxa (unadjusted p = 0.01). In the shaded column, the increased taxa of ulcerative colitis, gastric cancer and COVID-19 resemble the periodontitis-decreased taxa (unadjusted p = 0.02–0.03), the "both genus groups reported increased" pattern of the direction summary above; gastric cancer resembles both periodontitis signatures.
-
-#### Compared within body site groups
-
-Here each study unit is ranked only among study units from the same body site group, so oral conditions are compared only with other oral ones.
-
-```{r bsdb-semantic-c-fig}
-#| fig-width: 13
-#| fig-height: 6
-#| fig-cap: "Similarity of BugSigDB signatures to the PerioSigDB consensus signatures. Each study unit's mean best-match average Lin similarity is ranked among BugSigDB study units of the same direction and body site group (0 = least, 1 = most similar; 0.5 = typical). Columns: similarity to the periodontitis-increased (orange points) or -decreased (blue points) consensus, for BugSigDB signatures of the same direction (white) or the opposite direction (shaded). Rows: the conditions shown in the direction heatmaps plus any other condition with unadjusted p < 0.05 in any column, ordered by their smallest p-value in the two same-direction columns, most significant at top. Small points: study units; large point and bar: mean and 95% confidence interval. Large point black: FDR < 0.05; grey: unadjusted p < 0.05; one-sided Wilcoxon signed-rank test of the condition's ranks against 0.5 (BH within each column). Faded (left of 0.5): less similar than typical; the test is one-sided, so this side is not tested, and a low rank mostly reflects body site or taxa unrelated to periodontitis rather than an opposite signal."
-similarity_grid(semsim_site)
-```
-
-::: {.callout-note collapse="true" appearance="minimal"}
-## Figure details
-- **Only change from the previous figure:** each unit is ranked among units of the same BugSigDB direction and body site group, so 0.5 means typical for that site. The similarity scores, consensus, units, test (one-sided Wilcoxon against 0.5, BH within each column over 31 conditions) and CI are the same.
-- **Group sizes (units with ≥ 5 taxa, increased / decreased):** gastrointestinal 421 / 399, oral 93 / 87, urogenital 60 / 31, upper airway 24 / 22. Eye, lower airway, skin, other and mixed have 5–12 each, so ranks in those groups are coarse.
-- **Rows:** the same 7 direction-heatmap conditions plus any other with unadjusted p < 0.05 here (autism spectrum disorder, schizophrenia, HIV infection, ulcerative colitis, endometriosis), so 12 rows. The set and order differ from the previous figure.
-- **Example:** colorectal cancer increased vs periodontitis-increased has 47 units, mean rank 0.72, p = 2e-5, FDR = 0.0005. It is nearly unchanged because 48 of its 54 increased units (with or without ≥ 5 taxa) are gastrointestinal and were mostly ranked against gut units already.
-- **Oral conditions weaken:** head and neck cancer decreased goes from 0.84 to 0.62 (p = 0.06, FDR = 0.55). Smoking decreased goes from 0.73 to 0.54 (p = 0.39). Compared with other oral studies, their signatures are about average.
-- **Shaded columns:** gastric cancer (0.71, p = 0.01) and ulcerative colitis (0.75, p = 0.02) increased vs periodontitis-decreased stay at unadjusted p < 0.05. Their increased taxa include health-associated oral genera even when compared with other gut studies.
-- **Watch out:** none of the new rows (autism, schizophrenia, endometriosis) passes FDR. Each has 7–10 units and many tests (31 per column × 4 columns), so expect some unadjusted hits by chance.
-:::
-
-```{r bsdb-semantic-site-values}
-ss <- \(cond, dir) with(filter(semsim_site$stats, Condition == cond, direction == dir, perio == dir),
-                        sprintf("p = %s, FDR = %s", signif(p, 1), signif(fdr, 1)))
-```
-
-**Shows:** colorectal cancer remains significant (`r ss("Colorectal cancer", "increased")`). Smoking no longer meets unadjusted p < 0.05 and head and neck cancer weakens (decreased taxa `r ss("Head and neck cancer", "decreased")`), as in the site-stratified enrichment: compared with other oral studies, their signatures are not unusually periodontitis-like. Gastric cancer's increased signatures still resemble the periodontitis-decreased signature (unadjusted p = 0.01), consistent with oral taxa in general, but no longer the periodontitis-increased one (p = 0.05).
+**Shows:** colorectal cancer is the only condition whose similarity holds within its own body site: its increased signatures resemble the periodontitis-increased consensus compared with all other conditions (`r sv("Colorectal cancer", "increased")`) and with other gut studies only (`r sv("Colorectal cancer", "increased", kind = "site", site = "gastrointestinal")`). Its few mouth studies instead report increased taxa resembling the periodontitis-decreased consensus (`r sv("Colorectal cancer", "increased", "decreased", kind = "site_all", site = "oral")`). Head and neck cancer's decreased signatures resemble the periodontitis-decreased consensus (`r sv("Head and neck cancer", "decreased")`), less so compared with other mouth studies only (`r sv("Head and neck cancer", "decreased", kind = "site", site = "oral")`). The decreased signatures of smoking (`r sv("Smoking behavior", "decreased")`) and of COVID-19 airway studies (`r sv("COVID-19", "decreased", kind = "site_all", site = "upper airway")`), and the signatures of rheumatoid arthritis mouth studies, resemble periodontitis compared with all of BugSigDB, which is mostly gut studies. Compared with other mouth studies, smoking is typical (`r sv("Smoking behavior", "decreased", kind = "site", site = "oral")`), and there are too few other airway studies to compare COVID-19 with. In the shaded columns, the increased signatures of COVID-19 and ulcerative colitis gut studies resemble the periodontitis-decreased consensus compared with other gut studies (`r sv("COVID-19", "increased", "decreased", kind = "site", site = "gastrointestinal")` and `r sv("Ulcerative colitis", "increased", "decreased", kind = "site", site = "gastrointestinal")`), the "both genus groups reported increased" pattern of the direction summary above.
 
 ```{r bsdb-jaccard}
 # the same tests with the BugSigDB paper's other measure: Jaccard overlap of genera
@@ -2117,20 +2374,22 @@ jaccard_units <- bsdb_cc_sigs |>
   filter(lengths(bsdb_cc$`NCBI Taxonomy IDs`[sig]) >= 5) |>
   inner_join(summarise(sig_genera(bsdb_cc), g = list(unique(taxon)), .by = sig), by = "sig") |>
   mutate(up = map_dbl(g, jaccard, consensus_genera$increased), down = map_dbl(g, jaccard, consensus_genera$decreased)) |>
-  summarise(up = mean(up), down = mean(down), .by = c(unit, Condition, direction, site_group))
-jaccard_tests <- map(c(all = FALSE, site = TRUE), \(match_site) {
-  jaccard_units |>
-    mutate(up = (rank(up) - 0.5) / n(), down = (rank(down) - 0.5) / n(),
-           .by = all_of(if (match_site) c("direction", "site_group") else "direction")) |>
-    filter(n() >= 5, .by = c(Condition, direction)) |>
-    pivot_longer(c(up, down), names_to = "perio", values_to = "rank") |>
-    mutate(perio = ifelse(perio == "up", "increased", "decreased")) |>
-    summarise(p = wilcox.test(rank, mu = 0.5, alternative = "greater", exact = FALSE)$p.value,
-              .by = c(Condition, direction, perio)) |>
-    mutate(fdr = p.adjust(p, method = "BH"), .by = c(direction, perio))
-})
-jt <- \(version, cond, dir) with(filter(jaccard_tests[[version]], Condition == cond, direction == dir, perio == dir),
-                                 format(signif(fdr, 1), scientific = FALSE, drop0trailing = TRUE))
+  summarise(increased = mean(up), decreased = mean(down), .by = c(unit, Condition, direction, site_group)) |>
+  pivot_longer(c(increased, decreased), names_to = "perio", values_to = "sim")
+# the same tests as for semantic similarity: all of a condition's units vs all other conditions ("all"), and
+# its units from one site group vs other conditions' units from the same site group ("site")
+jaccard_res <- similarity_tests(jaccard_units)$stats
+jaccard_tests <- list(all = filter(jaccard_res, kind == "all"), site = filter(jaccard_res, kind == "site"))
+jt <- \(version, cond, dir, site = "gastrointestinal") with(
+  filter(jaccard_tests[[version]], Condition == cond, direction == dir, perio == dir,
+         version == "all" | site == !!site),
+  format(signif(fdr, 1), scientific = FALSE, drop0trailing = TRUE))
+# same-direction results with FDR < 0.05, e.g. "colorectal cancer (gut) increased, FDR 1e-14"
+jaccard_list <- function(version, drop = character(0)) {
+  d <- filter(jaccard_tests[[version]], fdr < 0.05, perio == direction, !Condition %in% drop) |> arrange(fdr)
+  paste0(d$Condition, if (version == "site") paste0(" (", site_names[d$site], ")") else "", " ", d$direction,
+         " (FDR ", signif(d$fdr, 1), ")", collapse = "; ")
+}
 jaccard_hits <- \(version) with(filter(jaccard_tests[[version]], fdr < 0.05, perio == direction),
                                 paste0(Condition, " (", direction, ")", collapse = ", "))
 ```
@@ -2140,13 +2399,13 @@ jaccard_hits <- \(version) with(filter(jaccard_tests[[version]], fdr < 0.05, per
 - **No figure:** the numbers appear in the text below the chunk and in "Agreement across approaches".
 - **Consensus genera:** each consensus taxon is mapped to the deepest name in its NCBI lineage that is a genus seen in PerioSigDB or BugSigDB; taxa above genus are dropped. This gives 16 increased genera, all among the heatmap's top 20. It gives 8 decreased genera: *Streptococcus*, *Gemella*, *Actinomyces*, *Corynebacterium*, *Granulicatella*, *Lautropia*, *Neisseria* and *Haemophilus*. *Streptococcus* comes from *S. sanguinis* (decreased) only.
 - **Score:** Jaccard = shared genera / all genera in either set, between a signature's genera (MetaPhlAn `g__`) and each consensus genus set. The score is averaged over a unit's signatures, using signatures with ≥ 5 taxa; signatures with no genus-level taxa are dropped.
-- **Test:** the same as for semantic similarity. Ranks are computed within each direction (or each direction × body site group), conditions need ≥ 5 units, and each gets a one-sided Wilcoxon test against 0.5 with BH within each direction × consensus pair.
-- **Results with FDR < 0.05, all units:** colorectal cancer increased (FDR 0.00003), head and neck cancer decreased (0.04), smoking decreased (0.04) and COVID-19 decreased (0.045), all in same-direction comparisons.
-- **Within body site groups:** only colorectal cancer increased (FDR 0.00001).
+- **Test:** the same as for semantic similarity: a one-sided Wilcoxon rank-sum test of a condition's units against those of all other conditions of the same direction, or of its units from one body site group against other conditions' units from that site group (gut, mouth or urogenital), ≥ 5 units, BH within each direction × consensus pair.
+- **Same-direction results with FDR < 0.05, all units:** `r jaccard_list("all")`.
+- **Within body site groups:** `r jaccard_list("site")`.
 - **Why it differs from semantic similarity:** Jaccard counts only exact genus matches and is reduced by long signatures. It ignores related genera, which semantic similarity partly credits, and taxon rank, since everything is collapsed to genus.
 :::
 
-**A second similarity measure:** the BugSigDB paper also used Jaccard overlap of genera. With the periodontitis consensus collapsed to genus (`r lengths(consensus_genera)[["increased"]]` and `r lengths(consensus_genera)[["decreased"]]` genera), colorectal cancer's increased signatures are again the most periodontitis-like (FDR = `r jt("all", "Colorectal cancer", "increased")`; `r jt("site", "Colorectal cancer", "increased")` within body site groups). The two measures do not fully agree, though: across all study units, Jaccard overlap also flags the decreased signatures of head and neck cancer, smoking and COVID-19 after correction, which semantic similarity does not, although within body site groups only colorectal cancer remains (see "Agreement across approaches" for a side-by-side comparison). Jaccard overlap counts only exact genus matches, whereas semantic similarity also credits related taxa, so conclusions for conditions other than colorectal cancer depend partly on the measure used.
+**A second similarity measure:** the BugSigDB paper also used Jaccard overlap of genera. With the periodontitis consensus collapsed to genus (`r lengths(consensus_genera)[["increased"]]` and `r lengths(consensus_genera)[["decreased"]]` genera), colorectal cancer's increased signatures are again the most periodontitis-like (FDR = `r jt("all", "Colorectal cancer", "increased")`; `r jt("site", "Colorectal cancer", "increased")` within body site groups). The two measures do not fully agree, though: across all study units, Jaccard overlap also flags `r jaccard_list("all", drop = "Colorectal cancer")` after correction, and within body site groups `r jaccard_list("site", drop = "Colorectal cancer")` (see "Agreement across approaches" for a side-by-side comparison). Jaccard overlap counts only exact genus matches, whereas semantic similarity also credits related taxa, so conclusions for conditions other than colorectal cancer depend partly on the measure used.
 
 ### Exact taxon overlap and taxonomic similarity between periodontitis and colorectal cancer
 
@@ -2447,7 +2706,7 @@ How well do a condition's signatures from different studies agree with each othe
 ```{r replicability}
 #| fig-width: 12
 #| fig-height: 4.5
-#| fig-cap: "Agreement between signatures of the same condition from different studies. Point: mean taxonomic similarity between the condition's signatures from different studies (best-match average of Lin similarity; signatures with at least 5 taxa). Each pair of studies counts once. Grey bar and tick: central 95% and mean of the same score for 1,000 random sets of signatures matched to the condition in number, direction and body site group, drawn from all signatures including the condition's own. Rows: the 10 conditions per direction whose score most exceeds the random mean, ordered by that excess, with the number of studies in brackets. Filled: FDR < 0.05, one-sided resampling test with Benjamini–Hochberg correction across all conditions tested in that direction. Green: periodontitis."
+#| fig-cap: "Agreement between signatures of the same condition from different studies. Point: mean taxonomic similarity between the condition's signatures from different studies (best-match average of Lin similarity; signatures with at least 5 taxa). Each pair of studies counts once. Grey bar and tick: central 95% and mean of the same score for 1,000 random sets of signatures matched to the condition in number, direction and body site group, drawn from the signatures of all other conditions. Rows: the 10 conditions per direction whose score most exceeds the random mean, ordered by that excess, with the number of studies in brackets. Filled: FDR < 0.05, one-sided resampling test with Benjamini–Hochberg correction across all conditions tested in that direction. Green: periodontitis."
 # precomputed by scripts/bugsigdb_replicability.R
 rep_sim <- readRDS("../../output/bugsigdb_replicability_sim.rds")
 
@@ -2471,7 +2730,7 @@ cross_study_sim <- function(idx) {
   mean(means[upper.tri(means)])
 }
 
-# observed score vs random sets of signatures (any condition, including this one) with the same direction and site groups
+# observed score vs random sets of signatures of *other* conditions with the same direction and site groups
 set.seed(1)
 replicability <- rep_sigs |>
   mutate(i = row_number()) |>
@@ -2480,12 +2739,14 @@ replicability <- rep_sigs |>
   mutate(
     observed = map_dbl(idx, cross_study_sim),
     random = pmap(list(idx, Condition, direction), \(idx, cond, dir) {
-      # label permutation: the pool includes the condition's own signatures
-      pool <- split(which(rep_sigs$direction == dir), rep_sigs$site_group[rep_sigs$direction == dir])
+      # the pool excludes the condition's own signatures, so the question is whether its studies agree more
+      # than studies of other conditions from the same site groups (as in the whole-signature similarity tests)
+      other <- rep_sigs$direction == dir & rep_sigs$Condition != cond
+      pool <- split(which(other), rep_sigs$site_group[other])
       need <- table(rep_sigs$site_group[idx])
-      # site groups with fewer signatures than needed are drawn from all signatures of this direction
+      # site groups with fewer signatures than needed are drawn from all other signatures of this direction
       draw <- \(g) {
-        from <- if (length(pool[[g]]) >= need[[g]]) pool[[g]] else unlist(pool)
+        from <- if (!is.null(pool[[g]]) && length(pool[[g]]) >= need[[g]]) pool[[g]] else unlist(pool)
         from[sample.int(length(from), need[[g]])]
       }
       r <- replicate(1000, cross_study_sim(unlist(map(names(need), draw))))
@@ -2497,6 +2758,9 @@ replicability <- rep_sigs |>
     excess = observed - random_mean
   ) |>
   mutate(fdr = p.adjust(p, method = "BH"), .by = direction)
+
+# one value of periodontitis's row (used in the figure details and text)
+rv <- \(dir, col) replicability[[col]][replicability$Condition == "Periodontitis" & replicability$direction == dir]
 
 # the 10 conditions per direction with the largest excess, plus periodontitis if outside them;
 # FDR stays computed over all conditions
@@ -2525,21 +2789,23 @@ replicability |>
 - **Score (point)**: for each pair of signatures, best-match average Lin similarity: each taxon's best Lin match in the other signature, averaged in both directions, with taxa at their reported rank. These are averaged over all signature pairs from two different studies, then over study pairs. Pairs within one study are excluded.
 - **Signatures**: PerioSigDB signatures (all treated as oral) and filtered BugSigDB signatures (human disease-vs-control, no meta-analyses), each with ≥5 taxa. Periodontitis: 68 increased and 35 decreased signatures with ≥5 taxa (one per study in each direction).
 - **Rows**: of the conditions with ≥5 studies in that direction after the ≥5-taxa filter, the 10 with the largest excess (observed − random mean) and periodontitis, with that number of studies in brackets. Increased and decreased are analysed separately.
-- **Random sets (grey bar, tick)**: 1,000 draws without replacement, each with the same number of signatures as the condition, of the same direction and the same body site groups, from all signatures including the condition's own, so the null is that the condition's signatures are interchangeable with the others. Each draw is scored with the same between-study average. The bar is the central 95% and the tick the mean.
+- **Random sets (grey bar, tick)**: 1,000 draws without replacement, each with the same number of signatures as the condition, of the same direction and the same body site groups, from the signatures of all other conditions, so the null is that the condition's studies agree no more than studies of other conditions from the same sites. (Site groups with too few such signatures are drawn from all other signatures of the direction.) Each draw is scored with the same between-study average. The bar is the central 95% and the tick the mean.
 - **Test**: one-sided resampling p = (1 + number of random scores ≥ observed) ÷ 1,001, so the smallest possible p is 0.001. BH within each direction (32 decreased and 31 increased conditions).
-- **Example**: periodontitis increased: observed 0.555 vs random mean 0.433 (95%: 0.407–0.461), p = 0.001, FDR = 0.010. Excess = 0.122, the largest among increased signatures, just ahead of chronic constipation (0.118). Periodontitis decreased: 0.468 vs 0.411, p = 0.016, FDR = 0.17 (not filled).
-- **Ordering**: by excess (observed − random mean), not by absolute similarity. HIV infection decreased has the highest observed score here (0.615) and passes FDR.
-- **Watch out (random pool)**: periodontitis's random sets are drawn from 195 oral increased signatures (68 PerioSigDB and 127 BugSigDB, 68 needed per draw), so draws overlap substantially and the grey bar is narrow. This is the correct spread for the permutation null, but it is specific to this pool of oral signatures.
+- **Example**: periodontitis increased: observed `r sprintf("%.3f", rv("increased", "observed"))` vs random mean `r sprintf("%.3f", rv("increased", "random_mean"))` (95%: `r sprintf("%.3f", rv("increased", "lo"))`–`r sprintf("%.3f", rv("increased", "hi"))`), p = `r signif(rv("increased", "p"), 1)`, FDR = `r signif(rv("increased", "fdr"), 1)`, excess = `r sprintf("%.3f", rv("increased", "excess"))`. Periodontitis decreased: `r sprintf("%.3f", rv("decreased", "observed"))` vs `r sprintf("%.3f", rv("decreased", "random_mean"))`, p = `r signif(rv("decreased", "p"), 1)`, FDR = `r signif(rv("decreased", "fdr"), 1)`.
+- **Ordering**: by excess (observed − random mean), not by absolute similarity.
+- **Watch out (random pool)**: periodontitis's random sets are drawn from the `r sum(rep_sigs$direction == "increased" & rep_sigs$site_group == "oral" & rep_sigs$Condition != "Periodontitis")` oral increased and `r sum(rep_sigs$direction == "decreased" & rep_sigs$site_group == "oral" & rep_sigs$Condition != "Periodontitis")` oral decreased BugSigDB signatures, with `r sum(rep_sigs$direction == "increased" & rep_sigs$Condition == "Periodontitis")` and `r sum(rep_sigs$direction == "decreased" & rep_sigs$Condition == "Periodontitis")` needed per draw, so draws overlap substantially and the grey bar is narrow; it is specific to this pool of oral signatures.
 - **Watch out**: "body site group" is coarse. PerioSigDB is subgingival plaque only, while the oral pool mixes saliva, tongue and plaque. Similarity rewards studies that report the same taxa, which targeted panels encourage, regardless of effect size.
 :::
 
 ```{r replicability-values}
-rv <- \(dir, col) replicability[[col]][replicability$Condition == "Periodontitis" & replicability$direction == dir]
 rv2 <- \(dir, col) sprintf("%.2f", rv(dir, col))
 rank_excess <- \(dir) with(filter(replicability, direction == dir), rank(-excess)[Condition == "Periodontitis"])
+# other conditions passing FDR in a direction
+rep_others <- \(dir) with(filter(replicability, direction == dir, fdr < 0.05, Condition != "Periodontitis") |> arrange(fdr),
+                          if (length(Condition)) paste(Condition, collapse = ", ") else "none")
 ```
 
-**Shows:** periodontitis's increased signatures show greater between-study taxonomic similarity than the site-group-matched random sets (mean similarity `r rv2("increased", "observed")` vs `r rv2("increased", "random_mean")`, FDR = `r signif(rv("increased", "fdr"), 1)`). They rank `r rank_excess("increased")` of `r sum(replicability$direction == "increased")` conditions by excess similarity above the random expectation (not by absolute similarity), and are supported by many more studies (`r rv("increased", "studies")`) than any other condition. This measures which taxa studies report, not agreement on effect sizes. Only gastric cancer and chronic constipation also pass FDR. Its decreased signatures are only slightly more similar than random oral ones (`r rv2("decreased", "observed")` vs `r rv2("decreased", "random_mean")`, FDR = `r signif(rv("decreased", "fdr"), 1)`): studies agree more on which taxa are increased in periodontitis than on which are decreased. Among decreased signatures only HIV infection passes FDR, as in the BugSigDB paper. All PerioSigDB signatures are from subgingival plaque while the random oral sets also include saliva, tongue and other oral sites, which may favour periodontitis; the size of this effect has not been established. Targeted assays with fixed taxon panels may also raise agreement between PerioSigDB studies; a sequencing-only comparison would address this.
+**Shows:** periodontitis's increased signatures show greater between-study taxonomic similarity than the site-group-matched random sets (mean similarity `r rv2("increased", "observed")` vs `r rv2("increased", "random_mean")`, FDR = `r signif(rv("increased", "fdr"), 1)`). They rank `r rank_excess("increased")` of `r sum(replicability$direction == "increased")` conditions by excess similarity above the random expectation (not by absolute similarity), and are supported by many more studies (`r rv("increased", "studies")`) than any other condition. This measures which taxa studies report, not agreement on effect sizes. Other increased signatures passing FDR: `r rep_others("increased")`. Its decreased signatures are only slightly, and not significantly, more similar than random oral ones (`r rv2("decreased", "observed")` vs `r rv2("decreased", "random_mean")`, FDR = `r signif(rv("decreased", "fdr"), 1)`): studies agree more on which taxa are increased in periodontitis than on which are decreased. Other decreased signatures passing FDR: `r rep_others("decreased")`. All PerioSigDB signatures are from subgingival plaque while the random oral sets also include saliva, tongue and other oral sites, which may favour periodontitis; the size of this effect has not been established. Targeted assays with fixed taxon panels may also raise agreement between PerioSigDB studies; a sequencing-only comparison would address this.
 
 This test is stricter than the BugSigDB paper's, which used fecal signatures only, counted pairs of signatures from the same study, and drew random signatures from all fecal signatures. Run that way on the current BugSigDB, HIV infection and COVID-19 decreased signatures replicate, as the paper reported, as do Parkinson's disease decreased signatures. Here COVID-19 also includes oral and nasopharyngeal studies, which dilute its fecal agreement. Parkinson's disease weakens mainly because the disease-vs-control filter drops comparisons between Parkinson's subtypes and treatments, which agree with each other; with fecal disease-vs-control signatures only, it is borderline (p = 0.05). Antibiotics are not a disease-vs-control comparison and are not included.
 
@@ -3248,9 +3514,9 @@ method_agreement <- tribble(
   "Genus direction", "50% (no direction preference)",
   fdr_hits(filter(bind_rows(direction_tests("increased"), direction_tests("decreased")), fdr < 0.05, same / n > 0.5)),
   "Whole-signature similarity", "all BugSigDB study units",
-  fdr_hits(filter(semsim_all$stats, fdr < 0.05, perio == direction)),
+  fdr_hits(filter(semsim_tests$stats, kind == "all", fdr < 0.05, perio == direction)),
   "Whole-signature similarity", "same body site group",
-  fdr_hits(filter(semsim_site$stats, fdr < 0.05, perio == direction)),
+  fdr_hits(filter(semsim_tests$stats, kind == "site", fdr < 0.05, perio == direction)),
   "Jaccard genus overlap", "all BugSigDB study units",
   fdr_hits(filter(jaccard_tests$all, fdr < 0.05, perio == direction)),
   "Jaccard genus overlap", "same body site group",
@@ -3266,8 +3532,8 @@ kbl(method_agreement, caption = "Conditions significantly similar to periodontit
 - **Genus enrichment, all studies**: one-sided Fisher's exact test of the share of the condition's study units with the genus vs all other units of that direction (conditions with ≥5 units). BH across all genus × condition tests per direction.
 - **Genus enrichment, same body site group**: the same test, but one-sided exact Cochran–Mantel–Haenszel stratified by body site group.
 - **Genus direction**: two-sided binomial test of a condition's units reporting the genus increased vs decreased; listed only if FDR < 0.05 and the majority is in the periodontitis direction.
-- **Whole-signature similarity / Jaccard**: one-sided Wilcoxon signed-rank test of the condition's study-unit similarity ranks against 0.5, with BH within each column. The ranks are among all units of that direction, or within the same body site group. Jaccard compares genera only, with the consensus taxa mapped to genus.
-- **Reading**: only colorectal cancer survives all seven. The four other conditions listed without site matching (COVID-19, head and neck cancer, rheumatoid arthritis, smoking) all drop out once compared within the same body site group.
+- **Whole-signature similarity / Jaccard**: one-sided Wilcoxon rank-sum test of the condition's study-unit similarities against those of all other conditions of that direction, with BH within each column. "Same body site group": the condition's units from one site group against other conditions' units from that site group (gut, mouth or urogenital, which have enough other conditions). Jaccard compares genera only, with the consensus taxa mapped to genus.
+- **Reading**: only colorectal cancer survives all seven. The four other conditions listed without site matching (COVID-19, head and neck cancer, rheumatoid arthritis, smoking) all drop out once compared within the same body site group, except rheumatoid arthritis mouth studies in Jaccard overlap (increased signatures, FDR 0.04).
 :::
 
 Colorectal cancer showed the most consistent overlap with periodontitis-associated taxa across the literature-based comparisons: it is the only condition flagged by every approach, and its overlap remained significant after BH correction in the body-site-stratified genus enrichment and both taxonomic-similarity analyses. Increases in *Fusobacterium*, *Parvimonas*, *Peptostreptococcus* and *Porphyromonas* were disproportionately reported in colorectal cancer studies, and whole-signature similarity supports the overlap using taxa at their reported taxonomic ranks. Results for other conditions were less consistent across methods: several oral conditions pass before body site stratification but not after it.
@@ -3284,7 +3550,9 @@ large <- inc_sigs |> count(Condition, sort = TRUE) |> slice_head(n = 4)
 large_oe <- site_expected(inc_sigs, core_hits) |>
   filter(Condition %in% large$Condition) |>
   summarise(max_ratio = max(observed / expected), .by = Condition)
-large_sim <- semsim_site$stats |> filter(direction == "increased", perio == "increased", Condition %in% large$Condition)
+# similarity of their gut study units to the periodontitis-increased consensus, vs other conditions' gut units
+large_sim <- semsim_tests$stats |> filter(kind == "site", site == "gastrointestinal", direction == "increased",
+                                          perio == "increased", Condition %in% large$Condition)
 others <- setdiff(large$Condition, "Colorectal cancer")
 others_sim <- paste(sprintf("%s %.2f", others, large_sim$mean_rank[match(others, large_sim$Condition)]), collapse = ", ")
 
@@ -3295,8 +3563,10 @@ sub_enrich <- replicate(200, {
   s2 <- filter(inc_sigs, Condition != "Colorectal cancer" | sig %in% keep)
   sapply(core, \(g) site_matched_p("Colorectal cancer", g, s2, core_hits)) < 0.05
 })
-crc_ranks <- semsim_site$units |> filter(Condition == "Colorectal cancer", direction == "increased", perio == "increased") |> pull(rank)
-sub_sim <- replicate(1000, wilcox.test(sample(crc_ranks, 15), mu = 0.5, alternative = "greater", exact = FALSE)$p.value < 0.05)
+gut_inc <- filter(semsim_scores, direction == "increased", perio == "increased", site_group == "gastrointestinal")
+crc_sim <- gut_inc$sim[gut_inc$Condition == "Colorectal cancer"]
+other_sim <- gut_inc$sim[gut_inc$Condition != "Colorectal cancer"]
+sub_sim <- replicate(1000, wilcox.test(sample(crc_sim, 15), other_sim, alternative = "greater", exact = FALSE)$p.value < 0.05)
 pct <- \(x) sprintf("%.0f%%", 100 * x)
 ```
 
@@ -3304,9 +3574,9 @@ pct <- \(x) sprintf("%.0f%%", 100 * x)
 ## Robustness details
 - **Largest conditions**: by number of increased study units: Parkinson's disease 59, colorectal cancer 54, COVID-19 42, obesity 39.
 - **Observed ÷ expected**: share of the condition's units reporting each of *Fusobacterium*, *Parvimonas*, *Peptostreptococcus* and *Porphyromonas* increased ÷ the share in other conditions from the same body site groups, weighted by the condition's site mix. Colorectal cancer: up to 13.3× (e.g. *Parvimonas* 0.41 vs 0.03 expected). The other three: at most 1.09×.
-- **Similarity ranks** (to the periodontitis-increased consensus, within site group; 0.5 = typical): colorectal cancer 0.72 (FDR 0.0005), COVID-19 0.40, obesity 0.51, Parkinson's 0.34.
+- **Similarity ranks** (gut study units' increased signatures vs the periodontitis-increased consensus, compared with other conditions' gut units; 0.5 = typical): `r paste(sprintf("%s %.2f (FDR %s)", large_sim$Condition, large_sim$mean_rank, signif(large_sim$fdr, 1)), collapse = ", ")`.
 - **Subsampling enrichment**: 200 draws of 15 of colorectal cancer's 54 increased units. Each genus is re-tested with the one-sided site-stratified exact test, unadjusted p < 0.05. Significant in 97% (*Porphyromonas*) to 100% (*Parvimonas*, *Peptostreptococcus*) of draws.
-- **Subsampling similarity**: 1,000 draws of 15 of its 47 rank values, one-sided Wilcoxon test against 0.5, p < 0.05 in 86% of draws.
+- **Subsampling similarity**: 1,000 draws of 15 of its `r length(crc_sim)` gut units, one-sided Wilcoxon rank-sum test against the `r length(other_sim)` gut units of other conditions, p < 0.05 in `r pct(mean(sub_sim))` of draws.
 - **Watch out**: subsampling keeps the other conditions fixed and uses unadjusted p, so it shows the signal is not just a sample-size effect, not that it would pass FDR at n = 15.
 :::
 
