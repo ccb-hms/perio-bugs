@@ -2586,6 +2586,98 @@ cooc_figure(columns, cooc_title_all)
 
 In the 62 periodontitis patients, the decreased genera still co-vary (combined median 0.23) and opposite pairs stay apart, but the increased pairs fall to the level of random pairs (0.09, p = 0.052, against 0.23 in the same studies' healthy participants).
 
+# Where do these genera live in the healthy mouth?
+
+The Human Microbiome Project sampled nine sites in the mouths of the same healthy people. The figure shows whether the genera that rise in periodontitis already live in the gum pocket in health, or mainly elsewhere in the mouth.
+
+```{r oral-habitat}
+#| fig-width: 16
+#| fig-height: 9.5
+#| fig-cap: "Prevalence (A) and mean relative abundance (B) of the periodontitis-associated genera across the nine oral sites of the Human Microbiome Project (healthy participants, first visit, 16S V3–V5). A: share of samples from that site with the genus at 0.1% relative abundance or more. B: the genus's share of reads, averaged over the site's samples, in percent (label). Colour is scaled within each genus on a log scale, relative to its highest site, so it shows where each genus peaks rather than how genera compare in abundance. Rows: the periodontitis-associated genera present in HMP under the same name, ordered within each direction by prevalence in subgingival plaque minus mean prevalence at the seven non-plaque sites (plaque-associated at top). Both panels have the same rows. Genera at 0% prevalence at five or more sites are left out. Columns: sites, with the number of samples, grouped by the three oral community types of Segata et al. 2012 (plaque; buccal mucosa, gingiva and palate; tongue, saliva, tonsils and throat)."
+# precomputed by scripts/hmp_oral_prevalence.R (all nine oral sites)
+# sites grouped into the three community types of Segata et al. 2012 (same HMP samples)
+site_levels <- c("Subgingival Plaque", "Supragingival Plaque", "Buccal Mucosa", "Attached Keratinized Gingiva",
+                 "Hard Palate", "Tongue Dorsum", "Saliva", "Palatine Tonsils", "Throat")
+site_labels <- c("Sub-\ngingival\nplaque", "Supra-\ngingival\nplaque", "Buccal\nmucosa", "Attached\ngingiva",
+                 "Hard\npalate", "Tongue\ndorsum", "Saliva", "Palatine\ntonsils", "Throat")
+site_groups <- setNames(rep(c("Plaque", "Buccal mucosa, gingiva, palate", "Tongue, saliva, tonsils, throat"),
+                            c(2, 3, 4)), site_levels)
+hmp_sites <- readRDS("../../output/hmp_oral_prevalence.rds")
+site_n <- distinct(hmp_sites, site, samples)
+
+oral_habitat <- perio_genera |>
+  select(taxon, direction) |>
+  inner_join(select(hmp_sites, site, taxon, prevalence = prevalence_01, abundance = mean_abundance), by = "taxon") |>
+  mutate(plaque_bias = prevalence[site == "Subgingival Plaque"] -
+           mean(prevalence[!site %in% c("Subgingival Plaque", "Supragingival Plaque")]),
+         .by = taxon)
+# genera at 0% prevalence (rounded) at five or more of the nine sites are left out of the figure
+habitat_rare <- oral_habitat |>
+  summarise(zero_sites = sum(round(100 * prevalence) == 0), .by = taxon) |>
+  filter(zero_sites >= 5) |>
+  pull(taxon)
+
+habitat_plot <- oral_habitat |>
+  filter(!taxon %in% habitat_rare) |>
+  mutate(habitat = factor(site_groups[site], levels = unique(site_groups)),
+         site = factor(site, levels = site_levels,
+                       labels = paste0(site_labels, "\n(", site_n$samples[match(site_levels, site_n$site)], ")")),
+         direction = factor(direction, levels = c("increased", "decreased"),
+                            labels = c("Increased in\nperiodontitis", "Decreased in\nperiodontitis")),
+         taxon = fct_reorder(taxon, plaque_bias))
+
+# abundance labels in percent of reads, with fewer decimals for larger values
+pct_label <- \(a) {
+  p <- 100 * a
+  case_when(p == 0 ~ "0", p < 0.01 ~ "<0.01", p < 1 ~ sprintf("%.2f", p),
+            p < 10 ~ sprintf("%.1f", p), TRUE ~ sprintf("%.0f", p))
+}
+# one heatmap; d has columns value (fill), label and dark (white text)
+habitat_panel <- function(d, fill_scale) {
+  ggplot(d, aes(site, taxon)) +
+    geom_tile(aes(fill = value), color = "white", linewidth = 0.6) +
+    geom_text(aes(label = label, color = dark), size = 2.7) +
+    scale_color_manual(values = c(`TRUE` = "white", `FALSE` = "grey20"), guide = "none") +
+    fill_scale +
+    scale_x_discrete(position = "top") +
+    guides(fill = guide_colourbar(title.position = "top", title.hjust = 0.5)) +
+    facet_grid(direction ~ habitat, scales = "free", space = "free", switch = "y") +
+    labs(x = NULL, y = NULL) +
+    theme(axis.text.y = element_text(face = "italic"), strip.placement = "outside",
+          strip.text.y.left = element_text(angle = 0, face = "bold"), strip.text.x = element_text(face = "bold"),
+          panel.grid = element_blank(), panel.spacing.x = unit(0.25, "cm"),
+          legend.position = "top", legend.title = element_text(size = 9), legend.key.width = unit(1.2, "cm"))
+}
+prev_panel <- habitat_panel(
+  mutate(habitat_plot, value = prevalence, label = round(100 * prevalence), dark = prevalence > 0.55),
+  scale_fill_gradient(low = "#f7f7f7", high = "#08306b", labels = scales::percent, limits = c(0, 1),
+                      name = "Prevalence (≥ 0.1% of reads)")
+)
+abund_panel <- habitat_panel(
+  # colour scaled within each genus: log10 of abundance relative to the genus's highest site, floored at 1/100
+  habitat_plot |>
+    mutate(value = pmax(log10(abundance / max(abundance)), -2), .by = taxon) |>
+    mutate(label = pct_label(abundance), dark = value > -0.75),
+  scale_fill_gradient(low = "#f7f7f7", high = "#08306b", limits = c(-2, 0), breaks = c(-2, -1, 0),
+                      labels = c("≤ 1/100", "1/10", "Highest site"),
+                      name = "Mean relative abundance,\nrelative to the genus's highest site")
+) +
+  theme(axis.text.y = element_blank(), axis.ticks.y = element_blank(), strip.text.y.left = element_blank())
+
+# values quoted in the text: prevalence, and mean relative abundance in percent of reads
+hp <- \(g, s) sprintf("%.0f%%", 100 * with(oral_habitat, prevalence[taxon == g & site == s]))
+ha <- \(g, s) paste0(pct_label(with(oral_habitat, abundance[taxon == g & site == s])), "%")
+ha_range <- \(g, sites) with(filter(oral_habitat, taxon == g, site %in% sites),
+                             paste0(pct_label(min(abundance)), "–", pct_label(max(abundance)), "%"))
+soft <- c("Attached Keratinized Gingiva", "Buccal Mucosa", "Hard Palate")
+
+prev_panel + abund_panel + plot_annotation(tag_levels = "A")
+```
+
+Most periodontitis-decreased genera fall into two groups. *Streptococcus*, *Haemophilus* and *Gemella* are common throughout the mouth and most abundant on the soft tissues. *Streptococcus*, for example, makes up `r ha_range("Streptococcus", soft)` of reads on the gingiva, cheek and palate but `r ha("Streptococcus", "Subgingival Plaque")` in subgingival plaque. *Corynebacterium*, *Kingella* and *Cardiobacterium* live mainly in plaque: *Corynebacterium* is in `r hp("Corynebacterium", "Subgingival Plaque")` of subgingival plaque samples but only `r hp("Corynebacterium", "Tongue Dorsum")` of tongue samples.
+
+The periodontitis-increased genera vary more. *Porphyromonas*, *Prevotella* and *Fusobacterium* occur in most samples at every site. *Treponema* and *Tannerella* are most common below the gumline: *Treponema* is in `r hp("Treponema", "Subgingival Plaque")` of subgingival samples and `r hp("Treponema", "Supragingival Plaque")` of supragingival ones. *Peptostreptococcus* is the exception, more common on the tongue (`r hp("Peptostreptococcus", "Tongue Dorsum")`) than in subgingival plaque (`r hp("Peptostreptococcus", "Subgingival Plaque")`). These healthy people were sampled once, so the data show where genera live, not where periodontitis taxa come from.
+
 # References
 
 - Friedman J, Alm EJ. Inferring correlation networks from genomic survey data. *PLoS Comput Biol*. 2012;8(9):e1002687.
