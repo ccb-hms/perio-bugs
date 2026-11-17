@@ -1,4 +1,4 @@
-# enrichment of the PerioSigDB periodontitis consensus signatures in colorectal cancer (CRC) vs control
+# enrichment of the PerioSigDB periodontitis-associated genera in colorectal cancer (CRC) vs control
 # stool metagenomes from curatedMetagenomicData, among all BugSigDB signatures (as in Figure 3 of the
 # BugSigDB paper, Geistlinger et al. 2024; vignettes/Figure3.Rmd in waldronlab/BugSigDBPaper)
 # used by reports/metadata_options/report.qmd
@@ -22,22 +22,26 @@ library(EnrichmentBrowser)
 
 set.seed(1)
 
-# PerioSigDB consensus signatures at genus level ----
+# PerioSigDB periodontitis-associated genera ----
 
-consensus <- readRDS('output/bugsigdb_semantic_similarity.rds')$consensus
-perio <- readRDS('output/perio_bugs_corrected.rds')
+# as in reports/metadata_options/report.qmd: each signature's taxa collapsed to genus (MetaPhlAn g__), then an
+# exact binomial test of increased vs decreased signatures against 50%, unadjusted p < 0.05; studies the
+# full-text review proposes excluding are left out
+perio <- readRDS('output/perio_bugs_corrected.rds') |>
+  filter(!grepl('^proposed exclusion', `Review status`))
+genera <- function(x) unique(sub('^.*g__([^|]+).*$', '\\1', x[grepl('g__', x)]))
+perio_genera <- tibble(direction = perio$`Abundance in Group 1`, genus = map(perio$`MetaPhlAn taxon names`, genera)) |>
+  unnest(genus) |>
+  dplyr::count(genus, direction) |>  # count is masked by the Bioconductor packages
+  pivot_wider(names_from = direction, values_from = n, values_fill = 0) |>
+  mutate(p = map2_dbl(increased, increased + decreased, \(k, n) binom.test(k, n, p = 0.5)$p.value),
+         direction = case_when(increased > decreased ~ 'increased', decreased > increased ~ 'decreased')) |>
+  filter(p < 0.05, !is.na(direction))
 
-# terminal NCBI ID -> genus, from the paired MetaPhlAn lineage strings
-id_genus <- tibble(ids = unlist(perio$`NCBI Taxonomy IDs`), names = unlist(perio$`MetaPhlAn taxon names`)) |>
-  distinct() |>
-  mutate(
-    id = paste0('NCBITaxon:', sub('^.*[|]', '', ids)),
-    genus = ifelse(grepl('g__', names), sub('^.*g__([^|]+).*$', '\\1', names), NA)
-  ) |>
-  distinct(id, genus)
-
-perio_sigs <- map(consensus, \(ids) sort(unique(na.omit(id_genus$genus[id_genus$id %in% ids]))))
-names(perio_sigs) <- paste0('PerioSigDB_consensus_', names(perio_sigs))
+perio_sigs <- map(c(increased = 'increased', decreased = 'decreased'),
+                  \(d) sort(perio_genera$genus[perio_genera$direction == d]))
+names(perio_sigs) <- paste0('PerioSigDB_genera_', names(perio_sigs))
+stopifnot(lengths(perio_sigs) == c(19, 12))
 
 # BugSigDB signatures (all except periodontitis) ----
 

@@ -76,7 +76,11 @@ review_exclusions <- tribble(
   'Study 155',             'no periodontally healthy group; only spirochetes (morphotype) tested at site level',
   'Study 134',             'duplicate of Study 1690 (PMID 21375703), with a subset of its taxa',
   'Study 1690',            'pilot data shown without per-taxon tests (if kept: add Prevotella sp. OT306, map Selenomonas sp. to Mitsuokella sp. OT131, drop C. sputigena)',
-  'Study 144',             'curated groups (189 vs 635 chronic periodontitis) and definitions do not appear in the paper; likely from another study'
+  'Study 144',             'curated groups (189 vs 635 chronic periodontitis) and definitions do not appear in the paper; likely from another study',
+  # systemic comorbidity in the compared groups themselves (the curation meant to exclude these comparisons)
+  'Study 126',             'systemic comorbidity: all participants are dyspepsia patients (both compared groups)',
+  'Study 766',             'systemic comorbidity: the periodontitis group includes patients with coronary artery disease, diabetes and hypertension (Table S1); the healthy group excluded diabetes',
+  'Study 2025-187',        'systemic comorbidity: both groups include participants with hypertension, high cholesterol or diabetes (Appendix Table 2); only cancer and inflammatory bowel disease were excluded'
 )
 
 # ---- rules applied to the extracted values ----
@@ -115,6 +119,98 @@ differs <- function(a, b) {
   na <- suppressWarnings(as.numeric(a))
   nb <- suppressWarnings(as.numeric(b))
   ifelse(!is.na(na) & !is.na(nb), abs(na - nb) > pmax(0.051, 0.02 * abs(nb)), normalise(a) != normalise(b))
+}
+
+# ---- smoking scope and confounder review ----
+
+# variable names in BugSigDB's terms
+confounder_terms <- c(smoking = 'smoking status', gender = 'sex')
+# judgement calls on the reviewer's output
+confounder_drop <- list(
+  # the curated contrast is within the HIV-negative participants: restriction, not control
+  'Study 1874' = 'HIV infection'
+)
+
+# curated smoker percentages that count former smokers too (the paper gives no current-smoker figure);
+# the convention is current smokers, so these are left for curators
+ever_smokers <- c('Study 1137', 'Study 153', 'Study 1687')
+
+# per-study answers, the smoker counts to set to 0 (smokers excluded by design but the curated value says
+# otherwise or is missing) and the items left for curators
+read_smoking_review <- function(dir = 'output/llm_annotation/smoking', perio_bugs = NULL) {
+  files <- list.files(dir, pattern = '\\.json$', full.names = TRUE)
+  terms <- function(x, study) {
+    x <- unlist(x)
+    x <- setdiff(coalesce(confounder_terms[x], x), confounder_drop[[study]])
+    if (length(x)) paste(x, collapse = '; ') else NA_character_
+  }
+  summary <- map_dfr(files, function(f) {
+    j <- jsonlite::fromJSON(f, simplifyVector = FALSE)
+    s <- j$smoking
+    method <- \(v) coalesce(j$handling[[v]]$method, NA_character_)
+    num <- \(x) if (is.null(x)) NA_real_ else as.numeric(x)
+    tibble(
+      Study = j$study, scope = s$scope, smokers_in_signature = s$smokers_in_signature,
+      smoking_population = s$population,
+      paper_group_0_percent = num(s$paper_group_0_percent), paper_group_1_percent = num(s$paper_group_1_percent),
+      smoking_confidence = s$confidence, smoking_quote = s$quote, smoking_location = s$location,
+      smoking_note = s$note,
+      smoking_method = method('smoking'), age_method = method('age'), sex_method = method('sex'),
+      matched_on = terms(j$matched_on, j$study), confounders_controlled_for = terms(j$confounders_controlled_for, j$study),
+      fields_quote = coalesce(j$fields_quote, NA_character_), fields_location = coalesce(j$fields_location, NA_character_),
+      summary = j$summary
+    )
+  })
+  if (is.null(perio_bugs)) return(summary)
+
+  curated <- distinct(perio_bugs, Study, .keep_all = TRUE) |>
+    filter(Study %in% summary$Study) |>
+    select(Study, matches('^Group [01] (num|percent) smokers$')) |>
+    mutate(across(-Study, as_char)) |>
+    pivot_longer(-Study, names_to = 'manual_column', values_to = 'curated')
+  excluded_by_design <- summary |>
+    filter(scope == 'smokers excluded by design', smoking_confidence == 'high')
+  smokers <- curated |>
+    filter(Study %in% excluded_by_design$Study, is.na(curated) | as.numeric(curated) != 0) |>
+    left_join(select(excluded_by_design, Study, quote = smoking_quote, location = smoking_location, note = summary),
+              by = 'Study') |>
+    mutate(field = manual_column, proposed = '0', confidence = 'high',
+           reason = 'smokers were excluded from the study, so the compared groups have no smokers')
+
+  percent <- curated |>
+    filter(grepl('percent', manual_column)) |>
+    mutate(group = sub('^Group ([01]).*', '\\1', manual_column))
+  paper <- summary |>
+    select(Study, `0` = paper_group_0_percent, `1` = paper_group_1_percent) |>
+    pivot_longer(-Study, names_to = 'group', values_to = 'paper')
+  flags <- bind_rows(
+    # smoking figures that do not describe the signature's participants
+    summary |>
+      filter(!scope %in% c('signature participants', 'smokers excluded by design') |
+               smokers_in_signature %in% 'unclear') |>
+      transmute(Study, manual_column = 'smoking scope', proposed = paste0(scope, '; smokers in signature: ', smokers_in_signature),
+                quote = smoking_quote, location = smoking_location, confidence = smoking_confidence,
+                note = paste(summary, smoking_note),
+                reason = 'smoking figures may not describe the participants whose samples produced the signature'),
+    # curated percentages of current or former smokers
+    summary |>
+      filter(Study %in% ever_smokers) |>
+      transmute(Study, manual_column = 'Group 1 percent smokers',
+                curated = percent$curated[match(paste(Study, manual_column), paste(percent$Study, percent$manual_column))],
+                quote = smoking_quote, location = smoking_location,
+                confidence = smoking_confidence, note = smoking_note,
+                reason = 'the paper counts current and former smokers together; the convention is current smokers only'),
+    # paper percentages that differ from the curated ones
+    percent |>
+      inner_join(paper, by = c('Study', 'group')) |>
+      filter(!is.na(paper), is.na(curated) | abs(paper - as.numeric(curated)) > 1) |>
+      anti_join(smokers, by = c('Study', 'manual_column')) |>
+      left_join(select(summary, Study, quote = smoking_quote, location = smoking_location,
+                       confidence = smoking_confidence, note = smoking_note), by = 'Study') |>
+      transmute(Study, manual_column, curated, proposed = as.character(paper), quote, location, confidence, note,
+                reason = 'smoking and confounder review: the paper\'s percentage of current smokers differs; not changed')
+  )
+  list(summary = summary, smokers = smokers, flags = flags)
 }
 
 apply_review <- function(perio_bugs, run_dir = 'output/llm_annotation/final',
@@ -210,6 +306,33 @@ apply_review <- function(perio_bugs, run_dir = 'output/llm_annotation/final',
     ) |>
     select(-any_of(names(new_fields)[-1]))
 
+  # smoking scope and confounder review of the studies reporting smokers (scripts/llm_annotation/
+  # smoking_confounder_instructions.md): its matched / adjusted variables replace the first review's
+  smoking <- read_smoking_review(perio_bugs = perio_bugs)
+  write.csv(smoking$summary, 'output/llm_annotation/smoking_review.csv', row.names = FALSE)
+  first_review <- distinct(perio_bugs, Study, .keep_all = TRUE) |>
+    select(Study, `Matched on`, `Confounders controlled for`) |>
+    pivot_longer(-Study, names_to = 'manual_column', values_to = 'curated')
+  confounder_changes <- smoking$summary |>
+    transmute(Study, `Matched on` = matched_on, `Confounders controlled for` = confounders_controlled_for) |>
+    pivot_longer(-Study, names_to = 'manual_column', values_to = 'proposed') |>
+    left_join(first_review, by = c('Study', 'manual_column')) |>
+    filter(!Study %in% review_exclusions$Study, coalesce(proposed, '') != coalesce(curated, '')) |>
+    left_join(select(smoking$summary, Study, quote = fields_quote, location = fields_location, note = summary),
+              by = 'Study') |>
+    mutate(reason = 'smoking and confounder review: variables matched on or adjusted for in the analysis that produced the signature',
+           confidence = 'high')
+  smoker_changes <- smoking$smokers |>
+    filter(!Study %in% review_exclusions$Study)
+  for (ch in list(confounder_changes, smoker_changes)) {
+    for (i in seq_len(nrow(ch))) {
+      col <- ch$manual_column[i]
+      rows <- perio_bugs$Study == ch$Study[i]
+      perio_bugs[[col]][rows] <- if (is.numeric(perio_bugs[[col]])) as.numeric(ch$proposed[i]) else ch$proposed[i]
+    }
+  }
+  changes <- bind_rows(changes, mutate(confounder_changes, field = manual_column), smoker_changes)
+
   # the curators' diagnostic method (raw overview sheets, dropped when PerioSigDB was first built)
   overview <- readRDS('output/overview_merged.rds')
   perio_bugs$`Diagnostic method` <- trimws(gsub('[[:space:]]+', ' ',
@@ -235,7 +358,8 @@ apply_review <- function(perio_bugs, run_dir = 'output/llm_annotation/final',
     studies |>
       filter(!comparison_found | comparison_differs, !Study %in% review_exclusions$Study) |>
       transmute(Study, manual_column = 'comparison', note = comparison_note,
-                reason = 'curated comparison not found as such in the paper (subgroups pooled but tested separately, or group sizes absent)')
+                reason = 'curated comparison not found as such in the paper (subgroups pooled but tested separately, or group sizes absent)'),
+    filter(smoking$flags, !Study %in% review_exclusions$Study)
   )
 
   bind_rows(
