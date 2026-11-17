@@ -2588,7 +2588,7 @@ In the 62 periodontitis patients, the decreased genera still co-vary (combined m
 
 # Where do these genera live in the healthy mouth?
 
-The Human Microbiome Project sampled nine sites in the mouths of the same healthy people. The figure shows whether the genera that rise in periodontitis already live in the gum pocket in health, or mainly elsewhere in the mouth.
+The Human Microbiome Project sampled nine sites in the mouths of the same healthy people. The figure shows at which of these sites each periodontitis-associated genus lives in health, for both the increased and the decreased genera.
 
 ```{r oral-habitat}
 #| fig-width: 16
