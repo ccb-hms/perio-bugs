@@ -44,3 +44,7 @@ output/hmp_oral_prevalence.rds
 output/hmp_subgingival_correlation.rds
 output/oral_taxon_similarity.rds
 reports/metadata_options/llm_review/
+
+# paper figures: plotting data written by the report, and the drawn figures
+output/figure_data/
+figures/output/
