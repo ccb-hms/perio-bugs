@@ -1,5 +1,6 @@
 # compare LLM-extracted annotation (output/llm_annotation/<run>/*.json, see extraction_instructions.md)
-# with the manual curation (output/perio_bugs_corrected.rds), without changing the manual curation
+# with the manual curation before the review's own changes (output/perio_bugs_corrected_prereview.rds, written by
+# scripts/5-join_overview_and_microbe.R --corrected), without changing the manual curation
 #
 # usage: Rscript scripts/llm_annotation/compare.R <run> [<source run> ...]
 # with source runs, the extractions are taken from them (a study in a later run replaces the same study
@@ -29,7 +30,7 @@ json_files <- map_dfr(source_dirs, \(d) tibble(file = list.files(d, pattern = '[
   slice_tail(n = 1, by = study_file) |>
   pull(file)
 
-manual <- readRDS('output/perio_bugs_corrected.rds') |>
+manual <- readRDS('output/perio_bugs_corrected_prereview.rds') |>
   distinct(Study, .keep_all = TRUE)
 
 # extracted field -> manual column

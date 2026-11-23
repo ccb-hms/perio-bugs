@@ -48,3 +48,9 @@ reports/metadata_options/llm_review/
 # paper figures: plotting data written by the report, and the drawn figures
 output/figure_data/
 figures/output/
+
+# p < 0.05 versions of the outputs (PERIO_P05=1)
+output/*_p05.rds
+output/figure_data_p05/
+figures/output_p05/
+reports/metadata_options/report_p05.html

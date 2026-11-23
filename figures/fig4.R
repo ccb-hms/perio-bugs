@@ -14,10 +14,11 @@ source("genus_heatmap.R")  # panel_genus_heatmap(), GENUS_HEATMAP_HEIGHT
 LABEL_OFFSETS <- tribble(
   ~short,            ~dx,    ~dy,    ~hjust,
   "CRC",             0,      -0.04,  0.5,
-  "HNC",             0,      -0.035, 0.5,
+  "HNC",             0,      0.035,  0.5,
   "RA mouth",        -0.02,  0,      1,
   "COVID-19 airway", 0,      -0.035, 0.5,
   "Smoking",         0.022,  0,      0,
+  "Smoking mouth",   0.022,  0,      0,
   "COVID-19 gut",    -0.022, 0.012,  1,
   "UC gut",          -0.02,  -0.012, 1
 )
@@ -73,7 +74,9 @@ overview_points <- function(rows) {
     mutate(dx = coalesce(dx, 0), dy = coalesce(dy, -0.035), hjust = coalesce(hjust, 0.5))
 }
 
-pts <- overview_points(rows)
+pts <- overview_points(rows) |>
+  # the body site in brackets, e.g. "RA (mouth)"
+  mutate(label = str_replace(short, " (mouth|gut|airway)$", " (\\1)"))
 UNIT_MAX <- max(UNIT_MAX, pts$units)   # never drop a point off the size scale
 x0 <- -0.2; x1 <- 0.36; y0 <- -0.34; y1 <- 0.42
 pad <- 0.012
@@ -93,7 +96,7 @@ p_b <- ggplot(pts, aes(px, py)) +
   geom_text(data = axis_ends, aes(x, y, label = label, hjust = hjust, vjust = vjust), size = 5.6 / .pt,
             colour = "grey40", family = "Arial") +
   geom_point(aes(size = units, fill = body_site), shape = 21, colour = "grey15", stroke = 0.3, alpha = 0.9) +
-  geom_text(aes(x = px + dx, y = py + dy, label = short, hjust = hjust), size = 6 / .pt, colour = "grey10",
+  geom_text(aes(x = px + dx, y = py + dy, label = label, hjust = hjust), size = 6 / .pt, colour = "grey10",
             family = "Arial") +
   scale_size_area(max_size = MAX_SIZE, limits = c(0, UNIT_MAX), guide = "none") +
   scale_fill_manual(values = pal_site, guide = "none") +

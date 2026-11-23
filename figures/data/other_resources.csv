@@ -1,3 +1,5 @@
-resource,papers,signatures,placeholder
-Resource A,34,52,TRUE
-Resource B,15,21,TRUE
+resource,papers,signatures
+Disbiome,33,61
+dbBact,11,29
+MicrobiomeAnalyst,4,4
+Amadis,1,2

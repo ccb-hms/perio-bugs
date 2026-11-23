@@ -26,6 +26,27 @@ if (corrected) {
   diff_species <- filter(diff_species, !Number %in% names(duplicate_studies))
 }
 
+# add the eligible studies the curated data lacked (see scripts/llm_annotation/added_studies.R): overview rows
+# for the studies the curators never extracted, and the signatures of all of them
+if (corrected) {
+  source('scripts/llm_annotation/apply_review.R')
+  source('scripts/llm_annotation/added_studies.R')
+  new_overview <- added_overview()
+  stopifnot(!any(new_overview$Number %in% overview_cleaned$Number))
+  overview_cleaned <- bind_rows(overview_cleaned, new_overview)
+  new_taxa <- added_taxa()
+  stopifnot(!any(new_taxa$Number %in% diff_species$Number))
+  diff_species <- bind_rows(diff_species, new_taxa)
+
+  # corrections to the signatures' taxa from the taxa review against the papers, and remapped IDs
+  # (scripts/llm_annotation/resolve_taxa_review.R); the state before them is what the review checked
+  saveRDS(diff_species, 'output/diff_species_corrected_prereview.rds')
+  source('scripts/llm_annotation/apply_taxa_corrections.R')
+  if (file.exists('output/llm_annotation/taxa_review/corrections.csv')) {
+    diff_species <- apply_taxa_corrections(diff_species)
+  }
+}
+
 # add PMIDs to overview
 overview_cleaned <- overview_cleaned |> 
   select(-PMID) |> 
@@ -81,7 +102,9 @@ perio_bugs <- perio_bugs |>
   relocate(Experiment, .before = `Location of subjects`)
 
 # corrections and new fields from the full-text review (see scripts/llm_annotation/apply_review.R)
+# the state before the review is what scripts/llm_annotation/compare.R compares the extractions with
 if (corrected) {
+  saveRDS(perio_bugs, 'output/perio_bugs_corrected_prereview.rds')
   source('scripts/llm_annotation/apply_review.R')
   perio_bugs <- apply_review(perio_bugs)
 }

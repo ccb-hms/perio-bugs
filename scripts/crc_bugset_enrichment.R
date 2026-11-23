@@ -20,12 +20,17 @@ library(tidyr)
 library(SummarizedExperiment)
 library(EnrichmentBrowser)
 
+# taxa (or genera) count as periodontitis-associated at FDR < 0.05 (Benjamini-Hochberg). PERIO_P05=1 uses
+# unadjusted p < 0.05 instead and writes a _p05 copy of the output, to check the results do not depend on the cut-off
+fdr_only <- Sys.getenv('PERIO_P05') != '1'
+suffix <- if (fdr_only) '' else '_p05'
+
 set.seed(1)
 
 # PerioSigDB periodontitis-associated genera ----
 
 # as in reports/metadata_options/report.qmd: each signature's taxa collapsed to genus (MetaPhlAn g__), then an
-# exact binomial test of increased vs decreased signatures against 50%, unadjusted p < 0.05; studies the
+# exact binomial test of increased vs decreased signatures against 50%, FDR < 0.05; studies the
 # full-text review proposes excluding are left out
 perio <- readRDS('output/perio_bugs_corrected.rds') |>
   filter(!grepl('^proposed exclusion', `Review status`))
@@ -35,13 +40,14 @@ perio_genera <- tibble(direction = perio$`Abundance in Group 1`, genus = map(per
   dplyr::count(genus, direction) |>  # count is masked by the Bioconductor packages
   pivot_wider(names_from = direction, values_from = n, values_fill = 0) |>
   mutate(p = map2_dbl(increased, increased + decreased, \(k, n) binom.test(k, n, p = 0.5)$p.value),
+         fdr = p.adjust(p, method = 'BH'),
          direction = case_when(increased > decreased ~ 'increased', decreased > increased ~ 'decreased')) |>
-  filter(p < 0.05, !is.na(direction))
+  filter(if (fdr_only) fdr < 0.05 else p < 0.05, !is.na(direction))
 
 perio_sigs <- map(c(increased = 'increased', decreased = 'decreased'),
                   \(d) sort(perio_genera$genus[perio_genera$direction == d]))
 names(perio_sigs) <- paste0('PerioSigDB_genera_', names(perio_sigs))
-stopifnot(lengths(perio_sigs) == c(19, 12))
+stopifnot(lengths(perio_sigs) == if (fdr_only) c(14, 9) else c(24, 13))  # as the report finds them
 
 # BugSigDB signatures (all except periodontitis) ----
 
@@ -179,5 +185,5 @@ saveRDS(
     all_results = results,
     session = session
   ),
-  'output/crc_bugset_enrichment.rds'
+  paste0('output/crc_bugset_enrichment', suffix, '.rds')
 )

@@ -47,6 +47,8 @@ review_decisions <- bind_rows(
            'current smokers (curated value included 4 former smokers)'),
   decision('1673', c('group_1_num_smokers', 'group_1_percent_smokers'), c(0, 0),
            'current smokers were excluded; the curated 29% are former smokers'),
+  decision('added-30710838', c('group_0_percent_smokers', 'group_1_percent_smokers'), c(57.1, 27.3),
+           'Table 1 gives current smokers as a percentage (controls 57.1, patients 27.3); counts cannot be derived'),
   decision('2017', 'group_1_sample_size', 169, '169 chronic periodontitis subjects; 109 appears nowhere in the paper'),
   decision('2310', c('group_1_sample_size', 'periodontitis_classification'), c(29, 'Chronic periodontitis'),
            'the curated definition is the paper\'s "advanced adult periodontitis" group (n = 29); the paper has no aggressive periodontitis group'),
@@ -76,7 +78,6 @@ review_exclusions <- tribble(
   'Study 155',             'no periodontally healthy group; only spirochetes (morphotype) tested at site level',
   'Study 134',             'duplicate of Study 1690 (PMID 21375703), with a subset of its taxa',
   'Study 1690',            'pilot data shown without per-taxon tests (if kept: add Prevotella sp. OT306, map Selenomonas sp. to Mitsuokella sp. OT131, drop C. sputigena)',
-  'Study 144',             'curated groups (189 vs 635 chronic periodontitis) and definitions do not appear in the paper; likely from another study',
   # systemic comorbidity in the compared groups themselves (the curation meant to exclude these comparisons)
   'Study 126',             'systemic comorbidity: all participants are dyspepsia patients (both compared groups)',
   'Study 766',             'systemic comorbidity: the periodontitis group includes patients with coronary artery disease, diabetes and hypertension (Table S1); the healthy group excluded diabetes',
@@ -230,6 +231,15 @@ apply_review <- function(perio_bugs, run_dir = 'output/llm_annotation/final',
     mutate(across(-Study, as_char)) |>
     pivot_longer(-Study, names_to = 'manual_column', values_to = 'curated')
   evidence <- left_join(extractions, current, by = c('Study', 'manual_column'))
+  # studies sequenced for 16S (curated or extracted), and studies with plaque values (curated or extracted)
+  sequenced_16s <- evidence |>
+    filter(field == 'sequencing_type', coalesce(curated, extracted) == '16S') |>
+    pull(Study)
+  with_plaque <- evidence |>
+    filter(field %in% c('group_0_plaque', 'group_1_plaque'),
+           !is.na(curated) | (Study %in% aligned & confident(confidence) & !is.na(suppressWarnings(as.numeric(extracted))))) |>
+    pull(Study) |>
+    unique()
 
   rules <- bind_rows(
     # numbers the paper reports that the curated data lacks
@@ -255,7 +265,19 @@ apply_review <- function(perio_bugs, run_dir = 'output/llm_annotation/final',
     evidence |>
       filter(Study %in% aligned, field %in% c('sequencing_type', 'sequencing_platform'), is.na(curated),
              confident(confidence), extracted %in% c(vocab$sequencing_type, vocab$sequencing_platform)) |>
-      mutate(proposed = extracted, reason = 'reported in the paper, missing in the curated data')
+      mutate(proposed = extracted, reason = 'reported in the paper, missing in the curated data'),
+    # 16S variable region missing in the curated data, for 16S sequencing studies (not probe hybridization)
+    evidence |>
+      filter(Study %in% aligned, field == 'variable_region_16s', is.na(curated), confident(confidence),
+             grepl('^[0-9]+$', extracted), Study %in% sequenced_16s) |>
+      mutate(proposed = extracted, reason = 'reported in the paper, missing in the curated data'),
+    # plaque measure missing in the curated data, where the study reports plaque values
+    evidence |>
+      filter(Study %in% aligned, field == 'plaque_measure', is.na(curated), confident(confidence),
+             Study %in% with_plaque) |>
+      mutate(proposed = case_when(grepl('%', extracted) ~ '% sites',
+                                  grepl('index', extracted, ignore.case = TRUE) ~ 'index'),
+             reason = 'reported in the paper, missing in the curated data')
   ) |>
     filter(!is.na(proposed), !is.na(manual_column))
 
@@ -338,10 +360,22 @@ apply_review <- function(perio_bugs, run_dir = 'output/llm_annotation/final',
   perio_bugs$`Diagnostic method` <- trimws(gsub('[[:space:]]+', ' ',
     overview$`Diagnostic Method`[match(sub('Study ', '', perio_bugs$Study), overview$Number)]))
 
-  perio_bugs$`Review status` <- ifelse(
-    perio_bugs$Study %in% review_exclusions$Study,
-    paste('proposed exclusion:', review_exclusions$reason[match(perio_bugs$Study, review_exclusions$Study)]),
-    'included'
+  # studies added from the review (added_studies.R): the extraction's diagnostic method where the curators
+  # have none
+  source('scripts/llm_annotation/added_studies.R', local = TRUE)
+  extracted_method <- filter(extractions, field == 'diagnostic_method')
+  perio_bugs$`Diagnostic method` <- coalesce(
+    perio_bugs$`Diagnostic method`,
+    ifelse(perio_bugs$Study %in% added_studies$Study,
+           extracted_method$extracted[match(perio_bugs$Study, extracted_method$Study)], NA)
+  )
+
+  perio_bugs$`Review status` <- case_when(
+    perio_bugs$Study %in% review_exclusions$Study ~
+      paste('proposed exclusion:', review_exclusions$reason[match(perio_bugs$Study, review_exclusions$Study)]),
+    perio_bugs$Study %in% added_studies$Study ~
+      paste('added:', added_studies$reason[match(perio_bugs$Study, added_studies$Study)]),
+    .default = 'included'
   )
 
   # items left for curators
@@ -368,6 +402,7 @@ apply_review <- function(perio_bugs, run_dir = 'output/llm_annotation/final',
     mutate(flags, action = 'flagged')
   ) |>
     transmute(Study, item = manual_column, curated, proposed, action, reason, confidence, quote, location, note) |>
+    bind_rows(added_log()) |>
     arrange(Study, action, item) |>
     write.csv(log_file, row.names = FALSE)
 

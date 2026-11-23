@@ -10,11 +10,12 @@ OFFSETS <- tribble(
   ~label,            ~dx, ~dy, ~hjust,
   "COVID-19 gut",    -8,  4,   1,
   "GC",              8,   0,   0,
-  "COVID-19 airway", 0,   -13, 0.5,
+  "COVID-19 airway", -7,  -9,  1,
   "COVID-19",        0,   10,  0.5,
-  "PD",              0,   10,  0.5,
+  "PD",              0,   -11, 0.5,
+  "T2D",             0,   10,  0.5,
   "CRC",             0,   10,  0.5,
-  "RA",              0,   10,  0.5,
+  "RA",              0,   -11, 0.5,   # below: the point sits on the shaded area's lower edge
   "HNC",             0,   -11, 0.5,
   "Smoking",         0,   11,  0.5
 )
@@ -40,8 +41,8 @@ p <- ggplot(d, aes(x, y)) +
   geom_text(aes(x = x + dx * PT, y = y + dy * PT, label = label, hjust = hjust,
                 size = NULL, fontface = ifelse(site, "italic", "plain"), colour = site),
             size = ifelse(d$site, 5.5, 6.2) / .pt, family = "Arial", show.legend = FALSE) +
-  # inside the shaded square, clear of the HNC point at its top edge
-  annotate("text", x = 0.99, y = 0.515, label = "Same direction\nas periodontitis", hjust = 1, vjust = 0,
+  # inside the shaded square, clear of the HNC point at its top edge and the RA point at its lower edge
+  annotate("text", x = 0.99, y = 0.58, label = "Same direction\nas periodontitis", hjust = 1, vjust = 0,
            size = 5.5 / .pt, colour = "grey45", lineheight = 0.95, family = "Arial") +
   scale_shape_identity() +
   scale_colour_manual(values = c("TRUE" = "grey35", "FALSE" = "grey10"), guide = "none") +

@@ -20,8 +20,9 @@ scale_fill_share <- function(...) {
 }
 
 HEAT_WIDTH <- DOUBLE
-GENUS_HEATMAP_HEIGHT <- 82
 ROW_H <- 2.9
+# the rows of the longer (increased) block, plus the header above and 15 mm below for the column labels
+GENUS_HEATMAP_HEIGHT <- 12 + max(table(load_fig("fig5_perio_genera")$direction)) * ROW_H + 15
 BAR_W <- 15
 BAR_GAP <- 1
 LEFT <- 24          # room for the increased genus names
@@ -64,6 +65,10 @@ block_data <- function(direction, x0, unit) {
     left_join(select(cols, Condition, xc), by = "Condition") |>
     mutate(yc = row_y[taxon],
            kind = case_when(is.na(n) ~ "none", few ~ "few", .default = "share"),
+           # a significant share inside the grey band (large columns such as All BugSigDB) takes the light colour of
+           # its direction, so every significant cell shows a direction
+           share_plot = if_else(significant & share_plot > 1 / 3 & share_plot < 2 / 3,
+                                if_else(share_plot > 0.5, 2 / 3, 1 / 3), share_plot),
            label = ifelse(kind == "share", paste0(same, "/", n), NA))
   groups <- cols |>
     summarise(xmin = heat_left + min(x) * unit, xmax = heat_left + (max(x) + 1) * unit, .by = group)

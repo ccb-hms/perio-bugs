@@ -79,6 +79,7 @@ studies <- studies |>
 
 # get PMIDs from PMCIDs
 pmcid_to_pmid <- function(pmcid) {
+  Sys.sleep(0.4)  # NCBI allows three requests a second without a key
   res <- entrez_search(db = "pubmed", term = pmcid)
   res$ids
 }
@@ -93,8 +94,21 @@ studies <- select(studies, Number, PMID)
 
 stopifnot(sum(is.na(studies$PMID)) == 0)
 
+# Study numbers are not unique across the curators' files. In "Final selection Yes", study 144 is Schulz et al.
+# 2019 (PMID 30710838). The curated data of study 144 (overview sheet and the taxa list's "Old DATABASE") are
+# Haffajee et al. 2006: 189 healthy and 635 chronic periodontitis subjects, checkerboard DNA-DNA hybridization
+# (PMID 16922925). Schulz 2019 was never extracted; the full-text review adds it as study added-30710838.
+studies <- mutate(studies, PMID = ifelse(Number == '144', '16922925', PMID))
+
+# studies added from the full-text review that have no number of their own in the curators' selection
+# (see scripts/llm_annotation/added_studies.R)
+added_pmids <- tribble(
+  ~Number, ~PMID,
+  'added-30710838', '30710838'
+)
+
 # add previously missing pmids
-studies <- bind_rows(studies, missing_pmids, new_data_pmids)
+studies <- bind_rows(studies, missing_pmids, new_data_pmids, added_pmids)
 
 # add study info
 

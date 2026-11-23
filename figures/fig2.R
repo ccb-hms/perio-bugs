@@ -1,8 +1,9 @@
 # Figure 2. The PerioSigDB consensus taxa, how they co-vary in healthy plaque, and who the studies recruited.
 #
-# A taxa that more PerioSigDB signatures report increased (left) or decreased (right) in periodontitis than
-# the other way; B correlation between pairs of periodontitis-associated genera in healthy subgingival plaque
-# from the Human Microbiome Project; C age, sex and smoking of the health and periodontitis groups in each study.
+# A taxa that more PerioSigDB signatures report increased (top) or decreased (bottom) in periodontitis than the
+# other way, at FDR < 0.05; B correlation between pairs of periodontitis-associated genera in healthy subgingival
+# plaque from the Human Microbiome Project; C age, sex, smoking and periodontal measures of the health and
+# periodontitis groups in each study.
 
 source("common.R")
 
@@ -18,44 +19,44 @@ shorten_taxon <- function(x) {
   str_replace(x, " (bacterium|sp\\.) oral taxon", " oral taxon")
 }
 
-#' Each panel's x range fits its own bars, with a fixed share of the width for the p values (left) and the
-#' participant circles (right), so the two panels have different scales.
-consensus_panel <- function(direction, title, labeller = identity) {
+# both panels share one x scale, with a fixed share of the width for the FDR values (left) and the participant
+# circles (right)
+lo <- -max(taxa$decreased); hi <- max(taxa$increased); span <- hi - lo
+x_p <- lo - 0.3 * span; x_circle <- hi + 0.1 * span; xlim <- c(lo - 0.33 * span, hi + 0.17 * span)
+
+consensus_panel <- function(direction, title, labeller = identity, x_title = TRUE) {
   d <- taxa |>
     filter(.data$direction == !!direction) |>
-    mutate(y = rev(seq_len(n())), strength = if_else(fdr < 0.05, "FDR < 0.05", "p < 0.05 only"))
-  lo <- -max(d$decreased); hi <- max(d$increased); span <- hi - lo
-  x_p <- lo - 0.3 * span; x_circle <- hi + 0.1 * span; xlim <- c(lo - 0.33 * span, hi + 0.17 * span)
+    mutate(y = rev(seq_len(n())))
   bars <- d |>
-    select(y, strength, increased, decreased) |>
+    select(y, increased, decreased) |>
     pivot_longer(c(increased, decreased), names_to = "reported", values_to = "n") |>
     filter(n > 0) |>
     mutate(n = if_else(reported == "decreased", -n, n),
            reported = factor(paste("Reported", reported), levels = c("Reported increased", "Reported decreased")))
   ggplot(d, aes(y = y)) +
-    geom_col(data = bars, aes(x = n, y = y, fill = reported, alpha = strength), width = 0.7, orientation = "y") +
+    geom_col(data = bars, aes(x = n, y = y, fill = reported), width = 0.7, orientation = "y") +
     geom_vline(xintercept = 0, colour = "grey20", linewidth = 0.3) +
-    geom_text(aes(x = x_p, label = if_else(p < 0.001, "<0.001", sprintf("%.3f", p))), hjust = 0,
+    geom_text(aes(x = x_p, label = if_else(fdr < 0.001, "<0.001", sprintf("%.3f", fdr))), hjust = 0,
               size = pt_size(5.3), colour = TEXT_GREY) +
     geom_point(aes(x = x_circle, size = participants), shape = 21, fill = "grey65", colour = "grey20",
                stroke = 0.25) +
     scale_fill_manual(values = c("Reported increased" = INC, "Reported decreased" = DEC), name = "Signatures:",
                       drop = FALSE) +
-    scale_alpha_manual(values = c("FDR < 0.05" = 1, "p < 0.05 only" = 0.4), name = NULL, drop = FALSE) +
-    scale_size_area(max_size = 2.6, limits = c(0, max(taxa$participants)), breaks = c(500, 2000, 5000),
+    scale_size_area(max_size = 1.9, limits = c(0, max(taxa$participants)), breaks = c(500, 2000, 5000),
                     labels = scales::label_comma(), name = "Participants in the studies:") +
     scale_x_continuous(breaks = scales::breaks_extended(6), labels = abs) +
     scale_y_continuous(breaks = d$y, labels = taxon_md(labeller(d$label))) +
     coord_cartesian(xlim = xlim, ylim = c(0.4, nrow(d) + 0.6), expand = FALSE, clip = "off") +
-    labs(x = "Signatures reporting the taxon", y = NULL, title = title) +
-    guides(fill = guide_legend(order = 1), alpha = guide_legend(order = 2, override.aes = list(fill = "grey40")),
-           size = guide_legend(order = 3)) +
+    labs(x = if (x_title) "Signatures reporting the taxon" else NULL, y = NULL, title = title) +
+    guides(fill = guide_legend(order = 1), size = guide_legend(order = 2)) +
     theme(axis.text.y = element_markdown(size = 6),
           axis.ticks.y = element_blank(),
           panel.grid.major = element_blank())  # no gridlines in A
 }
 
-p_up <- consensus_panel("Increased in periodontitis", "Increased in periodontitis", labeller = shorten_taxon)
+p_up <- consensus_panel("Increased in periodontitis", "Increased in periodontitis", labeller = shorten_taxon,
+                        x_title = FALSE)
 p_down <- consensus_panel("Decreased in periodontitis", "Decreased in periodontitis")
 
 # --- B: pair correlations in healthy plaque (HMP) -------------------------------------------------------------
@@ -95,23 +96,21 @@ p_hmp <- ggplot(hp, aes(x = r, y = y)) +
 
 # --- C: the study groups -----------------------------------------------------------------------------------------
 
-source("study_groups.R")  # study_group_row()
-groups <- study_group_row()
+source("study_groups.R")  # study_group_plots()
+groups <- study_group_plots(ncol = 3)
 
 # --- layout ---------------------------------------------------------------------------------------------------
 
-# the increased panel runs the full height on the left; the right column holds the decreased panel, then B, then
-# the three plots of C side by side
+# A on the left, increased above decreased; the right column holds B, then the eight plots of C in rows of three
 n_up <- sum(taxa$direction == "Increased in periodontitis")
 n_down <- sum(taxa$direction == "Decreased in periodontitis")
-# wrapped as one element, so the y titles sit by their own axes, not out by the decreased panel's taxon names
-lower_right <- wrap_elements(full = (p_hmp + labs(tag = "B")) /
-  wrap_elements(full = (groups[[1]] + labs(tag = "C")) + groups[[2]] + groups[[3]] + plot_layout(nrow = 1)) +
-  plot_layout(heights = c(1, 1.45)))
-panels <- (p_up + labs(tag = "A")) + p_down + lower_right +
-  plot_layout(design = c(area(1, 1, 2, 1), area(1, 2), area(2, 2)), widths = c(0.9, 1.22),
-              heights = c(n_down + 1.5, n_up - n_down)) &
-  theme(legend.position = "none")
+left <- (p_up + labs(tag = "A")) / p_down + plot_layout(heights = c(n_up, n_down))
+# wrapped as one element, so the y titles sit by their own axes, not out by the taxon names in A
+groups[[1]] <- groups[[1]] + labs(tag = "C")
+right <- wrap_elements(full = (p_hmp + labs(tag = "B")) /
+  wrap_elements(full = wrap_plots(groups, ncol = 3)) +
+  plot_layout(heights = c(1, 2.6)))
+panels <- left - right + plot_layout(widths = c(0.95, 1.15)) & theme(legend.position = "none")
 
 # one legend row above the panels: bar colours and shading, then circle sizes
 # (suppressWarnings: cowplot measures the text on a device without Arial; the saved figure uses Cairo)

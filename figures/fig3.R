@@ -3,8 +3,7 @@
 # A periodontitis papers and signatures in each resource; B profiling method and C taxonomic rank of
 # PerioSigDB and BugSigDB signatures; D how consistent each condition's signatures are across studies.
 #
-# The rows for other resources come from figures/data/other_resources.csv. Its values are placeholders
-# until the comparable resources are confirmed: replace them and set placeholder to FALSE.
+# The rows for other resources come from figures/data/other_resources.csv, which other_resources.R writes.
 
 source("common.R")
 
@@ -15,34 +14,9 @@ ROW_SHADE <- c(perio = "#dff3ea", plaque = "#e6eef8")            # as in the rep
 PCT <- scales::label_percent()
 
 coverage <- function() {
-  real <- load_fig("fig3_coverage") |> mutate(placeholder = FALSE)
+  real <- load_fig("fig3_coverage")
   other <- read_csv(file.path(FIG_DIR, "data", "other_resources.csv"), show_col_types = FALSE)
-  bind_rows(real, other) |>
-    mutate(y = rev(seq_along(resource)) - 1,
-           label = ifelse(placeholder, paste0(resource, "\n(placeholder)"), resource))
-}
-
-#' Diagonal hatch lines inside rectangles (ggpattern is not available): lines `step` apart along x,
-#' each rising over `run` x units across the bar height, clipped to the rectangle.
-hatch <- function(rects, step, run = step) {
-  pmap_dfr(rects, function(xmin, xmax, ymin, ymax, ...) {
-    extra <- tibble(...) |> select(any_of("col"))  # carry the colour only
-    starts <- seq(xmin - run, xmax, by = step)
-    t0 <- pmax(0, (xmin - starts) / run)
-    t1 <- pmin(1, (xmax - starts) / run)
-    keep <- t1 > t0
-    tibble(x = starts + run * t0, xend = starts + run * t1,
-           y = ymin + (ymax - ymin) * t0, yend = ymin + (ymax - ymin) * t1)[keep, ] |>
-      bind_cols(extra[rep(1, sum(keep)), , drop = FALSE])
-  })
-}
-
-#' Placeholder bars: white with a hatched outline in the bar's colour.
-placeholder_layers <- function(rects, step, run) {
-  list(geom_rect(data = rects, aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax, colour = I(col)),
-                 fill = "white", linewidth = 0.3),
-       geom_segment(data = hatch(rects, step, run), aes(x = x, xend = xend, y = y, yend = yend, colour = I(col)),
-                    linewidth = 0.25))
+  bind_rows(real, other) |> mutate(y = rev(seq_along(resource)) - 1)
 }
 
 value_text <- function(...) geom_text(..., hjust = 0, size = 5.5 / .pt, colour = TEXT_GREY)
@@ -59,17 +33,12 @@ panel_coverage_single <- function() {
     mutate(series = str_to_sentence(series), col = COUNT_COLOURS[series],
            yc = y + ifelse(series == "Papers", h / 2, -h / 2),
            xmin = 0, xmax = value, ymin = yc - h / 2, ymax = yc + h / 2)
-  b <- filter(d, resource == "BugSigDB")
   ggplot() +
-    geom_rect(data = filter(r, !placeholder), aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax,
-                                                  fill = series)) +
-    placeholder_layers(filter(r, placeholder), step = top * 0.022, run = top * 0.022) +
+    geom_rect(data = r, aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax, fill = series)) +
     value_text(data = r, aes(x = value + top * 0.015, y = yc, label = value)) +
-    value_text(data = b, aes(x = papers + top * 0.09, y = y + h / 2,
-                             label = sprintf("(%d also in PerioSigDB)", papers_in_periosigdb))) +
     scale_fill_manual(values = COUNT_COLOURS, name = NULL) +
     scale_x_continuous(limits = c(0, top * 1.12), expand = c(0, 0)) +
-    scale_y_continuous(breaks = d$y, labels = d$label, expand = expansion(add = 0.15)) +
+    scale_y_continuous(breaks = d$y, labels = d$resource, expand = expansion(add = 0.15)) +
     labs(x = "Count", y = NULL, title = "Periodontitis studies in each resource") +
     theme(panel.grid.major.y = element_blank(), axis.ticks.y = element_blank(),
           legend.position = "inside", legend.position.inside = c(0.985, 0.04), legend.justification = c(1, 0),

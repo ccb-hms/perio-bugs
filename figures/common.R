@@ -19,8 +19,10 @@ fig_root <- local({
   while (!dir.exists(file.path(d, "output", "figure_data")) && d != dirname(d)) d <- dirname(d)
   d
 })
-DATA <- file.path(fig_root, "output", "figure_data")
-OUT <- file.path(fig_root, "figures", "output")
+# PERIO_P05=1: the check with p < 0.05 taxa sets (output/figure_data_p05, drawn to figures/output_p05)
+suffix <- if (Sys.getenv("PERIO_P05") == "1") "_p05" else ""
+DATA <- file.path(fig_root, "output", paste0("figure_data", suffix))
+OUT <- file.path(fig_root, "figures", paste0("output", suffix))
 FIG_DIR <- file.path(fig_root, "figures")
 
 load_fig <- function(name) read_csv(file.path(DATA, paste0(name, ".csv")), show_col_types = FALSE)
@@ -67,6 +69,8 @@ ABBREVIATIONS <- c("Alzheimer's disease" = "AD", "Autism spectrum disorder" = "A
                    "Dry eye syndrome" = "Dry eye", "Gastric cancer" = "GC", "Head and neck cancer" = "HNC",
                    "HIV infection" = "HIV", "Parkinson's disease" = "PD", "Rheumatoid arthritis" = "RA",
                    "Schizophrenia" = "SCZ", "Smoking behavior" = "Smoking", "Type I diabetes mellitus" = "T1D",
+                   "Type II diabetes mellitus" = "T2D", "Chronic obstructive pulmonary disease" = "COPD",
+                   "Human papilloma virus infection" = "HPV",
                    "Ulcerative colitis" = "UC", "Unipolar depression" = "MDD")
 abbrev <- function(x) coalesce(unname(ABBREVIATIONS[x]), x)
 

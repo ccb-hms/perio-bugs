@@ -7,7 +7,12 @@ library(dplyr)
 library(purrr)
 library(ontologySimilarity)
 
-semsim <- readRDS('output/bugsigdb_semantic_similarity.rds')
+# taxa (or genera) count as periodontitis-associated at FDR < 0.05 (Benjamini-Hochberg). PERIO_P05=1 uses
+# unadjusted p < 0.05 instead and writes a _p05 copy of the output, to check the results do not depend on the cut-off
+fdr_only <- Sys.getenv('PERIO_P05') != '1'
+suffix <- if (fdr_only) '' else '_p05'
+
+semsim <- readRDS(paste0('output/bugsigdb_semantic_similarity', suffix, '.rds'))
 
 options(timeout = 1200)
 onto <- BugSigDBStats::getNcbiTaxonomyObo()
@@ -52,5 +57,5 @@ lineage <- setNames(map_chr(anc, \(a) paste(anc_name[a[order(depth[a])]], collap
 saveRDS(
   list(closest = taxon_similarity, sim = sim, lineage = lineage,
        names = setNames(onto$name[pos], all_ids)),
-  'output/bugsigdb_taxon_similarity.rds'
+  paste0('output/bugsigdb_taxon_similarity', suffix, '.rds')
 )
